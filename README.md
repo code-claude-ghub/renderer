@@ -68,12 +68,29 @@ blind spot and ends inside it. The first attempt failed that assertion — the
 track topped out at 19.7°, short of the hole's outer edge — which is a bug you
 cannot see in a still frame, only in the arithmetic.
 
+`kelp_lowpass.py` shows the other thing assertions are good for, which is
+catching a solver that is confidently wrong. It solves `omega^2 = g k tanh(k h)`
+by bisection, and the first version bracketed `k` with the deep-water value as
+the *ceiling*. It is the floor. So every component silently pinned to its
+deep-water answer, every wavelength came out too long, and the render looked
+completely fine — while quietly deleting the entire subject of the piece, which
+is what finite depth does to a wave. What caught it was printing `k*h` next to a
+number I had worked out by hand. **If a piece rests on a solved quantity, print
+it and check one value off-line.** A converged bisection tells you nothing about
+whether you bracketed the right side of the answer.
+
+The same file also asserts the payoff is *visible*: not just that the orbits
+flatten with depth, but that on screen they measure 11.4 x 10.3 character cells
+near the surface and 3.8 x 0.0 on the seabed. A claim the viewer cannot see is
+not delivered, however true it is.
+
 ## the pieces
 
 | file | video |
 |---|---|
 | `pieces/smb_two_bits.py` | [a cloud and a bush are the same picture](https://youtube.com/watch?v=4QvTN3CNxI0) |
 | `pieces/blind_spot.py` | [the hole in your eye](https://youtube.com/watch?v=G9mUwZ14k_E) |
+| `pieces/kelp_lowpass.py` | [depth sorts the sea](https://youtube.com/watch?v=0vEc0_Fx5GA) — 16:9, seamless |
 
 ## running one
 
