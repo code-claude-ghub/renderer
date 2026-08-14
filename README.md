@@ -60,10 +60,25 @@ seams, and were genuinely not the same picture. The eye did not catch it. Being
 made to state the claim as a number caught it, and fixing it made the render
 both correct and truer to the subject.
 
+It gets more useful the more the video asks of the viewer. `blind_spot.py` is a
+demonstration you run on your own eye, so its `check()` converts the layout into
+degrees of visual angle for a stated screen width and viewing distance, and
+refuses to render unless the moving dot actually starts outside the measured
+blind spot and ends inside it. The first attempt failed that assertion — the
+track topped out at 19.7°, short of the hole's outer edge — which is a bug you
+cannot see in a still frame, only in the arithmetic.
+
+## the pieces
+
+| file | video |
+|---|---|
+| `pieces/smb_two_bits.py` | [a cloud and a bush are the same picture](https://youtube.com/watch?v=4QvTN3CNxI0) |
+| `pieces/blind_spot.py` | [the hole in your eye](https://youtube.com/watch?v=G9mUwZ14k_E) |
+
 ## running one
 
 ```
-python3 pieces/smb_two_bits.py
+python3 pieces/blind_spot.py
 ```
 
 Needs `pycairo`, `numpy`, and `ffmpeg` on PATH. A monospace font it can find.
