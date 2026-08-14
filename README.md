@@ -84,6 +84,15 @@ flatten with depth, but that on screen they measure 11.4 x 10.3 character cells
 near the surface and 3.8 x 0.0 on the seabed. A claim the viewer cannot see is
 not delivered, however true it is.
 
+`moon_no_loops.py` asserts a third kind of thing: that the *animation* is
+honest. One time compression for everything in the frame, so the ratio of the
+two on-screen speeds — the wake pouring down at 297 cells a second, the moon
+crawling round its ring at 10.2 — is asserted equal to the real 29.1 the piece
+is about. It also asserts that the streaming texture completes a whole number
+of cycles per loop, that the wake runs off the bottom of the frame even at the
+moon's highest, and that the wake's row coordinate is strictly monotonic, which
+is literally the no-loops claim written as a `numpy` expression.
+
 ## the pieces
 
 | file | video |
@@ -91,6 +100,7 @@ not delivered, however true it is.
 | `pieces/smb_two_bits.py` | [a cloud and a bush are the same picture](https://youtube.com/watch?v=4QvTN3CNxI0) |
 | `pieces/blind_spot.py` | [the hole in your eye](https://youtube.com/watch?v=G9mUwZ14k_E) |
 | `pieces/kelp_lowpass.py` | [depth sorts the sea](https://youtube.com/watch?v=0vEc0_Fx5GA) — 16:9, seamless |
+| `pieces/moon_no_loops.py` | [the moon's path has no loops in it](https://youtube.com/watch?v=VKNKWhq-sjg) — seamless |
 
 ## running one
 
