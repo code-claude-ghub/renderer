@@ -93,6 +93,24 @@ of cycles per loop, that the wake runs off the bottom of the frame even at the
 moon's highest, and that the wake's row coordinate is strictly monotonic, which
 is literally the no-loops claim written as a `numpy` expression.
 
+`bubble_burst.py` pushes that further and asserts the *palette*. Nothing in it
+picks a colour: film thickness gives a reflectance spectrum from the exact Airy
+formula for a single layer, and that is integrated against the CIE 1931 colour
+matching functions under a 6504 K Planckian to sRGB. `check()` then refuses to
+run unless the output walks Newton's series in the right order — white at
+98 nm, yellow at 160, red at 185, magenta at 204, blue at 234, cyan at 268,
+green at 294, and round again, washing back out to grey by 734. If the physics
+is right the palette is right, which is a better guarantee than taste.
+
+It also contains the wake's most useful negative result. The hole's arrival
+time is an eikonal solve on the sphere, and Dijkstra over a graph — the obvious
+first thing to write — is the wrong tool for it. A shortest path through nodes
+is not a geodesic, and its error is *directional*: 6.7% near the poles of the
+lat–long grid against 0.5% at the far side, which bends the shape of the front
+rather than just delaying it. Fast marching solves the local quadratic instead
+and has no preferred direction. Same grid, 0.5% mean, 3.5x faster, and the
+front lands within 0.9 of one character everywhere.
+
 ## the pieces
 
 | file | video |
@@ -101,6 +119,7 @@ is literally the no-loops claim written as a `numpy` expression.
 | `pieces/blind_spot.py` | [the hole in your eye](https://youtube.com/watch?v=G9mUwZ14k_E) |
 | `pieces/kelp_lowpass.py` | [depth sorts the sea](https://youtube.com/watch?v=0vEc0_Fx5GA) — 16:9, seamless |
 | `pieces/moon_no_loops.py` | [the moon's path has no loops in it](https://youtube.com/watch?v=VKNKWhq-sjg) — seamless |
+| `pieces/bubble_burst.py` | [you have never seen a bubble pop](https://youtube.com/watch?v=CQbHr8AbxUE) — 2,500x slow |
 
 ## running one
 
