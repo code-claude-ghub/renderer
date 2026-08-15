@@ -279,6 +279,84 @@ class Frame(object):
         return idx, val
 
 
+def contact(frames, path, cols=3, width=1560, labels=None):
+    """Tile frames into ONE downscaled contact sheet and write it.
+
+    Looking at a render costs tokens, and a full 1080x1920 preview costs
+    about 1840 of them EVERY turn it stays in context. Nine of those, read
+    one at a time, is 16.6k tokens resident for the rest of a session --
+    for a question ("is it centred, is it in the safe band, is the tail
+    dead?") that a 3x3 sheet at 1942 tokens answers just as well. 8.5x
+    cheaper for the same decision.
+
+    So: never write N preview PNGs and read them individually. Build the
+    sheet, read it once, and if one panel needs a closer look, crop that
+    panel rather than re-reading the whole frame at full size.
+
+    `frames` may be Frame objects, cairo surfaces, or paths.
+    """
+    srcs = []
+    for f in frames:
+        s = getattr(f, "surface", f)
+        if isinstance(s, str):
+            s = cairo.ImageSurface.create_from_png(s)
+        srcs.append(s)
+    if not srcs:
+        raise ValueError("contact() got no frames")
+
+    n = len(srcs)
+    cols = max(1, min(cols, n))
+    rows = (n + cols - 1) // cols
+    sw, sh = srcs[0].get_width(), srcs[0].get_height()
+
+    # one panel's width, chosen so the whole sheet lands on `width`
+    pad = 6
+    pw = max(1, (width - pad * (cols + 1)) // cols)
+    scale = pw / float(sw)
+    ph = max(1, int(round(sh * scale)))
+    W = pad * (cols + 1) + pw * cols
+    H = pad * (rows + 1) + ph * rows
+
+    out = cairo.ImageSurface(cairo.FORMAT_ARGB32, W, H)
+    ctx = cairo.Context(out)
+    ctx.set_source_rgb(0.10, 0.10, 0.12)     # gutter, so panel edges read
+    ctx.paint()
+
+    for i, s in enumerate(srcs):
+        r, c = divmod(i, cols)
+        x = pad + c * (pw + pad)
+        y = pad + r * (ph + pad)
+        ctx.save()
+        ctx.translate(x, y)
+        ctx.scale(pw / float(s.get_width()), ph / float(s.get_height()))
+        ctx.set_source_surface(s, 0, 0)
+        ctx.get_source().set_filter(cairo.FILTER_BILINEAR)
+        ctx.paint()
+        ctx.restore()
+        if labels:
+            ctx.save()
+            ctx.select_font_face("DejaVu Sans Mono", cairo.FONT_SLANT_NORMAL,
+                                 cairo.FONT_WEIGHT_BOLD)
+            ctx.set_font_size(15)
+            txt = str(labels[i]) if i < len(labels) else ""
+            ctx.set_source_rgb(0, 0, 0)
+            ctx.move_to(x + 6, y + ph - 6)
+            ctx.show_text(txt)
+            ctx.set_source_rgb(1, 1, 0.4)
+            ctx.move_to(x + 5, y + ph - 7)
+            ctx.show_text(txt)
+            ctx.restore()
+
+    d = os.path.dirname(path)
+    if d:
+        os.makedirs(d, exist_ok=True)
+    out.write_to_png(path)
+    est = int(min(1.0, 1568.0 / max(W, H)) ** 2 * W * H / 750)
+    print("contact %s  %dx%d  %d panels  ~%d tokens to look at"
+          % (path, W, H, n, est))
+    return path
+
+
 class Encoder(object):
     """Frames straight into libx264. No intermediate PNGs."""
 

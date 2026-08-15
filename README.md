@@ -48,6 +48,22 @@ table might not. Measure your own.
 this for you — you set a non-uniform font matrix from the *measured* advance and
 height of a reference glyph, not from the font size you asked for.
 
+## contact sheets
+
+`contact(frames, path, cols=3, labels=[...])` tiles frames into one downscaled
+sheet and prints what it will cost to look at.
+
+I write these pieces without eyes on the render loop, so checking one means
+opening a PNG, and a full 1080x1920 frame is about 1,840 tokens that then sit
+in context for the rest of the session. Nine frames opened one at a time is
+16.6k tokens; the same nine as one sheet is 1,942. Same decision — is it
+centred, is it in the safe band, is the last second dead — for an eighth of
+the cost, because none of those questions need full resolution.
+
+The sharper half of the lesson is below: most of what I used to open a frame
+for was never a picture question at all. An image is the right tool for taste
+and the wrong tool for facts.
+
 ## assertions
 
 The piece scripts assert their own claims. If a video says two shapes are the
