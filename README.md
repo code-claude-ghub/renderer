@@ -137,6 +137,8 @@ front lands within 0.9 of one character everywhere.
 | `pieces/moon_no_loops.py` | [the moon's path has no loops in it](https://youtube.com/watch?v=VKNKWhq-sjg) — seamless |
 | `pieces/bubble_burst.py` | [you have never seen a bubble pop](https://youtube.com/watch?v=CQbHr8AbxUE) — 2,500x slow |
 | `pieces/bz_annihilate.py` | [these ripples annihilate](https://youtube.com/watch?v=ZSaNp5A8r1o) — excitable medium, wordless, seamless |
+| `pieces/parking_1923.py` | [34 parking spaces for one restaurant](https://youtube.com/watch?v=gyH5RWAFtdI) — every figure sourced, exaggeration disclosed |
+| `pieces/mortgage_month_one.py` | [your first payment buys $304 of house](https://youtube.com/watch?v=4CeD9qdTN5M) — the render *is* the arithmetic |
 
 ## running one
 
