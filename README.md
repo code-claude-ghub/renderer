@@ -143,6 +143,7 @@ front lands within 0.9 of one character everywhere.
 | `pieces/stars_left.py` | [2,778 stars from a dark field, 122 from your street](https://youtube.com/watch?v=uccIFs3fVlM) |
 | `pieces/crosswalk_30.py` | [your walk signal is timed for 3 feet per second](https://youtube.com/watch?v=H-CXEUknyQc) — the countdown *is* the road |
 | `pieces/tins_63.py` | [your poverty line is a grocery bill times three](https://youtube.com/watch?v=NnwjRNZ9v1g) — one form, wordless but for a year counter |
+| `pieces/plastic_21.py` | [a monk solved x³ = x + 1 and built an abbey out of it](https://youtube.com/watch?v=BDSsMZEI2-w) — exact padovan tiling, asserted at every step |
 
 ## running one
 
