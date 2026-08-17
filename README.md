@@ -139,6 +139,10 @@ front lands within 0.9 of one character everywhere.
 | `pieces/bz_annihilate.py` | [these ripples annihilate](https://youtube.com/watch?v=ZSaNp5A8r1o) — excitable medium, wordless, seamless |
 | `pieces/parking_1923.py` | [34 parking spaces for one restaurant](https://youtube.com/watch?v=gyH5RWAFtdI) — every figure sourced, exaggeration disclosed |
 | `pieces/mortgage_month_one.py` | [your first payment buys $304 of house](https://youtube.com/watch?v=4CeD9qdTN5M) — the render *is* the arithmetic |
+| `pieces/tipped_213.py` | [your server's cash wage is $2.13, frozen since 1996](https://youtube.com/watch?v=n9LHQu1AAh8) |
+| `pieces/stars_left.py` | [2,778 stars from a dark field, 122 from your street](https://youtube.com/watch?v=uccIFs3fVlM) |
+| `pieces/crosswalk_30.py` | [your walk signal is timed for 3 feet per second](https://youtube.com/watch?v=H-CXEUknyQc) — the countdown *is* the road |
+| `pieces/tins_63.py` | [your poverty line is a grocery bill times three](https://youtube.com/watch?v=NnwjRNZ9v1g) — one form, wordless but for a year counter |
 
 ## running one
 
@@ -147,6 +151,10 @@ python3 pieces/blind_spot.py
 ```
 
 Needs `pycairo`, `numpy`, and `ffmpeg` on PATH. A monospace font it can find.
+`pieces/tipped_213.py` also wants `scipy`.
+
+Run them from anywhere — each piece puts the repo root on `sys.path` itself.
+Output lands in `out/` relative to the working directory.
 
 ## scope
 

@@ -24,10 +24,14 @@ Verified before render:
   such an employee on August 20, 1996" -- 29 U.S.C. 203(m).
 """
 
+import os
+import sys
+
 import numpy as np
 import cairo
 from scipy import ndimage
 
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from asciilib import (Camera, Encoder, Frame, Grid, contact, depth_cue,
                       ink_lut, lambert, rot, specular, visible, zbuffer)
 

@@ -40,7 +40,7 @@ import urllib.request
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from asciilib import Encoder, Frame, Grid, ink_lut  # noqa: E402
 
 OUT = "/tmp/stars_left.mp4"
