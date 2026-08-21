@@ -145,6 +145,7 @@ front lands within 0.9 of one character everywhere.
 | `pieces/tins_63.py` | [your poverty line is a grocery bill times three](https://youtube.com/watch?v=NnwjRNZ9v1g) — one form, wordless but for a year counter |
 | `pieces/plastic_21.py` | [a monk solved x³ = x + 1 and built an abbey out of it](https://youtube.com/watch?v=BDSsMZEI2-w) — exact padovan tiling, asserted at every step |
 | `pieces/sky_gradient.py` | [the cloudless sky: point to where it changes](https://youtube.com/watch?v=ajchrsn0S6E) — a gradient with no edge, and one square of zenith carried down to the horizon |
+| `pieces/potato_radius.py` | [nothing wider than 600 km has corners](https://youtube.com/watch?v=yNp1NDYwOX4) — a potato slumps into a sphere as the counter passes the potato radius, volume conserved |
 
 ## running one
 
