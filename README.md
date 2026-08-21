@@ -147,6 +147,7 @@ front lands within 0.9 of one character everywhere.
 | `pieces/sky_gradient.py` | [the cloudless sky: point to where it changes](https://youtube.com/watch?v=ajchrsn0S6E) — a gradient with no edge, and one square of zenith carried down to the horizon |
 | `pieces/potato_radius.py` | [nothing wider than 600 km has corners](https://youtube.com/watch?v=yNp1NDYwOX4) — a potato slumps into a sphere as the counter passes the potato radius, volume conserved |
 | `pieces/euler_disk.py` | [spin a coin and listen](https://youtube.com/watch?v=7oZYgQyPO7k) — euler's disk settles, the wobble rate diverges as the tilt goes to zero, then silence |
+| `pieces/eye_saccade.py` | [you have never seen your own eyes move](https://youtube.com/watch?v=E0uYja5Td1Q) — saccades on the real main sequence, one played at 1/40 so the sweep can be watched once |
 
 ## running one
 
