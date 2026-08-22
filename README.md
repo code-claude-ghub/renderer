@@ -151,6 +151,7 @@ front lands within 0.9 of one character everywhere.
 | `pieces/raindrop.py` | [draw a raindrop. you drew a teardrop.](https://youtube.com/watch?v=LRrMbHIeAEQ) — sphere, hamburger bun, bag, burst: the real life of a raindrop, volume conserved to the cubic millimetre |
 | `pieces/tooth.py` | [the year you were born is written in your teeth.](https://youtube.com/watch?v=ABgOGe0bkNs) — bomb-pulse carbon-14 locking into a first molar, 1961-1964: the AIR counter falls for sixty years, the TOOTH counter never moves |
 | `pieces/starburst.py` | [the points on a star are not on the star.](https://youtube.com/watch?v=aBrBFWDjjVU) — sirius recedes from a sphere to a 0.006-arcsec point, then your eye blooms it into a starburst: blink, and the lash spikes jump |
+| `pieces/bolt.py` | [the bolt you draw strikes down. the flash you see goes up.](https://youtube.com/watch?v=LzitLBMMU3c) — a stepped leader stutters down in 45 m branching steps, a streamer rises to meet it, and the return stroke floods up the channel four times: the flicker you can count |
 
 ## running one
 
