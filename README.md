@@ -156,6 +156,7 @@ front lands within 0.9 of one character everywhere.
 | `pieces/subpixel.py` | [there is no yellow lamp on your screen.](https://youtube.com/watch?v=sl8dVw2deCc) — a round window onto an RGB stripe, magnified x1 to x16 and back: the yellow is never painted, it is the exact area average in linear light of the red and green bars over one character cell |
 | `pieces/sundial.py` | [stand a pen up at noon. the shadow is not north yet.](https://youtube.com/watch?v=vVhPCgMypFg) — a post and its shadow over one real day in indianapolis, from the NOAA solar position equations: the shadow reaches true north at 13:48, and the 107.7 minute gap is longitude plus daylight saving plus the equation of time |
 | `pieces/theline.py` | [your 'overweight' begins at bmi 25. in 1997 it began at 27.8.](https://youtube.com/watch?v=X5WZLOX2v-I) — every american adult as a swarm of dots, vertical position = BMI, from NHANES III (1988-1994); the federal cutoff for "overweight" falls from 27.8 to 25 in june 1998 and 97 million people are above it |
+| `pieces/standin.py` | [the 'female' crash dummy weighs 108 lb. the average us woman weighs 171.8.](https://youtube.com/watch?v=nasCmIQoGnw) — one anthropomorphic test device, built from capsules, shrinking by the cube root of the mass ratio between the Hybrid III 50th male (171.3 lb, 49 CFR 572 subpart E) and the 5th female (108 lb, subpart O); the published statures are held out of the fit and used as the check |
 
 ## running one
 
