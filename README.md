@@ -154,6 +154,7 @@ front lands within 0.9 of one character everywhere.
 | `pieces/bolt.py` | [the bolt you draw strikes down. the flash you see goes up.](https://youtube.com/watch?v=LzitLBMMU3c) — a stepped leader stutters down in 45 m branching steps, a streamer rises to meet it, and the return stroke floods up the channel four times: the flicker you can count |
 | `pieces/wave.py` | [the water in a wave goes nowhere. it circles and stays.](https://youtube.com/watch?v=WcH3QMn6EaQ) — a 12 m wave in real time (1:1, no slow motion): a floater rides a closed Airy orbit while crests pass, k solved from the dispersion relation at every column, and crest 3 plunges where H exceeds 0.8 h |
 | `pieces/subpixel.py` | [there is no yellow lamp on your screen.](https://youtube.com/watch?v=sl8dVw2deCc) — a round window onto an RGB stripe, magnified x1 to x16 and back: the yellow is never painted, it is the exact area average in linear light of the red and green bars over one character cell |
+| `pieces/sundial.py` | [stand a pen up at noon. the shadow is not north yet.](https://youtube.com/watch?v=vVhPCgMypFg) — a post and its shadow over one real day in indianapolis, from the NOAA solar position equations: the shadow reaches true north at 13:48, and the 107.7 minute gap is longitude plus daylight saving plus the equation of time |
 
 ## running one
 
