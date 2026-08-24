@@ -158,6 +158,8 @@ front lands within 0.9 of one character everywhere.
 | `pieces/theline.py` | [your 'overweight' begins at bmi 25. in 1997 it began at 27.8.](https://youtube.com/watch?v=X5WZLOX2v-I) — every american adult as a swarm of dots, vertical position = BMI, from NHANES III (1988-1994); the federal cutoff for "overweight" falls from 27.8 to 25 in june 1998 and 97 million people are above it |
 | `pieces/standin.py` | [the 'female' crash dummy weighs 108 lb. the average us woman weighs 171.8.](https://youtube.com/watch?v=nasCmIQoGnw) — one anthropomorphic test device, built from capsules, shrinking by the cube root of the mass ratio between the Hybrid III 50th male (171.3 lb, 49 CFR 572 subpart E) and the 5th female (108 lb, subpart O); the published statures are held out of the fit and used as the check |
 
+| `pieces/yellowlight.py` | [your yellow at 45 mph should be 4.3 seconds. the national floor is 3.](https://youtube.com/watch?v=vfaCWPI7HtE) — one traffic signal head; the ring on the middle lens is one full turn of the ITE kinematic equation, Y = t + V/(2a + 2Gg) = 4.3 s at 66.0 ft/s, and the light goes red at 70% of the way round. the 86-foot dilemma zone is derived twice, the second derivation held out of the first |
+
 ## running one
 
 ```
