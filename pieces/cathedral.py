@@ -47,7 +47,10 @@ GOLD = (0.949, 0.749, 0.325)   # the only warm thing that is not stone
 OLD = (0.639, 0.612, 0.549)    # part I, a season later: weathered, colder
 CRYPT = (0.906, 0.733, 0.443)  # the one room that will never see daylight
 
+ROUGH = (0.470, 0.412, 0.361)  # part III: rubble. the wall nobody dressed.
+
 M_GHOST, M_STONE, M_EARTH, M_OLD, M_CRYPT, M_SLAB, M_CWALL = 1, 2, 3, 4, 5, 6, 7
+M_WALL3, M_PART = 8, 9
 
 # the crypt wall does not get buried -- it keeps going up and becomes the
 # outside of the choir.  so it stops being warm when the room is sealed.
@@ -488,6 +491,115 @@ def crypt_slab(step=0.85):
     return P, N, O
 
 
+# ------------------------------------------------- part III: the choir walls
+# The east end goes up first and gets used first.  Cologne: the choir was
+# consecrated in 1322 and sealed off with a wall that was meant to be
+# temporary, so services could be held in the finished part while the rest
+# was a building site.  That wall came down in 1863.  It stood 541 years.
+#
+# So this episode builds a wall around a room, and then builds a worse wall
+# across the open end, and the worse wall is the one with the story in it.
+Y_ARCADE = AISLE_Y                 # 19.0 -- where the aisle roof will land
+COURSE3 = 0.74                     # the course height the crypt was laid at
+N_COURSE3 = int(round((Y_ARCADE - Y_SPRING) / COURSE3))      # 17
+WIN_SILL, WIN_HEAD = 11.6, 17.5
+WIN_W = 3.1
+N_BAY = 14
+BUT_PROJ = 1.30
+SILL_K = int(round((WIN_SILL - Y_SPRING) / COURSE3 - 0.5))
+
+
+def _on_path(pts, seg, cum, d):
+    """Point, tangent bearing and OUTWARD normal at arc position d.
+
+    Outward, not inward: stone() maps its local +z to (-dz, dx), which for
+    this path points into the building, so the normal handed back here is
+    the negative of that.  A buttress on the wrong side is a buttress in
+    the aisle.
+    """
+    i = min(max(int(np.searchsorted(cum, d) - 1), 0), len(seg) - 1)
+    u = (d - cum[i]) / seg[i]
+    p = pts[i] + (pts[i + 1] - pts[i]) * u
+    dv = pts[i + 1] - pts[i]
+    L = float(np.linalg.norm(dv))
+    return (p[0], p[1], math.atan2(-dv[1], dv[0]), dv[1] / L, -dv[0] / L)
+
+
+_CP = _dedupe(CRYPT_PATH)
+_CS = np.linalg.norm(np.diff(_CP, axis=0), axis=1)
+_CC = np.concatenate([[0.0], np.cumsum(_CS)])
+PERIM3 = float(_CC[-1])
+BAY = PERIM3 / N_BAY
+
+
+def _is_window(s, y):
+    """A lancet in the middle of each bay: parallel sides, pointed head."""
+    if not (WIN_SILL <= y <= WIN_HEAD):
+        return False
+    tt = (y - WIN_SILL) / (WIN_HEAD - WIN_SILL)
+    w = WIN_W * (1.0 if tt < 0.62 else max(0.0, 1.0 - (tt - 0.62) / 0.38))
+    off = (s % BAY) - 0.5 * BAY
+    return abs(off) < 0.5 * w
+
+
+def choir_wall(spacing=2.4):
+    """The outer wall of the east end, off the crypt wall it stands on,
+    seventeen courses to the height of the aisle roof.
+
+    The buttresses and the holes go up together because they are the same
+    decision.  A gothic wall is not a wall with windows cut into it -- it is
+    a row of piers with the gaps left open, and the load from the roof goes
+    down the piers, because it cannot go down a hole.
+    """
+    hh = COURSE3 / 2.0
+    units, nw, nb, nslot = [], 0, 0, 0
+    for k in range(N_COURSE3):
+        y = Y_SPRING + (2 * k + 1) * hh
+        proj = BUT_PROJ * (1.0 - 0.45 * k / float(N_COURSE3 - 1))
+        for j in range(N_BAY):                       # the piers, first
+            x, z, ang, ox, oz = _on_path(_CP, _CS, _CC, (j * BAY) % PERIM3)
+            d = 0.95 + 0.5 * proj
+            units.append(stone(x + ox * d, y, z + oz * d,
+                               1.15, hh * 0.86, 0.5 * proj, ang))
+            nb += 1
+        n = max(1, int(round(PERIM3 / spacing)))     # then the wall between
+        for i in range(n):
+            s = ((i + 0.5 + 0.5 * (k % 2)) % n) * PERIM3 / n
+            x, z, ang, ox, oz = _on_path(_CP, _CS, _CC, s)
+            nslot += 1
+            if _is_window(s, y):
+                continue
+            t = 0.95 + (0.30 if k == SILL_K else 0.0)   # the string course
+            e = 0.16 if k == SILL_K else 0.0
+            units.append(stone(x + ox * e, y, z + oz * e,
+                               spacing * 0.45, hh * 0.86, t, ang))
+            nw += 1
+    return assemble(units), nw, nb, nslot
+
+
+def choir_partition(step=1.05):
+    """The temporary wall.
+
+    Rubble, undressed, no window, no buttress, a ragged top, laid across the
+    open west end of the choir as fast as it can be laid.  It is not meant to
+    be there long.  The one at Cologne stood for five hundred and forty-one
+    years.
+    """
+    zs = np.arange(-AISLE_Z + 0.55, AISLE_Z, step)
+    ys = np.arange(Y_CROWN + 0.45, Y_ARCADE, step)
+    units = []
+    for r, y in enumerate(ys):
+        # nobody courses the top of a wall that is coming down again
+        drop = (0.36, 0.13)[min(len(ys) - 1 - r, 1)] if r >= len(ys) - 2 else 0.0
+        for z in zs:
+            if RNG.random() < drop:
+                continue
+            j = RNG.uniform(-0.14, 0.14, 3)
+            units.append(stone(X_CHOIR + j[0], y + j[1], z + j[2],
+                               0.55, 0.50 * step, 0.5 * step))
+    return assemble(units), len(ys), len(zs)
+
+
 # ---------------------------------------------------------------- stages
 STAGES = [
     "THE FOUNDATION",
@@ -555,6 +667,30 @@ CAM_A = Camera(G).fit([_pose(np.vstack([_CRYPT_PTS, _pad]))], margin=1.10)
 LAMP_C = np.array([0.44, 0.44, -0.78])
 LAMP_C = LAMP_C / np.linalg.norm(LAMP_C)
 
+# --- part III
+(WALL3, NW3, NB3, NSLOT3) = choir_wall()
+(PART, PART_ROWS, PART_COLS) = choir_partition()
+
+# everything that was already standing when this episode opens.  no fade-in
+# for any of it: part I's footings and part II's crypt have been there since
+# the last two videos, and the slab is the floor this wall is built off.
+_LEG_P = np.vstack([np.vstack([s[0] for s in STONES]),
+                    WALL[0], WALL_N[0], SLAB[0]]).astype(np.float32)
+_LEG_N = np.vstack([np.vstack([s[1] for s in STONES]),
+                    WALL[1], WALL_N[1], SLAB[1]]).astype(np.float32)
+
+# THE CLOSE SHOT, part III.  Same yaw, same pitch, same _pose -- fitted to
+# the east end.  Same rule as part II: the cut is a pure change of scale.
+#
+# Fitted to the WALL, not to the room.  The choir floor is 41 m by 30 m and
+# the wall on it is 12.6 m tall, so from an elevation of 28 degrees a camera
+# that frames the floor is a camera pointed at a car park with a kerb round
+# it.  Let the floor run off the bottom of the picture instead.
+_E_PTS = np.vstack([WALL3[0], PART[0]])
+_epad = _E_PTS.copy()
+_epad[:, 1] = _E_PTS[:, 1].min() - 5.0         # keep the caption clear
+CAM_B = Camera(G).fit([_pose(np.vstack([_E_PTS, _epad]))], margin=1.06)
+
 # ---------------------------------------------------------------- timeline
 T_GHOST, T_HOLD, T_DIG, T_LAY, T_END = 1.5, 2.4, 3.6, 9.9, 12.4
 
@@ -564,7 +700,19 @@ C_PIER, C_VAULT = (5.8, 7.3), (7.3, 10.0)
 C_CUT = 11.1
 C_SLAB, C_END = (12.0, 14.4), 15.6
 
-T_ENDS = [T_END, C_END]
+# part III.  The cut moved to the END.  It was in the middle, matching part
+# II, and the partition -- the whole point of the episode -- went up in the
+# wide frame where the entire east end is 45 cells across and a 30 m wall
+# added 200 lit cells nobody would notice.  So: build it all close, watch the
+# cheap wall seal the good room, and only THEN pull out and find out what the
+# good room is a corner of.
+H_GHOST = 1.0
+H_WALL = (1.1, 9.4)
+H_PART = (10.3, 13.7)
+H_CUT = 14.4
+H_END = 17.8
+
+T_ENDS = [T_END, C_END, H_END]
 LAST = {}
 
 
@@ -587,16 +735,24 @@ def _put(buf, col, row, z, sh, mat, cover):
 
 
 def draw(f, stage):
-    return (draw_foundation, draw_crypt)[stage](f, stage)
+    return (draw_foundation, draw_crypt, draw_choir)[stage](f, stage)
 
 
 def _label(fr, t, stage, t0=0.8):
+    """The numeral, then the stage.  Two lines from part III on.
+
+    It was one line for I and II.  By III the string was 21 characters, the
+    fitter shrank it to 4.2 cells a letter, and at that width the 3x3 halos
+    of neighbouring letters merge -- CHOIR came out QHQOIII.  Split, the
+    name gets 6.0 cells a letter and still fits at XIII . THE ROSE WINDOW,
+    which is the longest this series will ever have to set.
+    """
     boxes = []
     if t > t0:
         a = min(1.0, (t - t0) / 0.7)
-        g = blend(BG, GOLD, a)
-        boxes.append(stamp(fr, "%s . %s" % (roman(stage + 1), STAGES[stage]),
-                           8, 49, 139, g))
+        boxes.append(stamp(fr, roman(stage + 1), 6, 49, 127,
+                           blend(BG, GOLD, a * 0.72)))
+        boxes.append(stamp(fr, STAGES[stage], 10, 49, 139, blend(BG, GOLD, a)))
     LAST["boxes"] = boxes
 
 
@@ -686,6 +842,51 @@ def draw_crypt(f, stage):
     return fr
 
 
+def draw_choir(f, stage):
+    """Part III.  Two shots again, and the cut is the argument.
+
+    Close up, the east end is a finished church: a wall, buttresses, a row of
+    lancets, a floor.  Then one cut to the fixed frame, where it turns out to
+    be the far corner of something enormous that does not exist yet -- and
+    the last thing that goes up is the cheap wall that closes it off, so the
+    finished corner can be used while the rest of it is a drawing.
+    """
+    t = f / float(FPS)
+    wide = t >= H_CUT
+    cam = CAM if wide else CAM_B
+    buf = {"sh": np.zeros((G.rows, G.cols)),
+           "mat": np.zeros((G.rows, G.cols), np.int16)}
+
+    gfade = min(1.0, t / H_GHOST)
+    n = int(len(GHOST) * gfade)
+    if n > 8:
+        col, row, z = cam.project(_pose(GHOST[:n]))
+        lift = 1.0 + 0.55 * min(1.0, max(0.0, (t - H_CUT - 0.9) / 1.1))
+        sh = ((0.20 + 0.34 * depth_cue(z, 1.0, 0.30))
+              * (0.72 + 0.28 * gfade) * lift)
+        _put(buf, col, row, z + 4000.0, sh, M_GHOST, False)
+
+    # parts I and II, weathered, already standing.  Held well back: the choir
+    # floor alone is 1,100 m2 of flat pale plane and lit at part II's levels
+    # it simply outshouts the thing this episode is about.
+    col, row, z = cam.project(_pose(_LEG_P))
+    sh = (0.17 + 0.44 * lambert(_LEG_N, LAMP)) * depth_cue(z, 1.0, 0.86)
+    _put(buf, col, row, z, np.clip(sh, 0.05, 1.0), M_OLD, True)
+
+    def win(w):
+        return min(1.0, max(0.0, (t - w[0]) / (w[1] - w[0])))
+
+    LAST["wall3"] = _grow(buf, WALL3, win(H_WALL), M_WALL3, LAMP,
+                          0.26, 0.72, cam)
+    up = win(H_PART)
+    LAST["part"] = _grow(buf, PART, up, M_PART, LAMP, 0.26, 0.44, cam) \
+        if up > 0 else 0
+
+    fr = _paint(buf)
+    _label(fr, t, stage)
+    return fr
+
+
 def draw_foundation(f, stage):
     t = f / float(FPS)
     buf = {"sh": np.zeros((G.rows, G.cols)),
@@ -736,13 +937,7 @@ def draw_foundation(f, stage):
     LAST["ink"] = on
     LAST["mat"] = buf["mat"]
 
-    boxes = []
-    if t > 0.8:
-        a = min(1.0, (t - 0.8) / 0.7)
-        g = blend(BG, GOLD, a)
-        boxes.append(stamp(fr, "%s . %s" % (roman(stage + 1), STAGES[stage]),
-                           8, 49, 139, g))
-    LAST["boxes"] = boxes
+    _label(fr, t, stage)
     return fr
 
 
@@ -753,7 +948,7 @@ def blend(a, b, t):
 def colour(v, m):
     base = {M_GHOST: GHOST_RGB, M_STONE: STONE, M_EARTH: EARTH,
             M_OLD: OLD, M_CRYPT: CRYPT, M_SLAB: STONE,
-            M_CWALL: CW["rgb"]}[int(m)]
+            M_CWALL: CW["rgb"], M_WALL3: STONE, M_PART: ROUGH}[int(m)]
     t = np.clip(0.22 + 0.78 * v, 0.0, 1.0)
     return blend(BG, base, t)
 
@@ -907,9 +1102,154 @@ def check_crypt(stage):
                             "15.2"])
 
 
+def _excess(x, z):
+    """How far outside the building's footprint line a point sits."""
+    x, z = np.asarray(x, float), np.asarray(z, float)
+    straight = np.abs(z) - AISLE_Z
+    round_ = np.hypot(x - X_APSE, z) - AISLE_Z
+    return np.where(x > X_APSE, round_, straight)
+
+
+def check_choir(stage):
+    print("THE CATHEDRAL — part %s, %s" % (roman(stage + 1), STAGES[stage]))
+    print("  wall run             %.1f m in %d bays of %.2f m"
+          % (PERIM3, N_BAY, BAY))
+    print("  courses              %d of %.2f m, %.1f m to %.1f m"
+          % (N_COURSE3, COURSE3, Y_SPRING, Y_ARCADE))
+    print("  wall blocks          %d set, %d slots, %d buttress blocks"
+          % (NW3, NSLOT3, NB3))
+    print("  partition            %d courses x %d, rubble" % (PART_ROWS,
+                                                              PART_COLS))
+
+    # HELD OUT 1 -- how much of this wall is hole.  The blocks were dropped
+    # one slot at a time by a boolean test.  Get the same number the other
+    # way, from areas alone: a lancet is WIN_W wide for the bottom 62% of its
+    # height and tapers to a point over the rest, so its area is
+    # WIN_W * H * (0.62 + 0.38/2).  The two must agree or the window shape
+    # on screen is not the window shape in the arithmetic.
+    H = WIN_HEAD - WIN_SILL
+    open_area = N_BAY * WIN_W * H * (0.62 + 0.38 / 2.0)
+    wall_area = PERIM3 * N_COURSE3 * COURSE3
+    pred = open_area / wall_area
+    meas = (NSLOT3 - NW3) / float(NSLOT3)
+    print("  glazed: %.1f m2 of %.0f m2 -> predicted %.1f%%, built %.1f%%"
+          % (open_area, wall_area, 100 * pred, 100 * meas))
+    assert abs(pred - meas) / pred < 0.15, (pred, meas)
+
+    # HELD OUT 2 -- the buttresses have to land BETWEEN the windows.  Nothing
+    # in the code guarantees that: the piers are placed at j*BAY and the
+    # holes come out of a modulo on a walk that is offset half a stone on
+    # alternate courses.  So measure the holes off the mask itself -- sample
+    # the wall line finely at mid-window height, find the runs -- and check
+    # what comes back against where the piers actually went.
+    ss = np.arange(0.0, PERIM3, 0.02)
+    mask = np.array([_is_window(s, 0.5 * (WIN_SILL + WIN_HEAD)) for s in ss])
+    runs, cur = [], None
+    for i, m in enumerate(mask):
+        if m and cur is None:
+            cur = i
+        elif not m and cur is not None:
+            runs.append((ss[cur], ss[i - 1]))
+            cur = None
+    if cur is not None:
+        runs.append((ss[cur], ss[-1]))
+    widths = [b - a for (a, b) in runs]
+    cents = np.array([0.5 * (a + b) for (a, b) in runs])
+    print("  holes measured off the mask: %d, mean width %.2f m (drawn %.2f)"
+          % (len(runs), float(np.mean(widths)), WIN_W))
+    assert len(runs) == N_BAY, len(runs)
+    assert abs(np.mean(widths) - WIN_W) < 0.1, np.mean(widths)
+    piers = np.array([(j * BAY) % PERIM3 for j in range(N_BAY)])
+    gap = np.abs(piers[:, None] - cents[None, :])
+    gap = np.minimum(gap, PERIM3 - gap).min(1)
+    print("  nearest hole to a buttress: %.2f m (half a bay is %.2f)"
+          % (gap.min(), 0.5 * BAY))
+    assert gap.min() > 0.35 * BAY, gap.min()
+
+    # HELD OUT 3 -- the temporary wall has to actually close the hole, or the
+    # whole episode is about nothing.  Grid the opening and ask, of each
+    # point, whether there is rubble on it.
+    zz, yy = np.meshgrid(np.linspace(-AISLE_Z + 0.6, AISLE_Z - 0.6, 40),
+                         np.linspace(Y_CROWN + 0.6, Y_ARCADE - 1.2, 18))
+    P = PART[0]
+    covered = 0
+    for (y, z) in zip(yy.ravel(), zz.ravel()):
+        d = np.hypot(P[:, 1] - y, P[:, 2] - z)
+        covered += int(d.min() < 0.85)
+    frac = covered / float(yy.size)
+    print("  opening sealed       %.1f%% of the gap has rubble on it"
+          % (100 * frac))
+    assert frac > 0.97, frac
+    assert abs(float(P[:, 0].mean()) - X_CHOIR) < 0.1
+    assert float(P[:, 2].min()) < -AISLE_Z + 1.5
+    assert float(P[:, 2].max()) > AISLE_Z - 1.5
+
+    # a buttress is MEANT to stand outside the mass line -- that is what it
+    # is -- but only by its own projection, and nothing else may.
+    A = np.vstack([WALL3[0], PART[0]])
+    ex = _excess(A[:, 0], A[:, 2])
+    print("  furthest outside the mass line: %.2f m (wall half-thickness "
+          "0.95 + buttress %.2f = %.2f)" % (ex.max(), BUT_PROJ,
+                                            0.95 + BUT_PROJ))
+    assert ex.max() < 0.95 + BUT_PROJ + 0.35, ex.max()
+    assert float(A[:, 1].max()) <= Y_ARCADE + 0.4, float(A[:, 1].max())
+
+    # both frames must hold it, and the cut has to be worth making
+    for nm, c in (("fixed", CAM), ("close", CAM_B)):
+        col, row, _ = c.project(_pose(np.vstack([WALL3[0], PART[0]])))
+        w = col.max() - col.min() + 1
+        print("  %-5s frame  c%d..%d r%d..%d  (%d cells wide)"
+              % (nm, col.min(), col.max(), row.min(), row.max(), w))
+        assert col.min() >= 0 and col.max() < G.cols, (col.min(), col.max())
+        assert row.min() >= 0 and row.max() < G.rows, (row.min(), row.max())
+        if nm == "fixed":
+            wide_w = w
+        else:
+            assert row.max() < 128, ("wall runs into the caption", row.max())
+            print("  the cut magnifies    %.1fx" % (w / float(wide_w)))
+            assert w / float(wide_w) > 1.9, w / float(wide_w)
+
+    sheet = []
+    for t in (0.8, 2.6, 4.6, 6.6, 9.0, 11.2, 12.8, 14.9, 17.2):
+        fr = draw(int(t * FPS), stage)
+        ink, mat = LAST["ink"], LAST["mat"]
+        print("  t=%4.1f cov %.3f  ghost %5d old %5d wall %5d rubble %4d"
+              % (t, ink.mean(), (mat == M_GHOST).sum(), (mat == M_OLD).sum(),
+                 (mat == M_WALL3).sum(), (mat == M_PART).sum()))
+        assert 0.02 < ink.mean() < 0.60, ink.mean()
+        for (c0, r0, w, h) in LAST["boxes"]:
+            assert r0 - 1 >= G.safe_top, ("text above safe", r0)
+            assert r0 + h + 1 <= G.safe_bot, ("text below safe", r0 + h)
+            assert c0 - 1 >= 0 and c0 + w + 1 <= G.cols, ("width", c0, w)
+        sheet.append(fr)
+
+    # HELD OUT 4 -- the wall has to be visibly full of holes in the finished
+    # close shot.  Count ink in the window band on screen against the band
+    # just under the sill, which is solid.  A wall that came out solid would
+    # pass every number above and fail here.
+    draw(int((H_WALL[1] + 0.5) * FPS), stage)
+    m = LAST["mat"] == M_WALL3
+    rows = np.nonzero(m.any(1))[0]
+    top, bot = rows.min(), rows.max()
+    band = int(top + 0.30 * (bot - top)), int(top + 0.55 * (bot - top))
+    solid = int(top + 0.68 * (bot - top)), int(top + 0.90 * (bot - top))
+    a = m[band[0]:band[1]].mean()
+    b = m[solid[0]:solid[1]].mean()
+    print("  window band %.3f ink vs solid band %.3f -> %.0f%% lighter"
+          % (a, b, 100 * (1 - a / b)))
+    assert a < 0.86 * b, (a, b)
+
+    contact(sheet, os.path.join(_HERE, "..", "content", "cath_sheet.png"),
+            cols=3, labels=["0.8 ghost", "2.6 wall", "4.6", "6.6 sill",
+                            "9.0 windows", "11.2 rubble", "12.8", "14.9 CUT",
+                            "17.2"])
+
+
 def check(stage):
     if stage == 1:
         return check_crypt(stage)
+    if stage == 2:
+        return check_choir(stage)
     print("THE CATHEDRAL — part %s, %s" % (roman(stage + 1), STAGES[stage]))
     print("  masses in the ghost  %d" % len(MASSES))
     print("  ghost points         %d" % len(GHOST))
