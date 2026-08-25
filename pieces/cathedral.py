@@ -44,7 +44,14 @@ STONE = (0.902, 0.827, 0.663)  # limestone, lit low from the south-west
 EARTH = (0.259, 0.180, 0.129)  # the trench
 GOLD = (0.949, 0.749, 0.325)   # the only warm thing that is not stone
 
-M_GHOST, M_STONE, M_EARTH = 1, 2, 3
+OLD = (0.639, 0.612, 0.549)    # part I, a season later: weathered, colder
+CRYPT = (0.906, 0.733, 0.443)  # the one room that will never see daylight
+
+M_GHOST, M_STONE, M_EARTH, M_OLD, M_CRYPT, M_SLAB, M_CWALL = 1, 2, 3, 4, 5, 6, 7
+
+# the crypt wall does not get buried -- it keeps going up and becomes the
+# outside of the choir.  so it stops being warm when the room is sealed.
+CW = {"rgb": CRYPT}
 
 G = Grid()
 RAMP = ink_lut()
@@ -257,6 +264,230 @@ def trench_points(step=0.85):
     return np.array(pts, np.float32)
 
 
+# ------------------------------------------------------------ part II: crypt
+# The crypt is the undercroft under the choir and the apse.  Two things are
+# true about it and the episode is both of them: it is the first ROOM, and it
+# is the only part of a cathedral built to be buried.  Its ceiling is the
+# choir floor.  Nobody standing in the finished building ever sees it again.
+Y_FOOT, Y_SPRING, Y_CROWN = 2.7, 6.4, 8.6
+
+# the crypt wall follows the part I footprint round the east end.  no west
+# wall: you go DOWN into a crypt from the choir, and a wall there would stand
+# on nothing -- part I never dug a footing across the middle of the building.
+CRYPT_PATH = ([(X_CHOIR, -AISLE_Z), (X_APSE, -AISLE_Z)] + _apse_arc()[1:]
+              + [(X_CHOIR, AISLE_Z)])
+
+N_COURSE = 5
+PIER_X = [81.0, 88.0, 95.0, 102.0]
+PIER_Z = [-6.5, 6.5]
+APSE_R = 8.0
+APSE_A = [math.radians(a) for a in (-72.0, -36.0, 0.0, 36.0, 72.0)]
+APSE_PIER = [(X_APSE + APSE_R * math.cos(a), APSE_R * math.sin(a))
+             for a in APSE_A]
+
+
+def _dedupe(path):
+    out = [np.array(path[0], float)]
+    for p in path[1:]:
+        p = np.array(p, float)
+        if np.linalg.norm(p - out[-1]) > 1e-9:
+            out.append(p)
+    return np.array(out)
+
+
+def _walk_ang(path, spacing, off=0.0):
+    """Arc-length walk that also hands back the tangent bearing.
+
+    Same lesson as _walk: space by cumulative length over the WHOLE path or
+    the 25-chord apse arc eats a quarter of the stones.
+    """
+    pts = _dedupe(path)
+    seg = np.linalg.norm(np.diff(pts, axis=0), axis=1)
+    cum = np.concatenate([[0.0], np.cumsum(seg)])
+    total = cum[-1]
+    n = max(1, int(round(total / spacing)))
+    out = []
+    for k in range(n):
+        d = ((k + 0.5 + off) % n) * total / n
+        i = min(max(int(np.searchsorted(cum, d) - 1), 0), len(seg) - 1)
+        u = (d - cum[i]) / seg[i]
+        p = pts[i] + (pts[i + 1] - pts[i]) * u
+        dv = pts[i + 1] - pts[i]
+        out.append((p[0], p[1], math.atan2(-dv[1], dv[0])))
+    return out, total
+
+
+_BOXES = {}
+
+
+def _local(hx, hy, hz, step):
+    key = (round(hx, 3), round(hy, 3), round(hz, 3), step)
+    if key not in _BOXES:
+        _BOXES[key] = block(0.0, 0.0, 0.0, hx, hy, hz, step)
+    return _BOXES[key]
+
+
+def stone(cx, cy, cz, hx, hy, hz, ang=0.0, step=0.5):
+    """One dressed block, turned ang about the vertical."""
+    p, n = _local(hx, hy, hz, step)
+    if abs(ang) < 1e-9:
+        return p + np.array([cx, cy, cz]), n
+    c, s = math.cos(ang), math.sin(ang)
+    R = np.array([[c, 0.0, s], [0.0, 1.0, 0.0], [-s, 0.0, c]])
+    return p @ R.T + np.array([cx, cy, cz]), n @ R.T
+
+
+def assemble(units):
+    """A list of blocks in laying order -> points, normals, and a 0..1 clock
+    saying when each point has been set."""
+    if not units:
+        z = np.zeros((0, 3), np.float32)
+        return z, z, np.zeros(0, np.float32)
+    P = np.vstack([u[0] for u in units]).astype(np.float32)
+    N = np.vstack([u[1] for u in units]).astype(np.float32)
+    d = max(1, len(units) - 1)
+    O = np.concatenate([np.full(len(u[0]), i / float(d))
+                        for i, u in enumerate(units)]).astype(np.float32)
+    return P, N, O
+
+
+def crypt_floor(step=1.25):
+    """Paving, laid west to east.  Flat, so it is the plan of the room
+    arriving before anything stands up."""
+    xs = np.arange(X_CHOIR + 0.9, X_APSE + AISLE_Z, step)
+    zs = np.arange(-AISLE_Z + 0.9, AISLE_Z, step)
+    X, Z = np.meshgrid(xs, zs)
+    X, Z = X.ravel(), Z.ravel()
+    keep = inside_crypt(X, Z, inset=1.9)
+    X, Z = X[keep], Z[keep]
+    o = np.argsort(X)
+    X, Z = X[o], Z[o]
+    P = np.stack([X, np.full(len(X), Y_FOOT), Z], 1).astype(np.float32)
+    N = np.tile(np.array([0.0, 1.0, 0.0]), (len(X), 1)).astype(np.float32)
+    O = np.linspace(0.0, 1.0, len(X)).astype(np.float32)
+    return P, N, O
+
+
+# the direction the fixed camera looks FROM, read straight off _pose: screen
+# depth is y*sin(pitch) + (-x*sin(yaw) + z*cos(yaw))*cos(pitch), and bigger
+# is nearer, so the gradient of that is the way out of the screen.
+_VIEW = np.array([-math.sin(math.radians(-58.0)) * math.cos(math.radians(28.0)),
+                  math.sin(math.radians(28.0)),
+                  math.cos(math.radians(-58.0)) * math.cos(math.radians(28.0))])
+CRYPT_MID = (X_CHOIR + X_APSE + AISLE_Z) / 2.0
+
+
+def crypt_wall(spacing=2.4):
+    """Five courses, bonded: every other course starts half a stone along, so
+    the vertical joints break the way masonry actually does.
+
+    Split into the far half and the near half.  The near half is the only
+    thing between this camera and the room, and the camera is not allowed to
+    move, so while the room is being built the near wall is drawn instead of
+    laid -- the same line-drawing convention the whole series already runs
+    on.  It becomes stone when the room is sealed."""
+    hh = (Y_SPRING - Y_FOOT) / (2.0 * N_COURSE)
+    far, near, total = [], [], 0.0
+    for k in range(N_COURSE):
+        y = Y_FOOT + (2 * k + 1) * hh
+        walk, total = _walk_ang(CRYPT_PATH, spacing, off=0.5 * (k % 2))
+        for (x, z, ang) in walk:
+            u = stone(x, y, z, spacing * 0.45, hh * 0.86, 0.95, ang)
+            d = (x - CRYPT_MID) * _VIEW[0] + z * _VIEW[2]
+            (near if d > 0.0 else far).append(u)
+    return (assemble(far), assemble(near),
+            len(far) + len(near), total)
+
+
+def crypt_piers():
+    """Four bays of the arcade plus a ring of five in the apse.  Drums, from
+    the floor up, because that is the order they go on."""
+    hh = (Y_SPRING - Y_FOOT) / 8.0
+    seats = [(x, z, 0.0) for x in PIER_X for z in PIER_Z]
+    seats += [(x, z, math.atan2(-z, x - X_APSE)) for (x, z) in APSE_PIER]
+    units = []
+    for d in range(4):
+        y = Y_FOOT + (2 * d + 1) * hh
+        for (x, z, ang) in seats:
+            w = 0.95 if d < 3 else 1.18       # the capital spreads
+            units.append(stone(x, y, z, w, hh * 0.88, w, ang))
+    return assemble(units), len(seats)
+
+
+RIB_H = 0.44
+# the crown of the vault plus the depth of its own stone IS the floor above.
+RISE = Y_CROWN - Y_SPRING - RIB_H
+
+
+def _rib(a, b, rise=RISE, step=1.0):
+    """Voussoirs along one arch, set from both springings inward so the
+    keystone is the last stone in.  Level crowns: the rise is the same
+    whatever the span, which makes the short arches steep and the long ones
+    flat, which is what a groin vault over unequal bays has to do."""
+    d = math.dist(a, b)
+    n = max(3, int(round(d / step)))
+    ang = math.atan2(-(b[1] - a[1]), b[0] - a[0])
+    out = []
+    for i in range(n):
+        t = (i + 0.5) / n
+        x = a[0] + (b[0] - a[0]) * t
+        z = a[1] + (b[1] - a[1]) * t
+        y = Y_SPRING + rise * math.sin(math.pi * t)
+        out.append((min(t, 1.0 - t), stone(x, y, z, 0.58, RIB_H, 0.62, ang)))
+    out.sort(key=lambda r: r[0])
+    return [u for (_, u) in out]
+
+
+def crypt_vault():
+    """The ribs.  Transverse across each bay, longitudinal down the arcade,
+    then the apse: a ring between the five, and five radiating out to the
+    wall.  Arch by arch, in the order the centring would be struck."""
+    arches = []
+    for x in PIER_X:                                   # across
+        arches += [((x, -AISLE_Z + 1.0), (x, PIER_Z[0])),
+                   ((x, PIER_Z[0]), (x, PIER_Z[1])),
+                   ((x, PIER_Z[1]), (x, AISLE_Z - 1.0))]
+    for z in PIER_Z:                                   # along
+        for i in range(len(PIER_X) - 1):
+            arches.append(((PIER_X[i], z), (PIER_X[i + 1], z)))
+    for i in range(len(APSE_PIER) - 1):                # the apse ring
+        arches.append((APSE_PIER[i], APSE_PIER[i + 1]))
+    for (x, z) in APSE_PIER:                           # and out to the wall
+        a = math.atan2(z, x - X_APSE)
+        arches.append(((x, z), (X_APSE + (AISLE_Z - 1.0) * math.cos(a),
+                                (AISLE_Z - 1.0) * math.sin(a))))
+    arches.append(((PIER_X[-1], PIER_Z[0]), APSE_PIER[0]))
+    arches.append(((PIER_X[-1], PIER_Z[1]), APSE_PIER[-1]))
+    units = []
+    for (a, b) in arches:
+        units += _rib(a, b)
+    return assemble(units), len(arches)
+
+
+def inside_crypt(x, z, inset=0.0):
+    r = AISLE_Z - inset
+    return (((x >= X_CHOIR + inset) & (x <= X_APSE) & (np.abs(z) <= r))
+            | ((x > X_APSE) & ((x - X_APSE) ** 2 + z * z <= r * r)))
+
+
+def crypt_slab(step=0.85):
+    """The choir floor.  It goes on west to east and everything under it is
+    gone.  This is the whole point of the episode, so it is deliberately
+    featureless: one flat plane, no joints, nothing to look at."""
+    xs = np.arange(X_CHOIR, X_APSE + AISLE_Z + step, step)
+    zs = np.arange(-AISLE_Z, AISLE_Z + step, step)
+    X, Z = np.meshgrid(xs, zs)
+    X, Z = X.ravel(), Z.ravel()
+    keep = inside_crypt(X, Z, inset=-0.1)
+    X, Z = X[keep], Z[keep]
+    o = np.argsort(X + 0.02 * np.abs(Z))
+    X, Z = X[o], Z[o]
+    P = np.stack([X, np.full(len(X), Y_CROWN), Z], 1).astype(np.float32)
+    N = np.tile(np.array([0.0, 1.0, 0.0]), (len(X), 1)).astype(np.float32)
+    O = np.linspace(0.0, 1.0, len(X)).astype(np.float32)
+    return P, N, O
+
+
 # ---------------------------------------------------------------- stages
 STAGES = [
     "THE FOUNDATION",
@@ -304,10 +535,41 @@ STONES = foundation_stones()
 TRENCH = trench_points()
 NSTONE = len(STONES)
 
+FLOOR = crypt_floor()
+(WALL, WALL_N, NWALL, CRYPT_PERIM) = crypt_wall()
+(PIERS, NPIER) = crypt_piers()
+(VAULT, NARCH) = crypt_vault()
+SLAB = crypt_slab()
+
+# THE CLOSE SHOT.  Same yaw, same pitch, same _pose -- fitted to the crypt
+# instead of the cathedral, so the cut at the end is a pure change of scale
+# and nothing else.  That is the episode: this room, then this room in the
+# building.  The fixed frame is still the last thing you see and two episodes
+# still lay on top of each other, which was the whole reason for the rule.
+_CRYPT_PTS = np.vstack([WALL[0], WALL_N[0], PIERS[0], VAULT[0], FLOOR[0]])
+_pad = _CRYPT_PTS.copy()
+_pad[:, 1] = _CRYPT_PTS[:, 1].min() - 5.2      # keep the caption clear
+CAM_A = Camera(G).fit([_pose(np.vstack([_CRYPT_PTS, _pad]))], margin=1.10)
+
+# a crypt is lit by lamps and nothing else, forever.  low, warm, from inside.
+LAMP_C = np.array([0.44, 0.44, -0.78])
+LAMP_C = LAMP_C / np.linalg.norm(LAMP_C)
+
 # ---------------------------------------------------------------- timeline
 T_GHOST, T_HOLD, T_DIG, T_LAY, T_END = 1.5, 2.4, 3.6, 9.9, 12.4
-FRAMES = int(round(T_END * FPS))
+
+# part II
+C_GHOST, C_PAVE, C_WALL = 1.0, (0.9, 2.7), (2.7, 5.8)
+C_PIER, C_VAULT = (5.8, 7.3), (7.3, 10.0)
+C_CUT = 11.1
+C_SLAB, C_END = (12.0, 14.4), 15.6
+
+T_ENDS = [T_END, C_END]
 LAST = {}
+
+
+def frames_for(stage):
+    return int(round(T_ENDS[stage] * FPS))
 
 
 def _put(buf, col, row, z, sh, mat, cover):
@@ -325,6 +587,106 @@ def _put(buf, col, row, z, sh, mat, cover):
 
 
 def draw(f, stage):
+    return (draw_foundation, draw_crypt)[stage](f, stage)
+
+
+def _label(fr, t, stage, t0=0.8):
+    boxes = []
+    if t > t0:
+        a = min(1.0, (t - t0) / 0.7)
+        g = blend(BG, GOLD, a)
+        boxes.append(stamp(fr, "%s . %s" % (roman(stage + 1), STAGES[stage]),
+                           8, 49, 139, g))
+    LAST["boxes"] = boxes
+
+
+def _paint(buf):
+    fr = Frame(G, BG)
+    on = buf["mat"] > 0
+    cc, rr = np.meshgrid(np.arange(G.cols), np.arange(G.rows))
+    fr.field(cc[on].ravel(), rr[on].ravel(), np.ones(on.sum(), bool),
+             buf["sh"][on].ravel(), colour, RAMP,
+             extra=buf["mat"][on].ravel().astype(float))
+    LAST["ink"] = on
+    LAST["mat"] = buf["mat"]
+    return fr
+
+
+def _grow(buf, part, u, mat, lamp, amb, gain, cam=None, near=1.0, far=0.86):
+    """Draw the fraction u of an assembled element that has been set."""
+    P, N, O = part
+    m = O <= u
+    if not m.any():
+        return 0
+    col, row, z = (cam or CAM).project(_pose(P[m]))
+    sh = (amb + gain * lambert(N[m], lamp)) * depth_cue(z, near, far)
+    _put(buf, col, row, z, np.clip(sh, 0.06, 1.0), mat, True)
+    return int(m.sum())
+
+
+def draw_crypt(f, stage):
+    """Part II.  Two shots.  Up close the room gets built and lit; then one
+    cut to the fixed frame of the whole cathedral, where it turns out to be
+    a hand's width of warm stone, and the choir floor goes over it."""
+    t = f / float(FPS)
+    wide = t >= C_CUT
+    cam = CAM if wide else CAM_A
+    buf = {"sh": np.zeros((G.rows, G.cols)),
+           "mat": np.zeros((G.rows, G.cols), np.int16)}
+
+    gfade = min(1.0, t / C_GHOST)
+    n = int(len(GHOST) * gfade)
+    if n > 8:
+        col, row, z = cam.project(_pose(GHOST[:n]))
+        lift = 1.0 + 0.55 * min(1.0, max(0.0, (t - C_SLAB[1]) / 1.0))
+        sh = ((0.20 + 0.34 * depth_cue(z, 1.0, 0.30))
+              * (0.72 + 0.28 * gfade) * lift)
+        _put(buf, col, row, z + 4000.0, sh, M_GHOST, False)
+
+    # part I, standing.  no fade-in: it has been there since the last video.
+    pts = np.vstack([s[0] for s in STONES])
+    nrm = np.vstack([s[1] for s in STONES])
+    col, row, z = cam.project(_pose(pts))
+    sh = (0.24 + 0.62 * lambert(nrm, LAMP)) * depth_cue(z, 1.0, 0.86)
+    _put(buf, col, row, z, np.clip(sh, 0.06, 1.0), M_OLD, True)
+
+    def win(w):
+        return min(1.0, max(0.0, (t - w[0]) / (w[1] - w[0])))
+
+    us = win(C_SLAB)
+    CW["rgb"] = blend(CRYPT, STONE, us)
+    uw = win(C_WALL)
+    lit = [_grow(buf, WALL, uw, M_CWALL, LAMP_C, 0.30, 0.74, cam)]
+    for part, w in ((FLOOR, C_PAVE), (PIERS, C_PIER), (VAULT, C_VAULT)):
+        lit.append(_grow(buf, part, win(w), M_CRYPT, LAMP_C, 0.30, 0.74, cam))
+    LAST["crypt"] = lit
+
+    # the near wall: drawn while you need to see past it, laid at the end
+    P, N, O = WALL_N
+    m = O <= uw
+    if m.any():
+        thin = np.zeros(len(P), bool)
+        thin[::5 if wide else 9] = True
+        sel = m & (thin | (us > 0.0))
+        if sel.any():
+            col, row, z = cam.project(_pose(P[sel]))
+            if us > 0.02:
+                sh = ((0.30 + 0.74 * lambert(N[sel], LAMP_C))
+                      * depth_cue(z, 1.0, 0.86))
+                _put(buf, col, row, z, np.clip(sh, 0.06, 1.0), M_CWALL, True)
+            else:
+                _put(buf, col, row, z + 4000.0, np.full(int(sel.sum()), 0.30),
+                     M_GHOST, False)
+
+    LAST["slab"] = _grow(buf, SLAB, us, M_SLAB, LAMP, 0.50, 0.46, cam,
+                         far=0.9) if us > 0 else 0
+
+    fr = _paint(buf)
+    _label(fr, t, stage)
+    return fr
+
+
+def draw_foundation(f, stage):
     t = f / float(FPS)
     buf = {"sh": np.zeros((G.rows, G.cols)),
            "mat": np.zeros((G.rows, G.cols), np.int16)}
@@ -389,7 +751,9 @@ def blend(a, b, t):
 
 
 def colour(v, m):
-    base = {M_GHOST: GHOST_RGB, M_STONE: STONE, M_EARTH: EARTH}[int(m)]
+    base = {M_GHOST: GHOST_RGB, M_STONE: STONE, M_EARTH: EARTH,
+            M_OLD: OLD, M_CRYPT: CRYPT, M_SLAB: STONE,
+            M_CWALL: CW["rgb"]}[int(m)]
     t = np.clip(0.22 + 0.78 * v, 0.0, 1.0)
     return blend(BG, base, t)
 
@@ -460,7 +824,92 @@ def stamp(fr, s, cell_h, ccen, rcen, rgb, halo=BG):
 
 
 # ---------------------------------------------------------------- check
+def check_crypt(stage):
+    print("THE CATHEDRAL — part %s, %s" % (roman(stage + 1), STAGES[stage]))
+    print("  wall blocks          %d in %d courses" % (NWALL, N_COURSE))
+    print("  piers                %d" % NPIER)
+    print("  vault arches         %d" % NARCH)
+    print("  slab samples         %d" % len(SLAB[0]))
+
+    # HELD OUT 1: the block count is never derived from the perimeter.  do it
+    # the other way -- length over spacing, times courses -- and agree.
+    implied = N_COURSE * CRYPT_PERIM / 2.4
+    print("  crypt wall run       %.1f m -> %.0f blocks at 2.4 m x %d courses"
+          % (CRYPT_PERIM, implied, N_COURSE))
+    assert abs(implied - NWALL) / NWALL < 0.04, (implied, NWALL)
+
+    # HELD OUT 2: part II must stand on part I.  every wall block has to sit
+    # over a footing laid in the last video -- half a footing spacing is the
+    # worst case, since the footings are 6.4 m apart on the same line.
+    foot = np.array(_walk(6.4))
+    off = []
+    for k in range(N_COURSE):
+        for (x, z, _) in _walk_ang(CRYPT_PATH, 2.4, off=0.5 * (k % 2))[0]:
+            off.append(np.min(np.hypot(foot[:, 0] - x, foot[:, 1] - z)))
+    off = np.array(off)
+    print("  wall block to nearest part I footing: max %.2f m (footings are "
+          "6.4 m apart, so 3.2 m is the worst legal case)" % off.max())
+    assert off.max() < 3.3, off.max()
+
+    # the room may not stick out through the wall of the building above it
+    P = np.vstack([WALL[0], PIERS[0], VAULT[0], FLOOR[0]])
+    out = ~inside_crypt(P[:, 0].astype(float), P[:, 2].astype(float),
+                        inset=-1.2)
+    print("  crypt points outside the choir/apse footprint: %d" % out.sum())
+    assert out.sum() == 0, out.sum()
+    print("  crypt top %.2f m, choir floor %.2f m, nave ghost %.0f m"
+          % (float(P[:, 1].max()), Y_CROWN, NAVE_Y))
+    assert float(P[:, 1].max()) <= Y_CROWN + 1e-3
+
+    # the close shot has to actually contain the room
+    col, row, _ = CAM_A.project(_pose(_CRYPT_PTS))
+    print("  close frame          c%d..%d  r%d..%d of %dx%d"
+          % (col.min(), col.max(), row.min(), row.max(), G.cols, G.rows))
+    assert col.min() >= 0 and col.max() < G.cols, (col.min(), col.max())
+    assert row.min() >= 0 and row.max() < G.rows, (row.min(), row.max())
+    assert row.max() < 128, ("room runs into the caption", row.max())
+
+    sheet, buried, wallpk = [], None, None
+    for t in (1.6, 3.4, 5.0, 6.8, 8.6, 10.4, 11.6, 13.4, 15.2):
+        fr = draw(int(t * FPS), stage)
+        ink, mat = LAST["ink"], LAST["mat"]
+        ncry, nslab = int((mat == M_CRYPT).sum()), int((mat == M_SLAB).sum())
+        print("  t=%4.1f cov %.3f  ghost %5d old %4d wall %4d room %4d "
+              "slab %4d" % (t, ink.mean(), (mat == M_GHOST).sum(),
+                            (mat == M_OLD).sum(), (mat == M_CWALL).sum(),
+                            ncry, nslab))
+        assert 0.02 < ink.mean() < 0.60, ink.mean()
+        for (c0, r0, w, h) in LAST["boxes"]:
+            assert r0 - 1 >= G.safe_top, ("text above safe", r0)
+            assert r0 + h + 1 <= G.safe_bot, ("text below safe", r0 + h)
+            assert c0 - 1 >= 0 and c0 + w + 1 <= G.cols, ("width", c0, w)
+        if abs(t - 11.6) < 1e-6:
+            buried, wallpk = ncry, int((mat == M_CWALL).sum())
+        sheet.append(fr)
+
+    # HELD OUT 3: the episode's whole claim is that the choir floor buries
+    # the ROOM -- floor, piers, vault -- while the wall survives as the
+    # outside of the building.  measure both in the finished frame, not in
+    # the code that placed them.
+    draw(int(C_SLAB[1] * FPS + 6), stage)
+    left = int((LAST["mat"] == M_CRYPT).sum())
+    wall = int((LAST["mat"] == M_CWALL).sum())
+    print("  room cells: %d lit -> %d under the floor (%.0f%% gone), wall "
+          "survives %d -> %d" % (buried, left, 100.0 * (1 - left /
+                                 float(buried)), wallpk, wall))
+    assert buried > 120, buried
+    assert left < 0.15 * buried, (buried, left)
+    assert wall > 0.80 * wallpk, (wallpk, wall)
+
+    contact(sheet, os.path.join(_HERE, "..", "content", "cath_sheet.png"),
+            cols=3, labels=["1.6 paving", "3.4 wall", "5.0", "6.8 piers",
+                            "8.6 vault", "10.4 lit", "11.6 CUT", "13.4 floor",
+                            "15.2"])
+
+
 def check(stage):
+    if stage == 1:
+        return check_crypt(stage)
     print("THE CATHEDRAL — part %s, %s" % (roman(stage + 1), STAGES[stage]))
     print("  masses in the ghost  %d" % len(MASSES))
     print("  ghost points         %d" % len(GHOST))
@@ -534,6 +983,7 @@ def check(stage):
 
 
 def main(stage, out):
+    FRAMES = frames_for(stage)
     with Encoder(out, G, fps=FPS) as enc:
         for f in range(FRAMES):
             enc.write(draw(f, stage))
