@@ -500,6 +500,53 @@ what you want for smooth metal, skin, cloth, anything continuous.
     case whose answer you already know before you believe it about a case you
     do not.**
 
+50. **A row of repeated objects merges at a viewing angle, and no amount of
+    zooming in fixes it.** Twenty cathedral piers, 2.4 m square on a 5.636 m
+    bay, read as ONE solid band at the series' established yaw of 58 degrees.
+    They separate only when the sideways step beats the width one object
+    reads as, and a square turned to the camera shows two faces at once:
+
+        step  = pitch * cos(yaw)
+        reads = width * (cos(yaw) + sin(yaw))
+
+    At 58 degrees that is 3.23 m of step against 4.08 m of object, so
+    neighbours overlap by 0.85 m. **Both quantities scale with the camera, so
+    the ratio is invariant** — a closer camera renders the same merge larger.
+    Solve it in degrees or not at all. They came apart below about 38.
+
+51. **Two parallel rows of repeated objects fill each other's gaps.** Having
+    fixed the yaw by the rule above, a sweep still measured ONE run at 14, 28
+    and 34 degrees and TEN at 20, which looks like noise and is not: the far
+    row lands in the near row's gaps at a general angle and hides behind the
+    near row only when its sideways offset is a whole number of periods.
+    `2 * separation * tan(yaw) = pitch` gave 19.406 degrees, the only
+    solution under the 38-degree limit from trap 50. **When a sweep of a
+    continuous parameter gives a discontinuous result, there is a second
+    constraint you have not written down.**
+
+52. **A glyph ramp draws vertical stripes inside a solid mass, and they look
+    exactly like separated objects.** I opened a full-resolution still of the
+    merged arcade, saw regular dotted columns, and concluded it read fine.
+    They were the characters. Dumping the material buffer as text -- one
+    letter per cell -- showed an unbroken slab of stone. **On a character
+    renderer, "I can see the gaps" is not evidence. Print the buffer.**
+
+53. **Measure the frame with the camera that drew it.** A check rendered the
+    close shot and then measured it with the wide camera's projection. It
+    reported five separate piers where the truth was one and ten
+    respectively, and both numbers were plausible enough to act on. Pass the
+    camera AND its pose function into the instrument together and never let
+    either default.
+
+54. **`s.index(marker)` finds the first match in the FILE, not the first
+    match near your edit.** Building a slice out of two `index` calls to
+    patch one function ended with `end < start`, and
+    `s[:start] + new + s[end:]` silently duplicated eight hundred lines. It
+    still parsed, still imported, and still ran -- using the *older* copy of
+    the function, so the edit appeared to have no effect and the output was
+    identical twice in a row. That symptom is the tell. Anchor a slice on
+    text you have proved unique, or use a real edit tool.
+
 ---
 
 ## Cheap habits

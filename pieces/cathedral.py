@@ -52,6 +52,7 @@ ROUGH = (0.470, 0.412, 0.361)  # part III: rubble. the wall nobody dressed.
 M_GHOST, M_STONE, M_EARTH, M_OLD, M_CRYPT, M_SLAB, M_CWALL = 1, 2, 3, 4, 5, 6, 7
 M_WALL3, M_PART = 8, 9
 M_TRAN, M_PIER = 10, 11        # part IV: the arms, and the four that carry it
+M_NAVE = 12                    # part V: the arcade
 
 # the crypt wall does not get buried -- it keeps going up and becomes the
 # outside of the choir.  so it stops being warm when the room is sealed.
@@ -721,6 +722,64 @@ def crossing_piers():
     return assemble(units), len(ys)
 
 
+# ---------------------------------------------------------- part V: arcade
+# Twenty piers in two rows, and nothing on top of them.
+#
+# What is true of THIS part and no other: it is the first repeat.  The
+# footings follow the ground, the crypt is one room, the choir wall follows a
+# path, the transept is a one-off.  An arcade is one thing, built again, and
+# the whole job is that the second one is the same as the first.  It is also
+# the first stone in this building that is not part of the outside -- every
+# course laid in parts I to IV has been perimeter.  When these are up there
+# is a nave and there are aisles, which is to say the building has an inside
+# for the first time.
+#
+# THE BAY IS DECIDED HERE, ONCE, FOR EVERY EPISODE AFTER THIS ONE.  The
+# aisle windows, the vault springing, the buttresses and the roof trusses all
+# have to land on these lines.  So it is not chosen by eye: the nave is 62 m
+# and the module the choir and the transept were already set out on is 5.8 m
+# (see _arm_piers), and 11 bays is the division of 62 that lands nearest it.
+N_BAY5 = 11
+BAY5 = (X_TRAN - X_NAVE) / float(N_BAY5)       # 5.636 m
+PIER5_HW = 1.2                                 # 2.4 m square. sized in check.
+N_COURSE5 = 15
+Y_CAP5 = Y_FOOT + N_COURSE5 * COURSE3          # 13.80 m to the abacus
+
+# Why the capital lands there: the arcade arch has to get across a bay and
+# still duck under the aisle roof.  A two-centred arch spanning 5.636 m rises
+# sqrt(3)/2 of its span, so its crown sits 4.88 m above the capital, and
+# Y_ARCADE is 19.0.  Fifteen courses is the tallest whole number that clears
+# it, by 0.32 m.  I wrote fourteen first and the check said fourteen was not
+# the tallest, which is the second time this series has been corrected by
+# arithmetic it was carrying anyway.  Asserted in check_nave.
+ARCH_RISE5 = 0.5 * math.sqrt(3.0) * BAY5
+
+
+def nave_piers():
+    """East to west, a bay at a time, north and south rising together.
+
+    East to west because that is the direction the building is going: the
+    choir end gets finished and used while the nave is still a drawing, and
+    the arcade's east end is already standing -- it is one of part IV's
+    crossing piers, which went up last episode without being told what for.
+
+    k = 0 is left out on purpose.  That one is engaged in the west front and
+    the west front is part XII.
+    """
+    units = []
+    xs = [X_NAVE + k * BAY5 for k in range(N_BAY5 - 1, 0, -1)]
+    for x in xs:
+        for c in range(N_COURSE5):
+            # a base at the bottom, an abacus at the top, square between
+            hw = PIER5_HW * (1.22 if (c < 2 or c == N_COURSE5 - 1) else 1.0)
+            y = Y_FOOT + (c + 0.5) * COURSE3
+            for z in (-NAVE_Z, NAVE_Z):
+                j = RNG.uniform(-0.025, 0.025, 2)
+                units.append(stone(x + j[0], y, z + j[1],
+                                   hw, COURSE3 * 0.43, hw))
+    return assemble(units), len(xs), N_COURSE5
+
+
 # ---------------------------------------------------------------- stages
 STAGES = [
     "THE FOUNDATION",
@@ -839,6 +898,8 @@ _MOVE_ALL = np.vstack([GHOST, WALL4[0][::7], PIERS4[0][::7],
                        _LEG4_P[::7]]).astype(np.float32)
 
 
+
+
 def _pose_at(p, yaw_deg, pitch_deg):
     """_pose, with the two angles let out.  _pose itself is untouched and
     check_transept asserts the two agree at (-58, 28), because rule 1 of this
@@ -912,6 +973,70 @@ def _mix_cam(u):
     return c
 
 
+# --- part V
+(PIERS5, N_PIER5, N_PC5) = nave_piers()
+
+# Everything standing when this episode opens: four videos of stone.  Held
+# back at part III's levels for the same reason -- by now the new work is
+# twenty slim piers against four episodes of wall, and if the legacy is lit
+# to match, the episode is invisible inside its own building.
+_LEG5_P = np.vstack([_LEG4_P, WALL4[0], PIERS4[0]]).astype(np.float32)
+_LEG5_N = np.vstack([_LEG4_N, WALL4[1], PIERS4[1]]).astype(np.float32)
+
+# THE CLOSE SHOT, part V -- and it is the first one in this series that is
+# not the established view at a different scale.
+#
+# Parts II and III cut to a close shot at the SAME yaw and pitch, so the cut
+# was a pure change of scale.  That cannot work here, and the reason is
+# arithmetic rather than taste.  Adjacent piers separate on screen only when
+# the horizontal step between them beats the width one pier reads as, and a
+# square pier turned 58 degrees to the camera shows two faces at once:
+#
+#     step  = BAY5 * cos(yaw)                  5.64 m at yaw 0
+#     reads = 2.93 * (cos(yaw) + sin(yaw))     4.08 m at yaw 58
+#
+# At the established yaw of 58 degrees the step is 3.23 m and one pier reads
+# 4.08 m wide, so neighbours overlap by 0.85 m and the arcade is a solid
+# band AT EVERY SCALE.  Zooming in does not help, because both quantities
+# scale together.  They come apart below about 38 degrees.
+#
+# I found this the expensive way.  A still at the established view looked
+# fine to me -- I could see vertical stripes and read them as piers.  They
+# were the glyphs of the character ramp.  The check that counts separate
+# runs of stone said ONE, twice, and it was right both times.
+#
+# THE YAW IS NOT CHOSEN EITHER.  There are two rows of piers 16 m apart, and
+# at a general angle the far row lands in the near row's gaps and fills them
+# in -- which is what the first sweep found, and it is why 14, 28 and 34
+# degrees all measured as ONE run while 20 measured as ten.  The far row
+# hides behind the near one exactly when its sideways offset is a whole
+# number of bays:
+#
+#     2 * NAVE_Z * tan(yaw) = BAY5      ->  yaw = 19.406 degrees
+#
+# So the angle this episode is shot at is the angle at which a cathedral's
+# two arcades line up, and there is only one of those under 38 degrees.
+P_YAW = -math.degrees(math.atan(BAY5 / (2.0 * NAVE_Z)))
+P_PITCH = 18.0
+
+
+def _pose_n(p):
+    return _pose_at(p, P_YAW, P_PITCH)
+
+
+# Fitted to the piers AND to the drawing of what stands on them: the nave,
+# the aisles and the roof over them, up to the ridge.  Fitted to the piers
+# alone it is a low band of stone in an empty frame, which is true and dull.
+# With the nave ghost in, the top of the picture is twenty-five metres of
+# building that does not exist and the piers are holding all of it.
+_NAVE_GH = GHOST[(GHOST[:, 0] > -1.0) & (GHOST[:, 0] < 63.0)
+                 & (GHOST[:, 1] <= 46.5)]
+_N_PTS = np.vstack([PIERS5[0], _NAVE_GH]).astype(np.float32)
+_npad = PIERS5[0].copy()
+_npad[:, 1] = PIERS5[0][:, 1].min() - 5.0      # keep the caption clear
+CAM_N = Camera(G).fit([_pose_n(np.vstack([_N_PTS, _npad]))], margin=1.05)
+
+
 # ---------------------------------------------------------------- timeline
 T_GHOST, T_HOLD, T_DIG, T_LAY, T_END = 1.5, 2.4, 3.6, 9.9, 12.4
 
@@ -945,7 +1070,18 @@ Q_UP = (6.1, 7.5)
 Q_DOWN = (9.7, 10.9)
 Q_END = 11.8
 
-T_ENDS = [T_END, C_END, H_END, Q_END]
+# part V.  Shorter again -- 12.4, 15.6, 17.8, 11.8, and now 8.8.  The one
+# thing this episode has to do is let you COUNT them, so the piers get the
+# whole middle of it and there is no cut, no second camera and no excursion.
+# It is the first episode since part I that never leaves the established
+# view, and that is not a rule being obeyed, it is that nothing here needs
+# another angle.
+P_GHOST = 0.9
+P_CUT = 1.8
+P_PIER = (0.9, 7.0)
+P_END = 8.8
+
+T_ENDS = [T_END, C_END, H_END, Q_END, P_END]
 LAST = {}
 
 
@@ -983,7 +1119,7 @@ def _put(buf, col, row, z, sh, mat, cover):
 
 def draw(f, stage):
     return (draw_foundation, draw_crypt, draw_choir,
-            draw_transept)[stage](f, stage)
+            draw_transept, draw_nave)[stage](f, stage)
 
 
 def _label(fr, t, stage, t0=0.8):
@@ -1043,7 +1179,7 @@ def draw_crypt(f, stage):
     gfade = min(1.0, t / C_GHOST)
     n = int(len(GHOST) * gfade)
     if n > 8:
-        col, row, z = cam.project(_pose(GHOST[:n]))
+        col, row, z = cam.project(pose(GHOST[:n]))
         lift = 1.0 + 0.55 * min(1.0, max(0.0, (t - C_SLAB[1]) / 1.0))
         sh = ((0.20 + 0.34 * depth_cue(z, 1.0, 0.30))
               * (0.72 + 0.28 * gfade) * lift)
@@ -1110,7 +1246,7 @@ def draw_choir(f, stage):
     gfade = min(1.0, t / H_GHOST)
     n = int(len(GHOST) * gfade)
     if n > 8:
-        col, row, z = cam.project(_pose(GHOST[:n]))
+        col, row, z = cam.project(pose(GHOST[:n]))
         lift = 1.0 + 0.55 * min(1.0, max(0.0, (t - H_CUT - 0.9) / 1.1))
         sh = ((0.20 + 0.34 * depth_cue(z, 1.0, 0.30))
               * (0.72 + 0.28 * gfade) * lift)
@@ -1192,6 +1328,45 @@ def draw_transept(f, stage):
     return fr
 
 
+def draw_nave(f, stage):
+    """Part V.  One shot, the established view, and twenty piers.
+
+    Nothing is revealed and nothing is cut to.  A row of identical things
+    arrives one at a time, from the crossing westward, and stops in mid-air
+    where the arches will start.  The building gets an inside.
+    """
+    t = f / float(FPS)
+    close = t >= P_CUT
+    cam = CAM_N if close else CAM
+    pose = _pose_n if close else _pose
+    buf = {"sh": np.zeros((G.rows, G.cols)),
+           "mat": np.zeros((G.rows, G.cols), np.int16)}
+
+    gfade = min(1.0, t / P_GHOST)
+    n = int(len(GHOST) * gfade)
+    if n > 8:
+        col, row, z = cam.project(pose(GHOST[:n]))
+        lift = 1.0 + 0.55 * min(1.0, max(0.0, (t - P_PIER[1] - 0.3) / 1.1))
+        sh = ((0.20 + 0.34 * depth_cue(z, 1.0, 0.30))
+              * (0.72 + 0.28 * gfade) * lift)
+        _put(buf, col, row, z + 4000.0, sh, M_GHOST, False)
+
+    # parts I to IV, standing, at the level part III set.
+    col, row, z = cam.project(pose(_LEG5_P))
+    sh = (0.17 + 0.44 * lambert(_LEG5_N, LAMP)) * depth_cue(z, 1.0, 0.86)
+    _put(buf, col, row, z, np.clip(sh, 0.05, 1.0), M_OLD, True)
+
+    u = min(1.0, max(0.0, (t - P_PIER[0]) / (P_PIER[1] - P_PIER[0])))
+    LAST["nave"] = _grow(buf, PIERS5, u, M_NAVE, LAMP, 0.28, 0.78, cam,
+                         pose=pose)
+    LAST["u5"] = u
+    LAST["close"] = close
+
+    fr = _paint(buf)
+    _label(fr, t, stage)
+    return fr
+
+
 def draw_foundation(f, stage):
     t = f / float(FPS)
     buf = {"sh": np.zeros((G.rows, G.cols)),
@@ -1255,7 +1430,7 @@ def colour(v, m):
     base = {M_GHOST: GHOST_RGB, M_STONE: STONE, M_EARTH: EARTH,
             M_OLD: OLD, M_CRYPT: CRYPT, M_SLAB: STONE,
             M_CWALL: CW["rgb"], M_WALL3: STONE, M_PART: ROUGH,
-            M_TRAN: STONE, M_PIER: STONE}[int(m)]
+            M_TRAN: STONE, M_PIER: STONE, M_NAVE: STONE}[int(m)]
     t = np.clip(0.22 + 0.78 * v, 0.0, 1.0)
     return blend(BG, base, t)
 
@@ -1730,7 +1905,179 @@ def check_transept(stage):
                             "10.4 falling", "11.5 back"])
 
 
+def check_nave(stage):
+    print("THE CATHEDRAL — part %s, %s" % (roman(stage + 1), STAGES[stage]))
+    print("  nave                 %.0f m in %d bays of %.3f m"
+          % (X_TRAN - X_NAVE, N_BAY5, BAY5))
+    print("  piers                %d per row, %d courses of %.2f m, "
+          "%.1f m to %.2f m" % (N_PIER5, N_PC5, COURSE3, Y_FOOT, Y_CAP5))
+    print("  section              %.1f m square = %.2f m2"
+          % (2 * PIER5_HW, (2 * PIER5_HW) ** 2))
+
+    # RULE 1.  The one thing this series still publishes, checked every
+    # episode: the established view has not drifted.
+    d = np.abs(_pose_at(GHOST, -58.0, 28.0) - _pose(GHOST)).max()
+    print("  established view unchanged: max disagreement %.2e m" % d)
+    assert d < 1e-3, d
+
+    # THE BAY.  11 is not a taste.  The choir and the transept were set out
+    # on a 5.8 m module (_arm_piers), the nave is 62 m, and of every whole
+    # number of bays 11 is the one that lands nearest that module.  Check it
+    # against all the others rather than asserting the winner.
+    cand = [(abs((X_TRAN - X_NAVE) / n - 5.8), n) for n in range(6, 17)]
+    cand.sort()
+    print("  module 5.80 m -> best division of %.0f m is %d bays at %.3f m "
+          "(next best %d at %.3f)"
+          % (X_TRAN - X_NAVE, cand[0][1], (X_TRAN - X_NAVE) / cand[0][1],
+             cand[1][1], (X_TRAN - X_NAVE) / cand[1][1]))
+    assert cand[0][1] == N_BAY5, cand[:2]
+    assert abs(N_BAY5 * BAY5 - (X_TRAN - X_NAVE)) < 1e-9
+
+    # THE CAPITAL HEIGHT.  A two-centred arch across one bay rises
+    # sqrt(3)/2 of its span, and it has to stay under the aisle roof.
+    # Fifteen courses is the tallest whole number that does -- so check
+    # that sixteen does NOT, or the number is unexplained.
+    crown = Y_CAP5 + ARCH_RISE5
+    crown16 = Y_FOOT + (N_COURSE5 + 1) * COURSE3 + ARCH_RISE5
+    print("  arch crown           %.2f m, aisle roof at %.2f m "
+          "(clears by %.2f m)" % (crown, Y_ARCADE, Y_ARCADE - crown))
+    print("  one more course      %.2f m -> %s"
+          % (crown16, "clears" if crown16 < Y_ARCADE else "does not clear"))
+    assert crown < Y_ARCADE, crown
+    assert crown16 >= Y_ARCADE, crown16
+
+    # HELD OUT 1 -- the bearing stress at the foot of a nave pier.  Nothing
+    # in the render knows what these carry: everything above the capital is
+    # still a drawing.  Take it off MASSES -- one bay of nave wall from the
+    # capital to the wall head, half the nave vault, and the pier's own
+    # weight -- and divide by the section.  Gothic cathedrals work at about
+    # 1 N/mm2 (Heyman, The Stone Skeleton).  Like part IV this is a sizing
+    # constraint and is stated as one: PIER5_HW was chosen to land here.
+    NWALL_T, VAULT_T, RHO, G0 = 1.2, 0.30, 2300.0, 9.81
+    v_wall = (NAVE_Y - Y_CAP5) * BAY5 * NWALL_T
+    v_vault = NAVE_Z * BAY5 * VAULT_T
+    v_self = (Y_CAP5 - Y_FOOT) * (2 * PIER5_HW) ** 2
+    load = (v_wall + v_vault + v_self) * RHO * G0
+    sigma = load / ((2 * PIER5_HW) ** 2) / 1e6
+    print("  carries              %.0f m3 wall + %.0f m3 vault + %.0f m3 "
+          "of itself = %.0f tonnes"
+          % (v_wall, v_vault, v_self,
+             (v_wall + v_vault + v_self) * RHO / 1000.0))
+    # Wikipedia's limestone article: "dense limestone can have a crushing
+    # strength of up to 180 MPa".  Building limestone is a lot softer than
+    # that, so the ratio is quoted against both ends rather than one number
+    # I cannot source.
+    print("  bearing stress       %.2f MPa = %.2f%% of a dense limestone at "
+          "180 MPa, %.1f%% of a soft one at 30"
+          % (sigma, 100 * sigma / 180.0, 100 * sigma / 30.0))
+    assert 0.4 < sigma < 2.0, sigma
+
+    # The arcade has to STOP before it hits part IV.  The crossing square is
+    # 18 m and the nave is 16, so the east end of this arcade is a crossing
+    # pier standing a metre outboard of the arcade line.  If the last bay
+    # were carried all the way, two pieces of stone would occupy the same
+    # place and nobody would see it from here.
+    east = X_NAVE + (N_BAY5 - 1) * BAY5
+    gap = (X_TRAN - PIER_HW) - (east + PIER5_HW * 1.22)
+    print("  last free pier at x=%.2f, crossing pier face at x=%.2f "
+          "-> %.2f m clear" % (east, X_TRAN - PIER_HW, gap))
+    assert gap > 0.8, gap
+    print("  arcade line z=%.0f, crossing pier line z=%.0f -> %.0f m outboard"
+          % (NAVE_Z, CROSS_Z, CROSS_Z - NAVE_Z))
+
+    # HELD OUT 2 -- CAN YOU COUNT THEM?  That is the entire episode, so
+    # measure it off the finished frame rather than the model: rasterised,
+    # z-buffered cells of new stone only.  A row of piers that has merged
+    # into a band of wall passes every other check in this file.
+    #
+    # The row band is taken from the MODEL -- project the pier tops and
+    # bottoms -- and not from a fraction of the frame.
+    xs5 = [X_NAVE + k * BAY5 for k in range(1, N_BAY5)]
+
+    def _read(cam, pose, t, force_wide=False):
+        """How many separate things does a row of piers read as, in the
+        frame that is actually on screen?  Two ways of getting this wrong
+        have already been paid for.  One: collapsing both rows into a single
+        column profile, which fills every gap because the far row sits in
+        the near row's gaps at almost every angle.  Two: measuring a frame
+        rendered through one camera with the projection of another.  So the
+        camera and the pose are passed in together and never assumed.
+        """
+        global P_CUT
+        keep = P_CUT
+        if force_wide:
+            P_CUT = 1e9                       # render the wide view instead
+        try:
+            draw(int(t * FPS), stage)
+        finally:
+            P_CUT = keep
+        m = LAST["mat"]
+        out = []
+        for z in (-NAVE_Z, NAVE_Z):
+            top = np.array([[x, Y_CAP5, z] for x in xs5], np.float32)
+            bot = top.copy()
+            bot[:, 1] = Y_FOOT
+            ct, rt, _ = cam.project(pose(top))
+            cb, rb, _ = cam.project(pose(bot))
+            assert ct.min() >= 0 and ct.max() < G.cols, (ct.min(), ct.max())
+            assert rt.min() >= 0 and rb.max() < G.rows, (rt.min(), rb.max())
+            r0, r1 = int(rt.min()), int(rb.max())
+            c0, c1 = int(ct.min()), int(ct.max())
+            lit = (m[r0:r1 + 1, c0:c1 + 1] == M_NAVE).any(0)
+            runs, cur = 0, False
+            for v in list(lit) + [False]:
+                if v and not cur:
+                    runs += 1
+                cur = v
+            out.append((runs, int((~lit).sum()), len(lit), r0, r1, c0, c1))
+        return out
+
+    def _show(tag, rows):
+        print("  %s" % tag)
+        for (runs, air, n, r0, r1, c0, c1) in rows:
+            print("    rows %3d..%3d cols %2d..%2d -> %2d separate runs, "
+                  "%2d/%2d columns of air" % (r0, r1, c0, c1, runs, air, n))
+
+    wide = _read(CAM, _pose, 7.6, force_wide=True)
+    _show("in the ESTABLISHED view -- this is why the episode cuts:", wide)
+    got = _read(CAM_N, _pose_n, 7.6)
+    _show("in the CLOSE view, which is the one that ships:", got)
+    # the established view must FAIL: if it ever stops merging, the cut is
+    # unjustified and this episode should not have taken a second camera.
+    for (runs, _a, _n, _r0, _r1, _c0, _c1) in wide:
+        assert runs <= 3, ("the established view resolves them after all",
+                           runs)
+    # ten piers a row.  Nine is a merge somewhere and it is not countable.
+    for (runs, air, n, _r0, _r1, _c0, _c1) in got:
+        assert runs >= N_PIER5, (runs, N_PIER5)
+        assert air >= 0.12 * n, (air, n)
+
+    sheet = []
+    for t in (0.5, 1.2, 2.2, 3.2, 4.3, 5.4, 6.4, 7.6, 8.6):
+        fr = draw(int(t * FPS), stage)
+        ink, mat = LAST["ink"], LAST["mat"]
+        print("  t=%4.1f u=%.2f cov %.3f  ghost %5d old %5d nave %5d  "
+              "set %d" % (t, LAST["u5"], ink.mean(),
+                          (mat == M_GHOST).sum(), (mat == M_OLD).sum(),
+                          (mat == M_NAVE).sum(), LAST["nave"]))
+        assert 0.02 < ink.mean() < 0.60, ink.mean()
+        for (bc0, br0, w, h) in LAST["boxes"]:
+            assert br0 - 1 >= G.safe_top, ("text above safe", br0)
+            assert br0 + h + 1 <= G.safe_bot, ("text below safe", br0 + h)
+            assert bc0 - 1 >= 0 and bc0 + w + 1 <= G.cols, ("width", bc0, w)
+        sheet.append(fr)
+
+    assert LAST["u5"] >= 1.0, LAST["u5"]
+    print("  runtime              %.1f s, %d frames  (IV was %.1f s)"
+          % (P_END, int(P_END * FPS), Q_END))
+    contact(sheet, os.path.join(_HERE, "..", "content", "cath_sheet.png"),
+            cols=3, labels=["0.5 ghost", "1.2", "2.2", "3.2", "4.3", "5.4",
+                            "6.4", "7.6 all twenty", "8.6"])
+
+
 def check(stage):
+    if stage == 4:
+        return check_nave(stage)
     if stage == 1:
         return check_crypt(stage)
     if stage == 2:
