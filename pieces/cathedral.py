@@ -31,7 +31,7 @@ import sys
 import numpy as np
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path[:0] = [_HERE, os.path.dirname(_HERE)]
+sys.path.insert(0, _HERE)
 
 import cairo  # noqa: E402
 from asciilib import (Camera, Encoder, Frame, Grid, contact, depth_cue,  # noqa
@@ -51,6 +51,7 @@ ROUGH = (0.470, 0.412, 0.361)  # part III: rubble. the wall nobody dressed.
 
 M_GHOST, M_STONE, M_EARTH, M_OLD, M_CRYPT, M_SLAB, M_CWALL = 1, 2, 3, 4, 5, 6, 7
 M_WALL3, M_PART = 8, 9
+M_TRAN, M_PIER = 10, 11        # part IV: the arms, and the four that carry it
 
 # the crypt wall does not get buried -- it keeps going up and becomes the
 # outside of the choir.  so it stops being warm when the room is sealed.
@@ -600,6 +601,126 @@ def choir_partition(step=1.05):
     return assemble(units), len(ys), len(zs)
 
 
+# ------------------------------------------------------ part IV: transept
+# The crossbar.  Two arms reaching 26 m either side of the centreline, and
+# the four piers standing where they cross the nave.
+#
+# What is true of THIS part and no other: the transept is the thing that
+# makes the plan a cross.  And the plan is the one view of a cathedral that
+# nobody in it can get.  Part I dug the whole footprint -- so the cross has
+# been lying on the ground since the first video in this series and has not
+# been visible in a single frame of it.  The fixed camera cannot show it.
+# That is not a limitation of the camera.  It is the subject.
+#
+# The transept has no crypt under it, so its wall starts at the footings and
+# not at the crypt crown: 22 courses instead of the choir's 17.  The sill and
+# the head stay at the same ABSOLUTE height as part III, because a string
+# course runs round a building at one level and does not step.
+Y_TFOOT = Y_FOOT
+N_COURSE4 = int(round((Y_ARCADE - Y_TFOOT) / COURSE3))          # 22
+CROSS_Z = 9.0                      # the crossing square, straight off MASSES
+TRAN_Z = 26.0                      # how far the arms reach, ditto
+PIER_HW = 1.5                      # 3.0 m square.  sized in check_transept.
+PIER_TOP = 22.0                    # they do not stop where the walls stop
+
+# Walked so that _on_path's normal comes out pointing OUT of the building on
+# every segment.  The arms are re-entrant -- the nave already occupies
+# |z| < 15 -- so "outward" flips sense between the two of them, and the fix
+# is to walk the south arm the other way round rather than special-case it.
+ARM_N = [(X_TRAN, -AISLE_Z), (X_TRAN, -TRAN_Z),
+         (X_CHOIR, -TRAN_Z), (X_CHOIR, -AISLE_Z)]
+ARM_S = [(X_CHOIR, AISLE_Z), (X_CHOIR, TRAN_Z),
+         (X_TRAN, TRAN_Z), (X_TRAN, AISLE_Z)]
+
+
+def _arm_piers(corners, total, target=5.8):
+    """Buttress positions along one arm.  A pier lands on every corner --
+    that is where a wall most needs one -- and the straight runs between are
+    divided as near the choir's bay as they will go."""
+    out, edges = set(), [0.0] + list(corners) + [total]
+    for a, b in zip(edges[:-1], edges[1:]):
+        n = max(1, int(round((b - a) / target)))
+        for k in range(n + 1):
+            out.add(round(a + (b - a) * k / n, 6))
+    return sorted(out)
+
+
+def _arms():
+    out = []
+    for path in (ARM_N, ARM_S):
+        P = _dedupe(path)
+        S = np.linalg.norm(np.diff(P, axis=0), axis=1)
+        C = np.concatenate([[0.0], np.cumsum(S)])
+        tot = float(C[-1])
+        out.append((P, S, C, tot, _arm_piers((float(C[1]), float(C[2])), tot)))
+    return out
+
+
+ARMS = _arms()
+
+
+def _tran_window(s, y, piers):
+    """One lancet in the middle of each bay.  The bays are not all the same
+    width here -- the corners take a pier wherever they fall -- so the hole
+    is found from the bay it is in rather than from a modulo, which also
+    guarantees no window is ever cut across a corner."""
+    if not (WIN_SILL <= y <= WIN_HEAD):
+        return False
+    for a, b in zip(piers[:-1], piers[1:]):
+        if a <= s <= b:
+            tt = (y - WIN_SILL) / (WIN_HEAD - WIN_SILL)
+            w = WIN_W * (1.0 if tt < 0.62
+                         else max(0.0, 1.0 - (tt - 0.62) / 0.38))
+            return abs(s - 0.5 * (a + b)) < 0.5 * w
+    return False
+
+
+def transept_wall(spacing=2.4):
+    """Both arms, course by course, north then south so they rise together."""
+    hh = COURSE3 / 2.0
+    units, nw, nb, nslot = [], 0, 0, 0
+    for k in range(N_COURSE4):
+        y = Y_TFOOT + (2 * k + 1) * hh
+        proj = BUT_PROJ * (1.0 - 0.45 * k / float(N_COURSE4 - 1))
+        for (P, S, C, tot, piers) in ARMS:
+            for s in piers:
+                x, z, ang, ox, oz = _on_path(P, S, C, min(s, tot - 1e-6))
+                d = 0.95 + 0.5 * proj
+                units.append(stone(x + ox * d, y, z + oz * d,
+                                   1.15, hh * 0.86, 0.5 * proj, ang))
+                nb += 1
+            n = max(1, int(round(tot / spacing)))
+            for i in range(n):
+                s = min(((i + 0.5 + 0.5 * (k % 2)) % n) * tot / n,
+                        tot - 1e-6)
+                x, z, ang, ox, oz = _on_path(P, S, C, s)
+                nslot += 1
+                if _tran_window(s, y, piers):
+                    continue
+                th = 0.95 + (0.30 if abs(y - WIN_SILL) < 0.5 * COURSE3 else 0.0)
+                e = 0.16 if abs(y - WIN_SILL) < 0.5 * COURSE3 else 0.0
+                units.append(stone(x + ox * e, y, z + oz * e,
+                                   spacing * 0.45, hh * 0.86, th, ang))
+                nw += 1
+    return assemble(units), nw, nb, nslot
+
+
+def crossing_piers():
+    """Four piers on the corners of an 18 m square, and everything above the
+    roof one day lands on them.  They are the thickest thing in the building
+    for that reason -- see the bearing-stress check.  They go up first and
+    they finish taller than the walls, because they are nowhere near done."""
+    units = []
+    ys = np.arange(Y_TFOOT, PIER_TOP, COURSE3)
+    for k, y in enumerate(ys):
+        for x in (X_TRAN, X_CHOIR):
+            for z in (-CROSS_Z, CROSS_Z):
+                j = RNG.uniform(-0.03, 0.03, 2)
+                units.append(stone(x + j[0], y + 0.5 * COURSE3, z + j[1],
+                                   PIER_HW, COURSE3 * 0.43, PIER_HW))
+    return assemble(units), len(ys)
+
+
 # ---------------------------------------------------------------- stages
 STAGES = [
     "THE FOUNDATION",
@@ -691,6 +812,106 @@ _epad = _E_PTS.copy()
 _epad[:, 1] = _E_PTS[:, 1].min() - 5.0         # keep the caption clear
 CAM_B = Camera(G).fit([_pose(np.vstack([_E_PTS, _epad]))], margin=1.06)
 
+# --- part IV
+(WALL4, NW4, NB4, NSLOT4) = transept_wall()
+(PIERS4, N_PCOURSE) = crossing_piers()
+
+# Part I's footings, kept SEPARATE from everything else that is standing.
+#
+# From overhead they are the whole argument -- 350 m of dotted line that has
+# been a cross since the first video -- so they get let up as the camera
+# rises.  The rest does not, and the reason is the choir slab: it is 1,100 m2
+# of flat pale plane whose normal points straight at the lens up there, and
+# lit to match the footings it turns the head of the cross into a light bulb.
+# Overhead, a floor is not the drawing.  The walls are.
+_FOOT_P = np.vstack([s[0] for s in STONES]).astype(np.float32)
+_FOOT_N = np.vstack([s[1] for s in STONES]).astype(np.float32)
+_REST_P = np.vstack([WALL[0], WALL_N[0], SLAB[0],
+                     WALL3[0], PART[0]]).astype(np.float32)
+_REST_N = np.vstack([WALL[1], WALL_N[1], SLAB[1],
+                     WALL3[1], PART[1]]).astype(np.float32)
+_LEG4_P = np.vstack([_FOOT_P, _REST_P]).astype(np.float32)
+_LEG4_N = np.vstack([_FOOT_N, _REST_N]).astype(np.float32)
+
+# every point the move has to keep on screen, thinned -- the fit only needs
+# the silhouette and this runs once a frame.
+_MOVE_ALL = np.vstack([GHOST, WALL4[0][::7], PIERS4[0][::7],
+                       _LEG4_P[::7]]).astype(np.float32)
+
+
+def _pose_at(p, yaw_deg, pitch_deg):
+    """_pose, with the two angles let out.  _pose itself is untouched and
+    check_transept asserts the two agree at (-58, 28), because rule 1 of this
+    series is that the established view never drifts."""
+    yaw, pitch = math.radians(yaw_deg), math.radians(pitch_deg)
+    x, y, z = p[:, 0] - 51.0, p[:, 1] - 30.0, p[:, 2]
+    cy_, sy_ = math.cos(yaw), math.sin(yaw)
+    x1, z1 = x * cy_ + z * sy_, -x * sy_ + z * cy_
+    cx_, sx_ = math.cos(pitch), math.sin(pitch)
+    y1, z2 = y * cx_ - z1 * sx_, y * sx_ + z1 * cx_
+    return np.stack([x1, -y1, z2], 1).astype(np.float32)
+
+
+# THE ONE VIEW THIS SERIES IS NOT ALLOWED TO HAVE.
+#
+# Rule 1 says the camera never moves, and the reason it says so is that every
+# episode has to lay on top of every other one.  Part IV needs the plan --
+# there is no other way to see a cross -- so the camera leaves, and then it
+# comes back, and the episode still opens and closes in the fixed frame.  The
+# rule keeps its purpose and gives up its literal wording, which is what part
+# II did to it as well.
+#
+# Straight down, and turned so the apse is at the top of the picture.  A
+# latin cross has its long arm BELOW the crossbar: the short way round from
+# the established yaw puts the west front at the top instead, which draws an
+# inverted cross, which is a thing this piece is not about.  So it turns the
+# long way, 148 degrees, and the turn is most of what the move is.
+PLAN_YAW, PLAN_PITCH = 90.0, 90.0
+PLAN_PAD = 44.0                    # metres of nothing reserved under the west
+                                   # front.  It was 21, and at 21 the plan ran
+                                   # down over the numeral -- which every check
+                                   # passed, because they all asked whether the
+                                   # TEXT was in the safe area and none of them
+                                   # asked whether anything was on top of it.
+_PLAN_PTS = _pose_at(GHOST, PLAN_YAW, PLAN_PITCH)
+_ppad = _PLAN_PTS.copy()
+_ppad[:, 1] = _PLAN_PTS[:, 1].max() + PLAN_PAD
+CAM_P = Camera(G).fit([np.vstack([_PLAN_PTS, _ppad])], margin=1.02)
+
+
+def _mix_cam(u):
+    """The camera during the move.
+
+    Lerping offset and scale between the two ends does NOT frame the poses in
+    between: half way up, at 59 degrees of pitch and 16 of yaw, the cathedral
+    is 125 cells wide across a 98 cell grid and both ends of it are off the
+    picture.  A camera that is correct at both ends of a move and wrong in
+    the middle is the whole trap.
+
+    So the lerp is pulled toward an actual fit of THIS pose, weighted to zero
+    at both ends -- which pins the two views the series is allowed to have --
+    and hardest in the middle, where the lerp is worst.  What it looks like
+    is a camera drawing back as it swings, which is what you would do.
+    """
+    yaw = -58.0 + (PLAN_YAW + 58.0) * u
+    pitch = 28.0 + (PLAN_PITCH - 28.0) * u
+    off = CAM.off * (1.0 - u) + CAM_P.off * u
+    scale = CAM.scale * (1.0 - u) + CAM_P.scale * u
+
+    w = (4.0 * u * (1.0 - u)) ** 0.35
+    if w > 1e-6:
+        P = _pose_at(_MOVE_ALL, yaw, pitch)
+        pad = P.copy()
+        pad[:, 1] = P[:, 1].max() + PLAN_PAD * u      # keep the caption clear
+        f = Camera(G).fit([np.vstack([P, pad])], margin=1.06)
+        off = off * (1.0 - w) + f.off * w
+        scale = scale * (1.0 - w) + min(scale, f.scale) * w
+
+    c = Camera(G)
+    c.off, c.scale = off, scale
+    return c
+
+
 # ---------------------------------------------------------------- timeline
 T_GHOST, T_HOLD, T_DIG, T_LAY, T_END = 1.5, 2.4, 3.6, 9.9, 12.4
 
@@ -712,8 +933,34 @@ H_PART = (10.3, 13.7)
 H_CUT = 14.4
 H_END = 17.8
 
-T_ENDS = [T_END, C_END, H_END]
+# part IV.  The shortest episode so far, on purpose: this channel measured
+# 200 videos and retention falls monotonically with length, so the series
+# creeping 12.4 -> 15.6 -> 17.8 was going the wrong way and nobody had said
+# so.  The build is quick and the plan is held long, because the plan is the
+# episode and the stone going up is only how you get there.
+Q_GHOST = 0.9
+Q_PIER = (0.8, 2.5)
+Q_WALL = (2.5, 6.0)
+Q_UP = (6.1, 7.5)
+Q_DOWN = (9.7, 10.9)
+Q_END = 11.8
+
+T_ENDS = [T_END, C_END, H_END, Q_END]
 LAST = {}
+
+
+def _smooth(t, a, b):
+    u = min(1.0, max(0.0, (t - a) / (b - a)))
+    return u * u * (3.0 - 2.0 * u)
+
+
+def _u_at(t):
+    """0 in the fixed view, 1 in the plan.  Up, hold, down."""
+    if t < Q_UP[0]:
+        return 0.0
+    if t < Q_DOWN[0]:
+        return _smooth(t, *Q_UP)
+    return 1.0 - _smooth(t, *Q_DOWN)
 
 
 def frames_for(stage):
@@ -735,7 +982,8 @@ def _put(buf, col, row, z, sh, mat, cover):
 
 
 def draw(f, stage):
-    return (draw_foundation, draw_crypt, draw_choir)[stage](f, stage)
+    return (draw_foundation, draw_crypt, draw_choir,
+            draw_transept)[stage](f, stage)
 
 
 def _label(fr, t, stage, t0=0.8):
@@ -765,16 +1013,18 @@ def _paint(buf):
              extra=buf["mat"][on].ravel().astype(float))
     LAST["ink"] = on
     LAST["mat"] = buf["mat"]
+    LAST["sh"] = buf["sh"]
     return fr
 
 
-def _grow(buf, part, u, mat, lamp, amb, gain, cam=None, near=1.0, far=0.86):
+def _grow(buf, part, u, mat, lamp, amb, gain, cam=None, near=1.0, far=0.86,
+          pose=None):
     """Draw the fraction u of an assembled element that has been set."""
     P, N, O = part
     m = O <= u
     if not m.any():
         return 0
-    col, row, z = (cam or CAM).project(_pose(P[m]))
+    col, row, z = (cam or CAM).project((pose or _pose)(P[m]))
     sh = (amb + gain * lambert(N[m], lamp)) * depth_cue(z, near, far)
     _put(buf, col, row, z, np.clip(sh, 0.06, 1.0), mat, True)
     return int(m.sum())
@@ -887,6 +1137,61 @@ def draw_choir(f, stage):
     return fr
 
 
+def draw_transept(f, stage):
+    """Part IV.  One shot, and the camera leaves the series for 4.8 seconds.
+
+    The four crossing piers, then both arms, in the view this series has had
+    since January.  From there the transept is a wide bit -- more wall, on a
+    building already made of wall.  Then straight up, and the reason for it
+    is on the ground and has been since part I: the footings are a cross.
+    Then back down to the same stubborn view, which still cannot show it.
+    """
+    t = f / float(FPS)
+    u = _u_at(t)
+    yaw = -58.0 + (PLAN_YAW + 58.0) * u
+    pitch = 28.0 + (PLAN_PITCH - 28.0) * u
+    cam = CAM if u <= 0.0 else _mix_cam(u)
+
+    def pose(P):
+        return _pose(P) if u <= 0.0 else _pose_at(P, yaw, pitch)
+
+    buf = {"sh": np.zeros((G.rows, G.cols)),
+           "mat": np.zeros((G.rows, G.cols), np.int16)}
+
+    gfade = min(1.0, t / Q_GHOST)
+    n = int(len(GHOST) * gfade)
+    if n > 8:
+        col, row, z = cam.project(pose(GHOST[:n]))
+        # overhead, the ghost stops being scaffolding and becomes the
+        # drawing.  it is the only thing up there that knows the shape.
+        sh = ((0.20 + 0.34 * depth_cue(z, 1.0, 0.30))
+              * (0.72 + 0.28 * gfade) * (1.0 + 0.62 * u))
+        _put(buf, col, row, z + 4000.0, sh, M_GHOST, False)
+
+    # parts I to III.  On the ground both of these sit exactly where part III
+    # put them, so the episodes still lay on top of each other.  Overhead the
+    # footings come up and the rest does not -- see _FOOT_P.
+    for P, N, amb, gain in ((_REST_P, _REST_N, 0.17, 0.44),
+                            (_FOOT_P, _FOOT_N, 0.17 + 0.26 * u,
+                             0.44 + 0.30 * u)):
+        col, row, z = cam.project(pose(P))
+        sh = (amb + gain * lambert(N, LAMP)) * depth_cue(z, 1.0, 0.86)
+        _put(buf, col, row, z, np.clip(sh, 0.05, 1.0), M_OLD, True)
+
+    def win(w):
+        return min(1.0, max(0.0, (t - w[0]) / (w[1] - w[0])))
+
+    LAST["piers4"] = _grow(buf, PIERS4, win(Q_PIER), M_PIER, LAMP,
+                           0.26, 0.72, cam, pose=pose)
+    LAST["wall4"] = _grow(buf, WALL4, win(Q_WALL), M_TRAN, LAMP,
+                          0.26, 0.72, cam, pose=pose)
+    LAST["u"] = u
+
+    fr = _paint(buf)
+    _label(fr, t, stage)
+    return fr
+
+
 def draw_foundation(f, stage):
     t = f / float(FPS)
     buf = {"sh": np.zeros((G.rows, G.cols)),
@@ -936,6 +1241,7 @@ def draw_foundation(f, stage):
              extra=buf["mat"][on].ravel().astype(float))
     LAST["ink"] = on
     LAST["mat"] = buf["mat"]
+    LAST["sh"] = buf["sh"]
 
     _label(fr, t, stage)
     return fr
@@ -948,7 +1254,8 @@ def blend(a, b, t):
 def colour(v, m):
     base = {M_GHOST: GHOST_RGB, M_STONE: STONE, M_EARTH: EARTH,
             M_OLD: OLD, M_CRYPT: CRYPT, M_SLAB: STONE,
-            M_CWALL: CW["rgb"], M_WALL3: STONE, M_PART: ROUGH}[int(m)]
+            M_CWALL: CW["rgb"], M_WALL3: STONE, M_PART: ROUGH,
+            M_TRAN: STONE, M_PIER: STONE}[int(m)]
     t = np.clip(0.22 + 0.78 * v, 0.0, 1.0)
     return blend(BG, base, t)
 
@@ -1245,11 +1552,191 @@ def check_choir(stage):
                             "17.2"])
 
 
+def _plan_row(x):
+    p = np.array([[x, 0.0, 0.0]], np.float32)
+    _, row, _ = CAM_P.project(_pose_at(p, PLAN_YAW, PLAN_PITCH))
+    return int(row[0])
+
+
+def check_transept(stage):
+    print("THE CATHEDRAL — part %s, %s" % (roman(stage + 1), STAGES[stage]))
+    print("  arms                 2 x %.0f m of wall, reaching z = %+.0f"
+          % (ARMS[0][3], TRAN_Z))
+    print("  courses              %d of %.2f m, %.1f m to %.1f m"
+          % (N_COURSE4, COURSE3, Y_TFOOT, Y_ARCADE))
+    print("  wall blocks          %d set, %d slots, %d buttress blocks"
+          % (NW4, NSLOT4, NB4))
+    print("  crossing piers       4 of %.1f m square, %d courses to %.1f m"
+          % (2 * PIER_HW, N_PCOURSE, PIER_TOP))
+
+    # RULE 1.  _pose_at is a generalisation, not a replacement.  If these two
+    # ever disagree the established view has drifted and three episodes stop
+    # laying on top of each other.
+    d = np.abs(_pose_at(GHOST, -58.0, 28.0) - _pose(GHOST)).max()
+    print("  established view unchanged: max disagreement %.2e m" % d)
+    assert d < 1e-3, d
+
+    # HELD OUT 1 -- the bearing stress under a crossing pier.  Everything
+    # above the roof lands on four piers, and nothing in the render knows
+    # that.  Take the tower and the spire straight off MASSES as hollow
+    # masonry, weigh them, and divide by the four pier tops.  Gothic
+    # cathedrals work at roughly 1 N/mm2 (Heyman, The Stone Skeleton) -- a
+    # few per cent of what the stone can take.  This is a sizing constraint
+    # rather than a blind prediction, and it is stated as one: PIER_HW was
+    # chosen to land here.  What it checks is that the model's proportions
+    # still do, after the geometry moved.
+    TWALL, SWALL, RHO, G0 = 1.6, 0.35, 2300.0, 9.81
+    side, h_t = X_CHOIR - X_TRAN, 58.0 - NAVE_Y
+    v_tower = (side ** 2 - (side - 2 * TWALL) ** 2) * h_t
+    half, y0, y1 = 9.0, 58.0, 86.0
+    slant = math.hypot(y1 - y0, half)
+    v_spire = 4 * 0.5 * (2 * half) * slant * SWALL
+    load = (v_tower + v_spire) * RHO * G0
+    area = 4 * (2 * PIER_HW) ** 2
+    sigma = load / area / 1e6
+    print("  tower %.0f m3 + spire %.0f m3 of masonry = %.0f tonnes"
+          % (v_tower, v_spire, (v_tower + v_spire) * RHO / 1000.0))
+    print("  on %.1f m2 of pier -> %.2f MPa, about %.0f%% of limestone's "
+          "50 MPa" % (area, sigma, 100 * sigma / 50.0))
+    assert 0.5 < sigma < 3.0, sigma
+
+    # nothing may leave the picture on ANY frame of the move.  A lerped
+    # camera is not guaranteed to frame the poses between its two ends.
+    A = np.vstack([GHOST, WALL4[0], PIERS4[0], _LEG4_P])
+    worst = (0, 1e9, -1e9, 1e9, -1e9)
+    for f in range(int(Q_END * FPS)):
+        t = f / float(FPS)
+        u = _u_at(t)
+        if u <= 0.0:
+            continue
+        cam = _mix_cam(u)
+        col, row, _ = cam.project(_pose_at(A, -58.0 + 148.0 * u,
+                                           28.0 + 62.0 * u))
+        if (col.min() < worst[1] or col.max() > worst[2]
+                or row.min() < worst[3] or row.max() > worst[4]):
+            worst = (f, min(worst[1], col.min()), max(worst[2], col.max()),
+                     min(worst[3], row.min()), max(worst[4], row.max()))
+    print("  over the whole move  c%d..%d  r%d..%d"
+          % (worst[1], worst[2], worst[3], worst[4]))
+    assert worst[1] >= 0 and worst[2] < G.cols, worst
+    assert worst[3] >= 0 and worst[4] < G.rows, worst
+
+    # HELD OUT 2 -- IS IT A CROSS?  Measure it off the finished plan frame:
+    # rasterised, z-buffered pixels, not the model.  A cruciform plan has one
+    # band of rows much wider than the rest, and that band has to be where
+    # the transept is.  The arithmetic route: 2 x 26 m across the arms
+    # against 2 x 15 m across the body.
+    draw(int(8.7 * FPS), stage)
+    mat = LAST["mat"]
+    # STONE only, no ghost.  The ghost is the whole finished outline and
+    # would draw a perfect cross whatever was built, so measuring the ink
+    # would be measuring the drawing.  The claim is about what is ON THE
+    # GROUND.  And measure the EXTENT of each row, not how many cells are
+    # lit: most of the nave is part I's footings, which are a dotted line
+    # down each flank with 6.4 m of nothing between them, so a count says
+    # sixteen cells where the building is thirty metres across.
+    st = (mat == M_OLD) | (mat == M_TRAN) | (mat == M_PIER)
+    span = np.zeros(G.rows)
+    for i, r in enumerate(st):
+        c = np.nonzero(r)[0]
+        if len(c):
+            span[i] = c.max() - c.min() + 1
+    rows = np.nonzero(span > 0)[0]
+    r0, r1 = _plan_row(X_CHOIR), _plan_row(X_TRAN)
+    r0, r1 = min(r0, r1), max(r0, r1)
+    body = np.median(span[[i for i in rows if not (r0 - 2 <= i <= r1 + 2)]])
+    pk = span.max()
+    hit = np.nonzero(span >= 0.92 * pk)[0]
+    print("  plan: %d rows of stone, body %.0f cells, widest %.0f cells"
+          % (len(rows), body, pk))
+    print("  measured cross ratio %.2f   from the model %.2f"
+          % (pk / body, TRAN_Z / AISLE_Z))
+    assert abs(pk / body - TRAN_Z / AISLE_Z) < 0.30, (pk / body)
+    print("  widest rows %d..%d, the transept is rows %d..%d"
+          % (hit.min(), hit.max(), r0, r1))
+    assert hit.min() >= r0 - 3 and hit.max() <= r1 + 3, (hit.min(), hit.max())
+
+    # and the long arm must be BELOW the crossbar or it is not this shape.
+    print("  long arm runs to row %d, crossbar centre row %d"
+          % (rows.max(), (r0 + r1) // 2))
+    assert rows.max() > r1 + 12, (rows.max(), r1)
+
+    # HELD OUT 3 -- the arms have to be full of holes like part III's wall.
+    ss = np.arange(0.0, ARMS[0][3], 0.02)
+    piers = ARMS[0][4]
+    mask = np.array([_tran_window(s, 0.5 * (WIN_SILL + WIN_HEAD), piers)
+                     for s in ss])
+    runs, cur = [], None
+    for i, m in enumerate(mask):
+        if m and cur is None:
+            cur = i
+        elif not m and cur is not None:
+            runs.append((ss[cur], ss[i - 1]))
+            cur = None
+    if cur is not None:
+        runs.append((ss[cur], ss[-1]))
+    print("  holes measured off one arm: %d in %d bays, mean width %.2f m "
+          "(drawn %.2f)" % (len(runs), len(piers) - 1,
+                            float(np.mean([b - a for a, b in runs])), WIN_W))
+    assert len(runs) == len(piers) - 1, (len(runs), len(piers))
+    for (a, b) in runs:
+        assert min(abs(np.array(piers) - 0.5 * (a + b))) > 1.4, (a, b)
+
+    sheet, caps = [], []
+    for t in (0.6, 1.8, 3.4, 5.4, 6.8, 7.7, 8.7, 10.4, 11.5):
+        fr = draw(int(t * FPS), stage)
+        ink, mat = LAST["ink"], LAST["mat"]
+        print("  t=%4.1f u=%.2f cov %.3f  ghost %5d old %5d wall %5d "
+              "pier %4d" % (t, LAST["u"], ink.mean(),
+                            (mat == M_GHOST).sum(), (mat == M_OLD).sum(),
+                            (mat == M_TRAN).sum(), (mat == M_PIER).sum()))
+        assert 0.02 < ink.mean() < 0.60, ink.mean()
+        for (c0, r0b, w, h) in LAST["boxes"]:
+            assert r0b - 1 >= G.safe_top, ("text above safe", r0b)
+            assert r0b + h + 1 <= G.safe_bot, ("text below safe", r0b + h)
+            assert c0 - 1 >= 0 and c0 + w + 1 <= G.cols, ("width", c0, w)
+        # THE PLAN MUST NOT TOUCH THE LETTERING.
+        #
+        # Two wrong versions of this check came first, and both of them were
+        # wrong the same way: they asserted a quantity instead of naming the
+        # defect.  "No ink under the text" fires on the fixed view, where the
+        # building has stood behind the numeral since part I.  "Nothing
+        # bright under the text" fires there too.  Both are fine, because
+        # stamp paints a BG halo round every glyph and gold on a dark outline
+        # reads over anything.
+        #
+        # What actually broke was narrower: overhead, the drawing is FLAT and
+        # reads as a diagram, and a numeral sitting inside a diagram becomes
+        # part of it -- you cannot tell the IV from a chapel.  In perspective
+        # that never happens, because the text is obviously in front.  So the
+        # rule is about the plan and it is stated as such.
+        if LAST["u"] > 0.9:
+            top = min(b[1] for b in LAST["boxes"])
+            low = np.nonzero(ink.any(1))[0].max()
+            caps.append((t, low, top))
+        sheet.append(fr)
+
+    assert caps, "no plan frame was sampled"
+    for (t, low, top) in caps:
+        print("  plan t=%.1f: drawing ends row %d, lettering starts row %d"
+              % (t, low, top))
+        assert low < top - 2, (t, low, top)
+
+    print("  runtime              %.1f s, %d frames  (III was %.1f s)"
+          % (Q_END, int(Q_END * FPS), H_END))
+    contact(sheet, os.path.join(_HERE, "..", "content", "cath_sheet.png"),
+            cols=3, labels=["0.6 ghost", "1.8 piers", "3.4 arms", "5.4",
+                            "6.8 RISING", "7.7 plan", "8.7 the cross",
+                            "10.4 falling", "11.5 back"])
+
+
 def check(stage):
     if stage == 1:
         return check_crypt(stage)
     if stage == 2:
         return check_choir(stage)
+    if stage == 3:
+        return check_transept(stage)
     print("THE CATHEDRAL — part %s, %s" % (roman(stage + 1), STAGES[stage]))
     print("  masses in the ghost  %d" % len(MASSES))
     print("  ghost points         %d" % len(GHOST))
