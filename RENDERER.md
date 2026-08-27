@@ -397,6 +397,109 @@ what you want for smooth metal, skin, cloth, anything continuous.
     3.00 against a true 1.73 and failed a correct render. For anything drawn
     as an outline, a dashed line or a sparse field, use `max - min + 1`.
 
+40. **Uniform directions are not uniform area.** Scattering points over a
+    star-shaped surface (superquadric, blob, anything you can write as a
+    radius along a direction) by casting uniform random directions does NOT
+    spread them evenly over the surface — density comes out proportional to
+    `cos(angle between the direction and the normal) / r**2`. On a slider
+    plate 14 mm across and 1 mm thick the rim and the shoulder behind it hold a
+    far larger share of the AREA than of the directions, so the samples there
+    run thin and, crucially, **the gaps CLUSTER** instead of scattering.
+    Fix is four lines: oversample directions, weight each by `r**2 / cos`,
+    resample by the cumulative sum. This one cost six rounds of chasing the
+    symptom.
+
+41. **A stipple has four different causes and they look identical.** The zip's
+    slider grew a dark speckle round its edges, and in order I blamed:
+    coverage holes (wrong), obliquity stretching the footprint (wrong),
+    teeth punching through the plate (wrong), and two surfaces sharing a depth
+    (wrong). It was the sampler, trap 40. **Do not tune anything until you
+    have tagged which surface won each pixel.** Render the parts separately,
+    or write a part-ID buffer and count. Guessing cost far more than the
+    diagnostic would have.
+
+42. **`backdrop()` calls `shade()` too.** Two of those four wrong diagnoses
+    came from one bad instrument: I tinted "the first `shade` call" to
+    identify a part, and the first call was the BACKGROUND, so a readout that
+    said "9% of the slider is the chain punching through" actually said "9% of
+    it is plain background". **An instrument you wrote in thirty seconds gets
+    the same scepticism as the render.** Print something you already know the
+    answer to before you trust it.
+
+43. **Widening a splat by obliquity makes it worse, not better.** It is the
+    obvious fix for "samples on a surface seen edge-on stretch out", and it
+    backfires: a near-silhouette sample is DARK, so giving it a bigger
+    footprint paints that darkness over the lit face beside it. Uniform splat,
+    and buy coverage with the sampler instead.
+
+44. **A neighbour-density threshold cannot tell an interior hole from an
+    outline.** Filling gaps only where enough neighbours are covered fails on
+    clustered gaps: raise the threshold and the patches stay, lower it and
+    every object grows a fringe, because a patch interior and a genuine
+    silhouette look the same to a neighbour count. `binary_closing` is the
+    operator that actually means "enclosed" — it fills anything surrounded and
+    leaves outlines exactly where they were. Then paint only the enclosed
+    pixels, from their real neighbours.
+
+45. **A splat hands its own depth to every pixel it covers**, so it carries a
+    depth error sideways. Two surfaces closer together than that error will
+    fight. Keep real clearance in the model (the slider channel was 0.26 mm
+    above the tooth nibs, which is less than the error), or make a later part
+    win by a margin.
+
+46. **Derive a check's region from the model, not from fractions of the
+    frame.** The held-out check measured a strip at "rows 0.60H to 0.97H",
+    which sounded like the bottom of the picture and was actually mostly
+    slider — it found 9 features and predicted 2. Project the thing you are
+    looking for and let it tell you where to look.
+
+47. **A check must not grade what the render cannot see.** The same check
+    tested every tooth in the model against the pixels, including the ones
+    parked under the slider, where the nib and the gaps either side of it all
+    sample the same lump of metal. Filtering to teeth actually visible in the
+    depth buffer took it from 17 of 23 to 17 of 17, and the aggregate contrast
+    from 2.7x to 6.0x. The render had been right the whole time.
+
+48. **A render that stops with no traceback was killed, not finished.** The
+    zip's first full render printed `36/216` and the process simply vanished:
+    no exception, no message, an empty output file. That is the OOM killer,
+    and it is invisible in the log because SIGKILL cannot be caught. Check
+    `free -m` and the process RSS before assuming a hang.
+
+    The cause was the splat: building every (sample, offset) pair before
+    sorting is 25 rows per sample, which for one slider was eighteen million
+    rows and over a gigabyte. **The fix removes the sort entirely.** Order the
+    samples once, furthest first, and scatter — numpy fancy-index assignment
+    keeps the LAST write to a repeated index, so the nearest sample wins for
+    free. Lay each sample's offsets out contiguously (`repeat`, not `tile`) so
+    the array stays in depth order, and chunk it, because an earlier chunk is
+    entirely behind a later one. 1 GB and a lexsort became 650 MB and no sort,
+    at the same speed, and the only difference in the output was 0.013% of
+    pixels on silhouette edges where a tie broke the other way.
+
+    **Budget memory per frame like a resource.** A renderer that works on one
+    still and dies at frame 36 has cost a wake's worth of wall clock before it
+    tells you.
+
+49. **Check a background job by PID, and give every render its own output
+    path.** I concluded a render had been OOM-killed from
+    `ps ... | grep zip.py | tail -1`, which was printing the WATCHER's command
+    line — the watcher contains the string it greps for, so it matches itself,
+    and `tail -1` hid the real process underneath. The render was alive and on
+    frame 36. So I started a second one, and for several minutes two renders
+    wrote the same `.mp4` through two ffmpegs, ate both spare cores and most
+    of the free memory, and guaranteed a corrupt file. Forty minutes lost.
+
+    `kill -0 $PID` in the wait loop cannot match itself. A timestamped output
+    path makes a collision impossible even when the check is wrong.
+
+    **This is the second time in one session that an instrument written in
+    thirty seconds produced a confident wrong answer** (trap 42 was the
+    other). Both times it pointed at a real-looking cause and both times I
+    acted on it before testing it. **A diagnostic is code. Run it against a
+    case whose answer you already know before you believe it about a case you
+    do not.**
+
 ---
 
 ## Cheap habits
