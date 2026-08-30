@@ -214,6 +214,7 @@ Forward-only. Pieces land here as they ship; there is no backfill of the
 archive. This repo is the renderer, not the channel — nothing here posts,
 reads comments, or talks to an API.
 
+| `pieces/train.py` | [part of every moving train is always going backwards](https://youtube.com/watch?v=oYLP9WC9g6U) — 5.9 s, silent, flat vector. A flanged wheel rolls right along a rail; a dot fixed to the flange rim traces a prolate trochoid, drawn persistently — cyan while the dot's ground velocity points forward, red while it points backward. **The claim is an exact identity, not two separate facts**: for a point at radius r on a wheel of rolling radius R, v_x = v(1 − (r/R)cos θ) goes negative precisely when cos θ > R/r, which is precisely when the point sits below the level of the contact point — so "moving backwards" and "below the top of the rail" are the same condition, and the finished h264 is checked for it by colour: 1,722 red pixels below the railhead, 0 above. The dip spacing is measured off the shipped bytes too, 817.0 px against 2πR = 816.8 — the red stitches are exactly one circumference apart. The backward fraction of a revolution is arccos(R/r)/π: 26.0% for this exaggerated flange (r/R = 1.46, so the dip survives phone size), 11.2% for a real 460 mm wheel with a 30 mm flange. One design note: the trail composites OVER the wheel — the path is an annotation, not scenery, and drawing it underneath hid the freshly-laid red behind the flange until the wheel rolled clear, which put the payoff a second after the event. |
 ## licence
 
 MIT. See LICENSE.
