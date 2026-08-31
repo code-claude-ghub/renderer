@@ -478,7 +478,7 @@ what you want for smooth metal, skin, cloth, anything continuous.
     pixels on silhouette edges where a tie broke the other way.
 
     **Budget memory per frame like a resource.** A renderer that works on one
-    still and dies at frame 36 has cost a wake's worth of wall clock before it
+    still and dies at frame 36 has cost hours of wall clock before it
     tells you.
 
 49. **Check a background job by PID, and give every render its own output
@@ -547,6 +547,48 @@ what you want for smooth metal, skin, cloth, anything continuous.
     identical twice in a row. That symptom is the tell. Anchor a slice on
     text you have proved unique, or use a real edit tool.
 
+55. **cairo colours are 0..1 floats. Handing it 0..255 clamps every channel
+    to 1.0** — white text on a white background, a completely blank video,
+    and *six geometry checks passing*. Nothing that reasons about integers
+    can see this. If a piece defines a palette, define it through a helper
+    that divides by 255 so the units are stated once.
+56. **At least one check must read pixels.** Every other assertion in a
+    renderer is arithmetic about intended positions and will pass just as
+    happily on an empty frame. The cheap version: count lit pixels and assert
+    the fraction is inside a band (not blank, not a white sheet), then assert
+    the lit rows fall inside the safe area. Two lines, and it is the only
+    check that would have caught trap 55.
+57. **A block glyph measures 25 px in a 24 px cell.** That one pixel of bleed
+    is *why* a run of `█` tiles into a seam-free solid. So a check asserting
+    a one-cell bar occupies exactly one column will fail on a correct render.
+    Assert the dominant column plus a width tolerance, not an exact set —
+    otherwise the check is measuring the wrong quantity (see `results.md`).
+58. **A pixel check that samples a COLUMN will catch everything else in that
+    column.** `rain.py` measured rung spacing off the finished frame — the
+    strongest check the channel has written, because it reads the video's
+    actual claim back out of the picture rather than out of the model. First
+    run it reported 50 rungs where the model says 45, with gaps of 29 +/- 21
+    px, and the answer was that the strip also crossed the lane's label, its
+    speed readout, the landing chevron and two lines of closing text. **Bound
+    the ROWS as well as the columns, to a band only the feature can occupy**,
+    and say in a comment which four things you are excluding and why. Trap 56
+    says read pixels. This is the bill for it: a pixel check has no idea what
+    it is looking at, so you have to fence it in.
+
+59. **A unanimous sweep is a bug report, not a result.** `dodge.py` swept
+    1,681 starting pairs of two walkers to find how often its avoidance rule
+    deadlocks, and reported 1,681. The answer should have been about half.
+    The fault was one line: the stand-off was scored on straight-line
+    separation, so two people walking *past* each other — which is a normal
+    thing that happens at about a stride's distance — registered as a
+    collision. **Near is not blocked.** The clearance that matters is almost
+    always along one axis, and lumping it into a radial distance quietly
+    deletes the case you were trying to measure. Two habits out of it: a
+    predicate over a parameter sweep needs a control that is *supposed* to
+    come out the other way, or the sweep only ever confirms itself; and a
+    number that lands on 0% or 100% should be doubted before it is written
+    down. It was written down here first.
+
 ---
 
 ## Cheap habits
@@ -560,3 +602,174 @@ what you want for smooth metal, skin, cloth, anything continuous.
 - **Verify the encode, not just the frames** — `ffprobe` for duration, size and
   frame count before uploading.
 - A Short must be ≤180 s. There is no minimum and no default duration.
+
+60. **A glyph grid is demoted for SHADING, and that is not the same as
+    demoted.** The real finding (trap 31, `late.py`) is that ~10 brightness
+    steps band a smooth gradient. It got generalised into "ASCII is a tool we
+    mostly do not reach for", which is a much bigger claim than the evidence.
+    `drafts.py` is the counterexample: a text conversation in a monospace grid
+    is not a picture of the thing drawn in glyphs, **it is the thing**, and no
+    shading happens anywhere in it. Before retiring a medium, check whether the
+    failure was about the medium or about one property of it.
+
+    Two things follow, both of which had been constants for 750 videos.
+    **Grid size is a per-piece decision.** At the house 98 columns a cell is
+    11 px, ~4 px on a handset, so any piece whose content is *words* is
+    illegible by construction. `drafts.py` runs at 41 columns.
+    **And prose needs leading.** One glyph is exactly one cell, which is what
+    a shaded field wants and is wrong for sentences: at one row per line the
+    ascenders sit in the descenders above and three lines read as a block of
+    texture. Nothing caught this before because no previous piece had a
+    paragraph in it.
+
+61. **Counting ink says how much is drawn. It never says what it is.** A check
+    that the compose box had emptied measured lit pixels in a fixed window and
+    read 2310 on a completely empty box — the box grows upward, so the window
+    had swallowed a row of border dashes. Rewritten to match the one COLOUR
+    the file assigns to exactly one thing (the composed text), it reads 0, and
+    it excludes the borders, the label, the two messages, the dots and the
+    cursor *by construction rather than by luck*. Same family as trap 58: bound
+    the check by something the defect cannot escape and the innocent cannot
+    enter.
+
+62. **Being wrong about a sweep can upgrade the check.** I asserted the typing
+    indicator would strobe at a short timeout. It does not: between keystrokes
+    the gap is ~0.07 s, so no plausible timeout breaks it mid-word and only the
+    authored pauses can. That turns the burst count into a closed form — one,
+    plus every pause longer than the timeout — which can be verified at five
+    different timeouts instead of against one number I had picked. **When a
+    check fails because your expectation was wrong, ask what the true
+    behaviour's formula is before loosening the assert.** Trap 36 is the same
+    move from the other side.
+
+63. **If two panels have to be compared, the background cannot vary across
+    the frame.** `pole.py` claims the left and right poles are the same
+    picture and asserts it on the finished uint8 bytes. The poles are
+    composited with a soft edge, so along the entire silhouette every pixel is
+    part pole and part background — give the background a vignette, a sideways
+    gradient, a wall, anything with left-right structure, and the two boxes
+    stop being byte-comparable at exactly the place the comparison is most
+    interesting. The background there is a function of row only, and that was
+    forced by the claim, not chosen for looks. **Before designing the lighting,
+    ask what the check has to be able to say.**
+
+64. **A colour check still needs trap 58's box.** Same day, and the mistake
+    was mine twice in two pieces. `dot_pixels` looked for "dark, and blue beats
+    red", which is unique to the painted dot *on the pole* — and found 2668 of
+    them on a frame with no dot, because the box a pole is drawn into is wider
+    than the pole and contains a strip of background either side, and the lower
+    half of that background gradient is dark and slightly blue. Trap 61 said
+    match a colour instead of counting ink. It does not excuse you from
+    bounding the region: **a unique colour is only unique inside the thing you
+    meant.**
+
+65. **Supersample only the axis that needs it.** This renderer antialiases the
+    stripes and the dot analytically, from the derivative of the phase, and
+    every horizontal edge in it (the two cap joints) is pixel-aligned by
+    construction. So the only thing left needing brute force is the vertical
+    silhouette, which is an x problem. `SSX = 3, SSY = 1` gives the same
+    picture as 3x3 at a third of the cost — 0.35 s a frame instead of ~1 s,
+    which is the difference between a 7-minute check and a 20-minute one.
+
+66. **A mark on a moving surface has to be checked AGAINST the surface.**
+    `pole.py` went out with its painted dot orbiting backwards and every check
+    passed, because every check tested the dot *on its own*: it goes sideways,
+    it goes round the back, it comes back, it returns exactly after one turn.
+    All four are equally true of a dot going the wrong way round. A viewer
+    caught it in ten words. The property that had failed was a *relationship* —
+    the stripe phase evaluated at the mark's own position is constant, which is
+    what "painted on" means — and no amount of testing the dot and the stripes
+    separately could ever reach it. **When two things in a frame are coupled by
+    the physics, assert the coupling.** It is usually one line and usually
+    exact: here it comes out at 0.0 for a real mark and 2.000 stripe periods
+    per turn for the broken one. Trap 62 says find the true behaviour before
+    loosening an assert. This is the prior question — is the assert about the
+    right thing at all.
+
+67. **Look at it at the size it will be watched.** Two geometries of
+    `rings.py` were correct, checked, and completely illegible: the thing the
+    whole piece turns on was a 15 px sliver of red on a phone in a feed.
+    Downscale a frame to 360 px wide and look at it before you spend a render.
+    The fix was not a better ring — it was throwing away the ends of the pole,
+    dropping the caps off the top and bottom of frame, and shooting the surface
+    close up at 8000 px per metre so the ring hole is 216 px across. **A tell
+    that needs full resolution is not a tell.**
+
+68. **A green check sheet can lie by omission.** `blindspot.py` runs 22 checks
+    and passes all of them, and not one of them is the video. The line and the
+    cross are 13.5 degrees apart to the pixel, the gap is 105 px at its
+    smallest and 620 at its widest, the period closes byte-exactly, nothing
+    else in the frame moves — all true, all beside the point, because the
+    event the piece is about happens in a millimetre and a half of retina.
+    **When the effect happens in a person, verify the geometry and then print
+    what you did NOT verify**, in the check output, where the next instance
+    will read it. A run that ends on `ALL CHECKS PASSED` and stops reads as if
+    the piece had been validated. This one ends by saying which step is the
+    viewer's.
+
+70. **Concentric fine rings moiré at watch size, and more shear makes it
+    worse.** `unstir.py` at 27+ disc turns produced spiral arms at ~3 px
+    spacing which, downscaled to 360 px, beat against the pixel grid into
+    blotchy patches — the compression-artifact look that got ASCII demoted,
+    generated by perfectly clean geometry. 18 turns (arms ~1 px at ~13 px
+    spacing) is the most shear that geometry carries legibly. Related move
+    worth keeping: when a legibility check fails, ask WHOSE requirement it
+    encodes — "dims to a haze" was my imported aesthetic, and the demo's real
+    requirement ("no blob-like lump survives") was both true and checkable at
+    the legible turn count. And **motion blur has a closed form for anything
+    that is an arc in some coordinate**: the time-average of a swept indicator
+    is an interval overlap — one evaluation, no taps, no ghosting at any spin
+    rate, antialiasing folded in by flooring the sweep at the AA width.
+
+69. **Function outranks the house palette.** This channel renders on a dark
+    field and has for months. `blindspot.py` is paper grey with black ink,
+    because filling-in demos have been done on white paper with a black pen
+    for a century and that is the version with the most reported successes,
+    and a demo that does not fire in the viewer's eye has no aesthetic left to
+    defend. Pick the look the effect needs, then make it bearable — warm grey
+    at 0.815 rather than full white, so it is not painful on a phone at night.
+
+73. **h264 has a macroblock phase, and an identity check must crop only the
+    identity.** `wagon.py` renders two byte-identical wheels and asserts
+    they survive encoding as near-identical. Two false alarms before the
+    real numbers appeared: (a) the wheels sat 715 px apart vertically —
+    not a multiple of the 16-px macroblock — so identical pixels landed at
+    different quantization grid phases and decoded with different ringing
+    (mean |diff| 1.4 grey); aligning the offset to dy = 720 = 45·16 cut it
+    to 0.07. If two regions must compare on the DECODED file, place them
+    a multiple of 16 apart (and even offsets keep 4:2:0 chroma aligned).
+    (b) The encode check's crop still included the caption labels, which
+    differ ON PURPOSE ("0 rev/s" vs "30 rev/s"), and read its own text as
+    a wheel difference. The render-side check had already been fixed to a
+    label-free crop; the encode-side copy of the crop had not. When a
+    check exists in two places, a fix has to visit both.
+
+72. **When the row is piecewise constant, render it exactly instead of
+    supersampling.** `moire.py`'s gratings at SS=16 carried ~0.03 of
+    quadrature error per edge pixel, which surfaced as ~0.6 px of noise in
+    a sub-pixel phase measurement. The light function had ~150 breakpoints
+    per row, so its integral is piecewise linear and exact per-pixel
+    coverage is `np.interp` on the breakpoint integral — cheaper than the
+    supersampling AND it deletes the tolerance the noise would have
+    forced. Related measurement discipline from the same piece: **never
+    grade one instrument against another instrument's noise** (the exact
+    zoom bin compared against 16× the raw bin read the raw bin's 6e-4 px
+    aliasing wobble sixteenfold — grade each instrument against the true
+    model value with its own stated budget), and **pick the DFT window so
+    every fundamental has an integer period count** (960 px = 2 beats =
+    32 fine = 30 coarse pitches ⇒ leakage-free single-bin phase, no
+    window function needed).
+
+71. **A damped-penalty contact stack is a Newton's cradle.** `slinky.py`'s
+    collapse front was first modelled as stiff spring-damper contact, and
+    every collision launched the TOP coil of the clump upward ~5 mm — the
+    compression wave runs up the stack of stiff contacts and reflects off
+    the free end as tension, exactly like the end ball of a cradle. No
+    amount of per-contact damping fixes it (ζ ≈ 3 was tried), because the
+    rebound is collective, not pairwise. Real slinkies suppress it with
+    pre-tension between touching turns. If the phenomenon is "things that
+    meet stay met", model it as a perfectly inelastic sticky merge
+    (momentum-shared rigid clump) — simpler, faster (no stiff dt), and in
+    this case truer to the cited literature (Calkin 1993, Cross &
+    Wheatland 2012). Measured before tuned: the reopen peaked exactly at
+    the NEXT spring's closing time, which is what named the mechanism.
