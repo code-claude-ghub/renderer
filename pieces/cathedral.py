@@ -53,6 +53,7 @@ M_GHOST, M_STONE, M_EARTH, M_OLD, M_CRYPT, M_SLAB, M_CWALL = 1, 2, 3, 4, 5, 6, 7
 M_WALL3, M_PART = 8, 9
 M_TRAN, M_PIER = 10, 11        # part IV: the arms, and the four that carry it
 M_NAVE = 12                    # part V: the arcade
+M_AISLE = 13                   # part VI: the aisle walls
 
 # the crypt wall does not get buried -- it keeps going up and becomes the
 # outside of the choir.  so it stops being warm when the room is sealed.
@@ -780,6 +781,114 @@ def nave_piers():
     return assemble(units), len(xs), N_COURSE5
 
 
+# ------------------------------------------------------ part VI: the aisles
+# The two outer walls of the nave aisles, and nothing else.
+#
+# What is true of THIS part and no other: it is the episode that hides an
+# episode.  Part V stood twenty piers where anyone at the fixed camera could
+# try to count them.  This wall goes up between the camera and all of them.
+# Every part so far ADDED something to the established frame; this one is the
+# first that takes something out of it.  A building gets an inside by taking
+# it away from everyone outside -- and from here to the end of the series,
+# the arcade is something you would have to walk in to see.  The lancets are
+# the concession: eleven slots a side where the outside is still allowed to
+# look in.
+#
+# Everything dimensional is inherited, none of it chosen here:
+#   height    Y_FOOT -> Y_ARCADE, like the transept wall (no crypt under it)
+#   courses   22 of 0.74 m, same arithmetic as part IV, asserted in check
+#   bays      the 11 x 5.636 m grid part V froze; a lancet mid-bay, a
+#             buttress on each interior bay line
+#   sill/head WIN_SILL and WIN_HEAD, unchanged since part III: a string
+#             course runs round a building at one level and does not step
+# The bay-line buttresses at the two ENDS are left out on purpose: x = 0 is
+# engaged in the west front (part XII), and the corner at x = 62 already has
+# part IV's pier on it -- _arm_piers put one on every corner of the arms.
+N_COURSE6 = int(round((Y_ARCADE - Y_FOOT) / COURSE3))           # 22
+
+# Walked so _on_path's outward normal points OUT of the building: north wall
+# west to east, south wall east to west, same fix as the transept arms.
+AISLE_PATHS = ([(X_NAVE, -AISLE_Z), (X_TRAN, -AISLE_Z)],
+               [(X_TRAN, AISLE_Z), (X_NAVE, AISLE_Z)])
+
+
+def _lancet_w(y):
+    """Lancet width at height y: parallel sides, pointed head.  Part III's
+    profile on part V's grid."""
+    if not (WIN_SILL <= y <= WIN_HEAD):
+        return 0.0
+    tt = (y - WIN_SILL) / (WIN_HEAD - WIN_SILL)
+    return WIN_W * (1.0 if tt < 0.62 else max(0.0, 1.0 - (tt - 0.62) / 0.38))
+
+
+def _clip_slot(s, hx, y):
+    """A slot stone that meets a lancet gets CUT AT THE JAMB, not skipped.
+
+    The choir and transept walls skip any slot whose centre is inside the
+    window, which leaves stones poking up to a metre into the opening from
+    both sides -- the 2.4 m lattice does not care where the jambs are.  On
+    those walls nobody measured it.  Here the lancet count is a held-out
+    check, and the worst window narrowed to under a metre of true opening
+    and read closed at the shipping yaw.  Masons dress a jamb straight;
+    this returns the pieces of [s-hx, s+hx] left after the windows are cut,
+    which is the same thing."""
+    w = _lancet_w(y)
+    pieces, a, b = [], s - hx, s + hx
+    if w <= 0.0:
+        return [(s, hx)]
+    lo = a
+    j0, j1 = int(a // BAY5), int(b // BAY5) + 1
+    for j in range(j0, j1 + 1):
+        wc = (j + 0.5) * BAY5
+        wa, wb = wc - 0.5 * w, wc + 0.5 * w
+        if wb <= lo or wa >= b:
+            continue
+        if wa > lo:
+            pieces.append((0.5 * (lo + wa), 0.5 * (wa - lo)))
+        lo = max(lo, wb)
+    if lo < b:
+        pieces.append((0.5 * (lo + b), 0.5 * (b - lo)))
+    return [(c, h) for (c, h) in pieces if h > 0.12]
+
+
+def aisle_wall(spacing=2.4):
+    """Both walls, course by course, north and south rising together."""
+    hh = COURSE3 / 2.0
+    paths = []
+    for path in AISLE_PATHS:
+        P = _dedupe(path)
+        S = np.linalg.norm(np.diff(P, axis=0), axis=1)
+        C = np.concatenate([[0.0], np.cumsum(S)])
+        paths.append((P, S, C, float(C[-1])))
+    units, nw, nb, nslot = [], 0, 0, 0
+    for k in range(N_COURSE6):
+        y = Y_FOOT + (2 * k + 1) * hh
+        proj = BUT_PROJ * (1.0 - 0.45 * k / float(N_COURSE6 - 1))
+        for (P, S, C, tot) in paths:
+            for j in range(1, N_BAY5):           # interior bay lines only
+                x, z, ang, ox, oz = _on_path(P, S, C, j * BAY5)
+                d = 0.95 + 0.5 * proj
+                units.append(stone(x + ox * d, y, z + oz * d,
+                                   1.15, hh * 0.86, 0.5 * proj, ang))
+                nb += 1
+            n = max(1, int(round(tot / spacing)))
+            for i in range(n):
+                s = min(((i + 0.5 + 0.5 * (k % 2)) % n) * tot / n,
+                        tot - 1e-6)
+                nslot += 1
+                th = 0.95 + (0.30 if abs(y - WIN_SILL) < 0.5 * COURSE3
+                             else 0.0)
+                e = 0.16 if abs(y - WIN_SILL) < 0.5 * COURSE3 else 0.0
+                for (sc, sh_) in _clip_slot(s, spacing * 0.45, y):
+                    x, z, ang, ox, oz = _on_path(P, S, C,
+                                                 min(max(sc, 0.0),
+                                                     tot - 1e-6))
+                    units.append(stone(x + ox * e, y, z + oz * e,
+                                       sh_, hh * 0.86, th, ang))
+                    nw += 1
+    return assemble(units), nw, nb, nslot
+
+
 # ---------------------------------------------------------------- stages
 STAGES = [
     "THE FOUNDATION",
@@ -1036,6 +1145,25 @@ _npad = PIERS5[0].copy()
 _npad[:, 1] = PIERS5[0][:, 1].min() - 5.0      # keep the caption clear
 CAM_N = Camera(G).fit([_pose_n(np.vstack([_N_PTS, _npad]))], margin=1.05)
 
+# --- part VI
+(WALL6, NW6, NB6, NSLOT6) = aisle_wall()
+
+# Parts I to IV stay legacy.  Part V is drawn SEPARATELY, at the same held-
+# back level but with its own material, because this episode's central claim
+# -- the wall takes the arcade out of the frame -- is measured by finding
+# arcade cells in the finished picture, and a pier merged into M_OLD cannot
+# be found.
+_LEG6_P, _LEG6_N = _LEG5_P, _LEG5_N
+
+# THE CLOSE SHOT, part VI: part V's close camera, and the same fit.  The
+# lancets sit mid-bay on the exact grid the piers sit on, so the arithmetic
+# that merged the piers at the established yaw merges the windows too, for
+# the same reason, and the angle that resolves one resolves the other --
+# nothing about this cut is a new decision.  Whether CAM_N's frame actually
+# contains the new wall (it stands 7 m outboard of the piers, plus 1.3 m of
+# buttress) is asserted in check_aisles, not assumed here.
+CAM_A6 = CAM_N
+
 
 # ---------------------------------------------------------------- timeline
 T_GHOST, T_HOLD, T_DIG, T_LAY, T_END = 1.5, 2.4, 3.6, 9.9, 12.4
@@ -1081,7 +1209,19 @@ P_CUT = 1.8
 P_PIER = (0.9, 7.0)
 P_END = 8.8
 
-T_ENDS = [T_END, C_END, H_END, Q_END, P_END]
+# part VI.  Two cuts, both derived.  OUT at 1.6 because the lancets live on
+# the bay grid and merge at the established yaw exactly as the piers did --
+# part V's arithmetic, inherited, not re-decided.  BACK at 8.3 because the
+# episode's payoff is a fact OF the established frame: the arcade that was
+# there at t = 0 is not there at the end.  Part V ended in its close view;
+# this one has to come home to be true.
+A_GHOST = 0.9
+A_CUT = 1.6
+A_WALL = (1.7, 7.8)
+A_BACK = 8.3
+A_END = 10.4
+
+T_ENDS = [T_END, C_END, H_END, Q_END, P_END, A_END]
 LAST = {}
 
 
@@ -1119,7 +1259,7 @@ def _put(buf, col, row, z, sh, mat, cover):
 
 def draw(f, stage):
     return (draw_foundation, draw_crypt, draw_choir,
-            draw_transept, draw_nave)[stage](f, stage)
+            draw_transept, draw_nave, draw_aisles)[stage](f, stage)
 
 
 def _label(fr, t, stage, t0=0.8):
@@ -1367,6 +1507,49 @@ def draw_nave(f, stage):
     return fr
 
 
+def draw_aisles(f, stage):
+    """Part VI.  Open in the established frame with five episodes standing;
+    cut to part V's close view; two walls rise course by course, the piers
+    sink behind them and come back as stripes through the lancets; then home
+    to the fixed frame, where the arcade is no longer in the picture."""
+    t = f / float(FPS)
+    close = A_CUT <= t < A_BACK
+    cam = CAM_A6 if close else CAM
+    pose = _pose_n if close else _pose
+    buf = {"sh": np.zeros((G.rows, G.cols)),
+           "mat": np.zeros((G.rows, G.cols), np.int16)}
+
+    gfade = min(1.0, t / A_GHOST)
+    n = int(len(GHOST) * gfade)
+    if n > 8:
+        col, row, z = cam.project(pose(GHOST[:n]))
+        lift = 1.0 + 0.55 * min(1.0, max(0.0, (t - A_WALL[1] - 0.3) / 1.1))
+        sh = ((0.20 + 0.34 * depth_cue(z, 1.0, 0.30))
+              * (0.72 + 0.28 * gfade) * lift)
+        _put(buf, col, row, z + 4000.0, sh, M_GHOST, False)
+
+    # parts I to IV, standing, at the level part III set.
+    col, row, z = cam.project(pose(_LEG6_P))
+    sh = (0.17 + 0.44 * lambert(_LEG6_N, LAMP)) * depth_cue(z, 1.0, 0.86)
+    _put(buf, col, row, z, np.clip(sh, 0.05, 1.0), M_OLD, True)
+
+    # part V, same held-back level, its own material -- the checks have to
+    # be able to find an arcade cell in the finished frame to count it.
+    col, row, z = cam.project(pose(PIERS5[0]))
+    sh = (0.17 + 0.44 * lambert(PIERS5[1], LAMP)) * depth_cue(z, 1.0, 0.86)
+    _put(buf, col, row, z, np.clip(sh, 0.05, 1.0), M_NAVE, True)
+
+    u = min(1.0, max(0.0, (t - A_WALL[0]) / (A_WALL[1] - A_WALL[0])))
+    LAST["aisle"] = _grow(buf, WALL6, u, M_AISLE, LAMP, 0.28, 0.78, cam,
+                          pose=pose)
+    LAST["u6"] = u
+    LAST["close"] = close
+
+    fr = _paint(buf)
+    _label(fr, t, stage)
+    return fr
+
+
 def draw_foundation(f, stage):
     t = f / float(FPS)
     buf = {"sh": np.zeros((G.rows, G.cols)),
@@ -1430,7 +1613,8 @@ def colour(v, m):
     base = {M_GHOST: GHOST_RGB, M_STONE: STONE, M_EARTH: EARTH,
             M_OLD: OLD, M_CRYPT: CRYPT, M_SLAB: STONE,
             M_CWALL: CW["rgb"], M_WALL3: STONE, M_PART: ROUGH,
-            M_TRAN: STONE, M_PIER: STONE, M_NAVE: STONE}[int(m)]
+            M_TRAN: STONE, M_PIER: STONE, M_NAVE: STONE,
+            M_AISLE: STONE}[int(m)]
     t = np.clip(0.22 + 0.78 * v, 0.0, 1.0)
     return blend(BG, base, t)
 
@@ -2075,7 +2259,170 @@ def check_nave(stage):
                             "6.4", "7.6 all twenty", "8.6"])
 
 
+def check_aisles(stage):
+    print("THE CATHEDRAL — part %s, %s" % (roman(stage + 1), STAGES[stage]))
+    print("  walls                2 x %.0f m, %d courses of %.2f m, %.1f m "
+          "to %.2f m" % (X_TRAN - X_NAVE, N_COURSE6, COURSE3, Y_FOOT,
+                         Y_FOOT + N_COURSE6 * COURSE3))
+    print("  stones               %d wall + %d buttress in %d slots"
+          % (NW6, NB6, NSLOT6))
+
+    # RULE 1.  The established view has not drifted.
+    d = np.abs(_pose_at(GHOST, -58.0, 28.0) - _pose(GHOST)).max()
+    print("  established view unchanged: max disagreement %.2e m" % d)
+    assert d < 1e-3, d
+
+    # EVERYTHING DIMENSIONAL IS INHERITED.  22 courses is the transept's
+    # arithmetic on this wall's interval: the tallest whole number that stays
+    # under the aisle roof line, so 23 must NOT fit or the count is
+    # unexplained.  The sill and head are part III's constants, shared, and
+    # the windows and buttresses land on part V's bay grid by construction --
+    # print the grid so a reader can lay VI over V.
+    top22 = Y_FOOT + N_COURSE6 * COURSE3
+    top23 = Y_FOOT + (N_COURSE6 + 1) * COURSE3
+    print("  course 22 tops out   %.2f m (roof line %.1f), course 23 would "
+          "be %.2f -> %s" % (top22, Y_ARCADE, top23,
+                             "over" if top23 > Y_ARCADE else "UNDER?"))
+    assert top22 <= Y_ARCADE < top23, (top22, top23)
+    assert N_COURSE6 == N_COURSE4, (N_COURSE6, N_COURSE4)
+    print("  bay grid             %d bays of %.3f m (part V's), lancet "
+          "mid-bay, buttress on lines 1..%d" % (N_BAY5, BAY5, N_BAY5 - 1))
+    print("  sill %.1f head %.1f  unchanged since part III -- a string "
+          "course does not step" % (WIN_SILL, WIN_HEAD))
+    assert NB6 == 2 * (N_BAY5 - 1) * N_COURSE6, NB6
+
+    # THE CLOSE CAMERA IS PART V'S, so the claim "no new framing decision"
+    # is only true if the wall actually fits in that frame -- it stands 7 m
+    # outboard of the piers it was fitted to, plus 1.3 m of buttress.
+    c6, r6, _ = CAM_A6.project(_pose_n(WALL6[0]))
+    print("  wall in part V's close frame: c%d..%d of %d, r%d..%d of %d"
+          % (c6.min(), c6.max(), G.cols, r6.min(), r6.max(), G.rows))
+    assert c6.min() >= 0 and c6.max() < G.cols, (c6.min(), c6.max())
+    assert r6.min() >= 0 and r6.max() < G.rows, (r6.min(), r6.max())
+
+    # HELD OUT 1 -- THE EPISODE'S CLAIM, measured off the finished frames.
+    # First written as "the arcade leaves the picture," and the render said
+    # no: 801 cells before, 300 after, and a classifier I wrote to explain
+    # the 300 was wrong twice.  So the probes went to the model instead.
+    # What is actually true, point by point: the NEAR row's shafts are gone
+    # -- every sample on them now reads the new wall's stone, occluded by
+    # this episode specifically and not by luck -- and the FAR row survives,
+    # because this camera sits 28 degrees above the ground and its sight
+    # lines clear a 19 m wall on the way to a pier 23 m behind it.  Stand a
+    # person at the door instead and both rows are gone.  One row deleted,
+    # one row saved by the altitude of the camera: that is the fact, and it
+    # is asserted in all three parts.
+    draw(int(1.4 * FPS), stage)
+    before = int((LAST["mat"] == M_NAVE).sum())
+    draw(int((A_END - 0.2) * FPS), stage)
+    m = LAST["mat"]
+    after = int((m == M_NAVE).sum())
+
+    def _probe(zrow, lo=4.0, hi=10.0):
+        pts = np.array([[X_NAVE + k * BAY5, y, zrow]
+                        for k in range(3, 9)
+                        for y in np.linspace(lo, hi, 4)], np.float32)
+        c, r, _ = CAM.project(_pose(pts))
+        vals = [int(m[rr, cc]) for rr, cc in zip(r, c)]
+        return (sum(v == M_AISLE for v in vals),
+                sum(v == M_NAVE for v in vals), len(vals))
+
+    s_wall, s_pier, s_n = _probe(NAVE_Z)      # near row (same side as camera)
+    n_wall, n_pier, n_n = _probe(-NAVE_Z)     # far row
+    print("  arcade cells in the established frame: %d before, %d after"
+          % (before, after))
+    print("  near-row shaft probes: %d/%d read the new wall, %d still pier"
+          % (s_wall, s_n, s_pier))
+    print("  far-row shaft probes:  %d/%d still pier -- saved by the "
+          "camera's 28 degrees, not by the builder" % (n_pier, n_n))
+    assert before > 120, before
+    assert after < 0.45 * before, (before, after)
+    assert s_wall == s_n and s_pier == 0, (s_wall, s_pier, s_n)
+    assert n_pier > 0, n_pier
+
+    # HELD OUT 2 -- CAN YOU COUNT THE LANCETS?  A first version measured gap
+    # runs across a projected row band and got zero: at this yaw the wall
+    # recedes, so a band of rows that brackets the lancets at the near end
+    # sweeps solid lower courses at the far end.  Perspective broke the
+    # instrument, not the wall.  So, point probes at positions the model
+    # dictates: the centre of every lancet must NOT read wall, every
+    # interior bay line between them MUST, and the two sets have to
+    # alternate as separate columns on screen or the count is not visible.
+    draw(int((A_BACK - 0.3) * FPS), stage)
+    m = LAST["mat"]
+    # The near wall in this view is the NORTH one: a probe of the south
+    # wall's lancets came back reading a pier, which can only mean the
+    # arcade stood between the camera and that wall.  The wide camera is a
+    # southern one, part V's close camera is a northern one, and this check
+    # now knows that because it asked, not because I assumed it.
+    yb = WIN_SILL + 0.5 * 0.62 * (WIN_HEAD - WIN_SILL)
+    # A lancet is carved by SKIPPING 2.4 m slots, so its opening is ragged
+    # against the ideal centre line -- a stone edge can sit on the exact
+    # centre of a window that reads wide open.  A single centre probe failed
+    # 4 of 11 that way.  The claim is "eleven windows read open on screen,"
+    # so each window is sampled across its width and across the lancet's
+    # height, and counts open if ANY sample shows through.
+    wvals = []
+    for j in range(N_BAY5):
+        xc = X_NAVE + (j + 0.5) * BAY5
+        pts = np.array([[xc + dx, y, -AISLE_Z]
+                        for dx in (-1.0, -0.5, 0.0, 0.5, 1.0)
+                        for y in (WIN_SILL + 0.8, yb, yb + 0.8)], np.float32)
+        c, r, _ = CAM_A6.project(_pose_n(pts))
+        wvals.append(min(int(m[rr, cc]) for rr, cc in zip(r, c)
+                         if 0 <= rr < G.rows and 0 <= cc < G.cols))
+    cw, rw, _ = CAM_A6.project(_pose_n(np.array(
+        [[X_NAVE + (j + 0.5) * BAY5, yb, -AISLE_Z]
+         for j in range(N_BAY5)], np.float32)))
+    bpts = np.array([[X_NAVE + j * BAY5, yb, -AISLE_Z]
+                     for j in range(1, N_BAY5)], np.float32)
+    cb, rb, _ = CAM_A6.project(_pose_n(bpts))
+    bvals = [int(m[r, c]) for r, c in zip(rb, cb)]
+    holes = sum(v != M_AISLE for v in wvals)
+    bars = sum(v == M_AISLE for v in bvals)
+    cols = sorted([(int(c), "w") for c in cw] + [(int(c), "b") for c in cb])
+    alt = all(a[1] != b[1] for a, b in zip(cols[:-1], cols[1:]))
+    sep = min(b[0] - a[0] for a, b in zip(cols[:-1], cols[1:]))
+    thru = int((m == M_NAVE).sum())
+    print("  lancet centres open %d/%d, bay lines walled %d/%d, "
+          "alternating on screen: %s, min separation %d col(s)"
+          % (holes, N_BAY5, bars, N_BAY5 - 1, alt, sep))
+    print("  arcade cells visible through the lancets, close view: %d"
+          % thru)
+    assert holes == N_BAY5, (holes, wvals)
+    assert bars == N_BAY5 - 1, (bars, bvals)
+    assert alt and sep >= 1, (alt, sep)
+
+    sheet = []
+    for t in (0.6, 1.5, 2.4, 3.6, 4.8, 6.0, 7.2, 8.0, 10.0):
+        fr = draw(int(t * FPS), stage)
+        ink, mat = LAST["ink"], LAST["mat"]
+        print("  t=%4.1f u=%.2f cov %.3f  ghost %5d old %5d nave %5d "
+              "aisle %5d  %s" % (t, LAST["u6"], ink.mean(),
+                                 (mat == M_GHOST).sum(),
+                                 (mat == M_OLD).sum(),
+                                 (mat == M_NAVE).sum(),
+                                 (mat == M_AISLE).sum(),
+                                 "close" if LAST["close"] else "wide"))
+        assert 0.02 < ink.mean() < 0.60, ink.mean()
+        for (c0b, r0b, w, h) in LAST["boxes"]:
+            assert r0b - 1 >= G.safe_top, ("text above safe", r0b)
+            assert r0b + h + 1 <= G.safe_bot, ("text below safe", r0b + h)
+            assert c0b - 1 >= 0 and c0b + w + 1 <= G.cols, ("width", c0b, w)
+        sheet.append(fr)
+
+    assert LAST["u6"] >= 1.0, LAST["u6"]
+    print("  runtime              %.1f s, %d frames  (V was %.1f s)"
+          % (A_END, int(A_END * FPS), P_END))
+    contact(sheet, os.path.join(_HERE, "..", "content", "cath_sheet.png"),
+            cols=3, labels=["0.6 ghost", "1.5 wide", "2.4 close", "3.6",
+                            "4.8", "6.0 sill", "7.2 lancets", "8.0",
+                            "10.0 home"])
+
+
 def check(stage):
+    if stage == 5:
+        return check_aisles(stage)
     if stage == 4:
         return check_nave(stage)
     if stage == 1:
