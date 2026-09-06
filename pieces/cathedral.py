@@ -56,6 +56,8 @@ M_NAVE = 12                    # part V: the arcade
 M_AISLE = 13                   # part VI: the aisle walls
 M_ARCH, M_TRIF, M_TRIFB = 14, 15, 16   # part VII: arches and spandrels /
                                # the screen facing the nave / the back skin
+M_CAP8, M_CLER = 17, 18        # part VIII: the passage ceiling / the wall
+                               # that is mostly window
 INNER = (0.694, 0.633, 0.506)  # stone seen through an opening: the
                                # passage's own shadow, not a new material
 
@@ -1082,6 +1084,128 @@ def screen_fill():
     return assemble(units), n
 
 
+# --------------------------------------------- part VIII: the clerestory
+# The top storey of the nave wall: the one whose entire job is windows.
+# "Clerestory" is "clear storey" -- the storey that clears the aisle roofs
+# and lights the nave from above them.  Part VII's description promised
+# that its open passage gets a ceiling here, and the ceiling is the first
+# stone laid: course 30, full pier thickness, is at once the triforium's
+# lid and the clerestory's sill.
+#
+# NOTHING dimensional is chosen here either.
+#   - The window is the arcade arch AT EXACTLY HALF SCALE: span BAY5/2,
+#     the same two-centred rise.  With part VII's screen at quarter scale
+#     the finished elevation is ONE arch at three sizes -- 1, 1/4, 1/2 --
+#     and every ratio is a power of two, exact in floats.
+#   - The jambs sit on the quarter-bay lines, which ARE the triforium's
+#     colonnette lines.  The storeys share a grid without being told to.
+#   - The wall is 1.2 m thick because three older numbers agree: it is
+#     the pier's half-width; it is the 1.2 m of overhead wall part V's
+#     stress check assumed when it sized the piers (NWALL_T); and it puts
+#     the outer face EXACTLY on the frozen mass face |z| = NAVE_Z while
+#     the inner face continues the screen's own line upward.
+#   - The wall tops out at course 45, and Y_FOOT + 45 * COURSE3 is 36.0
+#     -- NAVE_Y, frozen in MASSES since part I -- with a float difference
+#     of literally zero.  The crypt's course height and the first video's
+#     silhouette agree, and nobody planned that in part II.
+SPAN_8 = BAY5 / 2.0                # window clear span: exactly half a bay
+RISE_8 = 0.5 * math.sqrt(3.0) * SPAN_8      # exactly ARCH_RISE5 / 2
+RING8 = RING5 / 2.0                # 0.145 -- the ring scales with its arch
+K_CAP8 = 30                        # the cap course: the passage's ceiling
+Y_CAP8 = Y_FOOT + K_CAP8 * COURSE3          # 24.90 -- also the window sill
+K_SPRING8 = 41                     # the GREATEST course whose arch crown
+                                   # still clears the wall top; 42 overtops
+                                   # by 0.37 m.  asserted both ways.
+Y_SPRING8 = Y_FOOT + K_SPRING8 * COURSE3    # 33.04
+K_TOP8 = 45                        # NAVE_Y, on the crypt's grid, exactly
+Y_TOP8 = NAVE_Y                    # 36.0 -- the line part I drew
+WALL8_TH = PIER5_HW                # 1.2 -- see the three agreements above
+Z_WALL8 = NAVE_Z - PIER5_HW + 0.5 * WALL8_TH        # 7.4; outer face 8.0
+N_WIN8 = N_BAY5 - 1                # ten windows a side, bays 1..10
+
+
+def _jambs8(k):
+    """Window k lives in bay k, between the quarter-bay lines."""
+    return k * BAY5 + 0.25 * BAY5, k * BAY5 + 0.75 * BAY5
+
+
+def cap8():
+    """Course 30, full pier thickness, the whole run, both rows: the
+    passage stops being open to the sky.  East to west, like everything
+    in this series, because the choir end is the end in use."""
+    units = []
+    n = int(round((X_B7 - X_A7) / 1.9))
+    w = (X_B7 - X_A7) / n
+    for i in range(n):
+        x = X_B7 - (i + 0.5) * w
+        for zc in (-NAVE_Z, NAVE_Z):
+            units.append(stone(x, Y_TOP7 + 0.5 * COURSE3, zc,
+                               0.47 * w, COURSE3 * 0.43, PIER5_HW))
+    return assemble(units), n
+
+
+def strips8():
+    """The solid wall between the windows: a half-bay strip centred on
+    every pier line, courses 31 to 45, stones dressed AT the jamb --
+    part VI's lesson, built in from the start this time.  The two raw
+    ends get their half strips."""
+    hh = COURSE3 / 2.0
+    strips = [(X_A7, X_A7 + 0.25 * BAY5)]
+    for m in range(2, N_BAY5):
+        strips.append((m * BAY5 - 0.25 * BAY5, m * BAY5 + 0.25 * BAY5))
+    strips.append((X_B7 - 0.25 * BAY5, X_B7))
+    units = []
+    for c in range(K_CAP8, K_TOP8):             # courses 31..45
+        y = Y_FOOT + (2 * c + 1) * hh
+        for (a, b) in reversed(strips):         # east to west
+            n = max(1, int(round((b - a) / 1.35)))
+            w = (b - a) / n
+            for i in range(n + 1):
+                x0 = a + (i - 0.5 * ((c - K_CAP8) % 2)) * w
+                x1 = min(b, x0 + w)
+                x0 = max(a, x0)
+                if x1 - x0 < 0.10:
+                    continue
+                for o in (-1.0, 1.0):
+                    units.append(stone(0.5 * (x0 + x1), y, o * Z_WALL8,
+                                       0.47 * (x1 - x0), hh * 0.86,
+                                       0.5 * WALL8_TH))
+    return assemble(units), K_TOP8 - K_CAP8, len(strips)
+
+
+def win_arches8():
+    """Twenty window heads: the arcade arch at half scale, voussoirs from
+    both springings inward, keystone last, like both of its parents."""
+    units = []
+    for k in range(N_WIN8, 0, -1):              # east to west
+        xa, xb = _jambs8(k)
+        for o in (-1.0, 1.0):
+            units += _arch7(xa, xb, Y_SPRING8, o * Z_WALL8,
+                            0.5 * WALL8_TH, 0.21, 0.08, 7)
+    return assemble(units), 2 * N_WIN8
+
+
+def spandrel8():
+    """The fill over each window head up to the wall top, cut at the
+    extrados -- spandrel7's pattern at half scale.  The last stones of
+    the last full-height wall this building will ever need."""
+    units = []
+    for k in range(N_WIN8, 0, -1):              # east to west
+        xa, xb = _jambs8(k)
+        n = int(round((xb - xa) / 0.52))
+        w = (xb - xa) / n
+        for i in range(n):
+            x = xb - (i + 0.5) * w
+            y0 = Y_SPRING8 + _intr(x, xa, xb) + RING8
+            if Y_TOP8 - y0 < 0.08:
+                continue
+            for o in (-1.0, 1.0):
+                units.append(stone(x, 0.5 * (y0 + Y_TOP8), o * Z_WALL8,
+                                   0.47 * w, 0.5 * (Y_TOP8 - y0),
+                                   0.5 * WALL8_TH))
+    return assemble(units), N_WIN8
+
+
 # ---------------------------------------------------------------- stages
 STAGES = [
     "THE FOUNDATION",
@@ -1421,6 +1545,33 @@ CAM_T = Camera(G).fit([_pose_t(np.vstack([_S_PTS, _spad]))], margin=1.05)
 LAMP7 = np.array([-0.30, 0.52, 0.80])
 LAMP7 = LAMP7 / np.linalg.norm(LAMP7)
 
+# --- part VIII
+(CAP8, N_CAP8) = cap8()
+(STRIP8, N_CRS8, N_STRIP8) = strips8()
+(WARC8, N_WARC8) = win_arches8()
+(SPAN8, N_SPAN8) = spandrel8()
+
+# Parts I to VI stay legacy and part V's piers join them: the arches
+# landed two episodes ago and the checks that needed to see them land are
+# closed.  Part VII keeps its own materials one more episode, because this
+# episode's held-out check reads the colonnette rhythm off the pixels and
+# a colonnette merged into M_OLD cannot be found.
+_LEG8_P = np.vstack([_LEG7_P, PIERS5[0]]).astype(np.float32)
+_LEG8_N = np.vstack([_LEG7_N, PIERS5[1]]).astype(np.float32)
+_m8 = ((_LEG8_P[:, 2] < -4.5) & (_LEG8_P[:, 0] > _X_SECT - 2.0)
+       & (_LEG8_P[:, 0] < 66.0))
+_LEG8T_P, _LEG8T_N = _LEG8_P[_m8], _LEG8_N[_m8]
+
+# THE SECTION, AGAIN -- and this time reusing it is the point.  CAM_T was
+# fitted in part VII to the east three bays WITH the ghost up to the roof
+# line, so the frame that watched the wall get cut open already contains
+# every course this episode lays.  The camera that showed you the passage
+# open to the sky is the camera that watches the sky get shut out.  Zero
+# new camera decisions; check_clerestory asserts the new wall top actually
+# lands in CAM_T's frame instead of trusting this comment.
+CAP8S, STRIP8S = _nfilt(CAP8), _nfilt(STRIP8)
+WARC8S, SPAN8S = _nfilt(WARC8), _nfilt(SPAN8)
+
 
 # ---------------------------------------------------------------- timeline
 T_GHOST, T_HOLD, T_DIG, T_LAY, T_END = 1.5, 2.4, 3.6, 9.9, 12.4
@@ -1498,7 +1649,24 @@ V_FILL = (9.2, 9.8)
 V_BACK = 10.3
 V_END = 11.8
 
-T_ENDS = [T_END, C_END, H_END, Q_END, P_END, A_END, V_END]
+# part VIII.  Same shape as VII and for VII's reasons -- out early
+# (windows on the bay grid merge at the established yaw exactly as the
+# piers and the lancets did; the check runs part V's overlap arithmetic a
+# third time), home at the end (the payoff of the wide frame is stone
+# arriving at the ghost's own line).  The promise is kept FIRST: the cap
+# slides over the passage before anything rises above it, because a mason
+# cannot stand on a wall that is not there and this series builds in the
+# order the stone demands.
+W_GHOST = 0.9
+W_CUT = 1.5
+W_CAP = (1.6, 3.2)
+W_STRIP = (3.2, 5.9)
+W_ARCH = (5.9, 7.9)
+W_SPAN = (7.9, 9.0)
+W_BACK = 9.5
+W_END = 11.6
+
+T_ENDS = [T_END, C_END, H_END, Q_END, P_END, A_END, V_END, W_END]
 LAST = {}
 
 
@@ -1536,7 +1704,8 @@ def _put(buf, col, row, z, sh, mat, cover):
 
 def draw(f, stage):
     return (draw_foundation, draw_crypt, draw_choir, draw_transept,
-            draw_nave, draw_aisles, draw_triforium)[stage](f, stage)
+            draw_nave, draw_aisles, draw_triforium,
+            draw_clerestory)[stage](f, stage)
 
 
 def _label(fr, t, stage, t0=0.8):
@@ -1928,6 +2097,68 @@ def draw_triforium(f, stage):
     return fr
 
 
+# the seven elements of part VII, standing, in both framings.  they keep
+# their own materials one more episode -- see _LEG8_P for why.
+_VII_STAND = ((ARCH7, ARCH7S, M_ARCH), (SPAN7, SPAN7S, M_ARCH),
+              (SILL7, SILL7S, M_ARCH), (SKIN7, SKIN7S, M_TRIFB),
+              (COL7, COL7S, M_TRIF), (SARC7, SARC7S, M_TRIF),
+              (FILL7, FILL7S, M_TRIF))
+
+
+def draw_clerestory(f, stage):
+    """Part VIII.  Open home with seven episodes standing; cut to the
+    section part VII established; the promise first -- the cap course
+    closes the passage -- then the strips, the window heads (keystones
+    last) and the spandrels; then home, where the wall's outer face has
+    arrived exactly on the line the ghost has drawn since part I."""
+    t = f / float(FPS)
+    close = W_CUT <= t < W_BACK
+    cam = CAM_T if close else CAM
+    pose = _pose_t if close else _pose
+    lamp = LAMP7 if close else LAMP
+    buf = {"sh": np.zeros((G.rows, G.cols)),
+           "mat": np.zeros((G.rows, G.cols), np.int16),
+           "z": np.full((G.rows, G.cols), -1e9)}
+
+    gfade = min(1.0, t / W_GHOST)
+    n = int(len(GHOST) * gfade)
+    if n > 8:
+        col, row, z = cam.project(pose(GHOST[:n]))
+        lift = 1.0 + 0.55 * min(1.0, max(0.0, (t - W_SPAN[1] - 0.3) / 1.1))
+        sh = ((0.20 + 0.34 * depth_cue(z, 1.0, 0.30))
+              * (0.72 + 0.28 * gfade) * lift)
+        _put(buf, col, row, z + 4000.0, sh, M_GHOST, False)
+
+    # parts I to VI and the piers, standing, at the level part III set.
+    lp, ln = (_LEG8T_P, _LEG8T_N) if close else (_LEG8_P, _LEG8_N)
+    col, row, z = cam.project(pose(lp))
+    sh = (0.17 + 0.44 * lambert(ln, lamp)) * depth_cue(z, 1.0, 0.86)
+    _put7(buf, col, row, z, np.clip(sh, 0.05, 1.0),
+          np.full(len(z), M_OLD, np.int16))
+
+    # part VII, standing, held back, own materials.
+    for full, sect, mat in _VII_STAND:
+        _grow7(buf, sect if close else full, 1.0, mat, lamp, 0.17, 0.44,
+               cam, pose)
+
+    def win(w):
+        return (t - w[0]) / (w[1] - w[0])
+
+    for full, sect, w, mat in ((CAP8, CAP8S, W_CAP, M_CAP8),
+                               (STRIP8, STRIP8S, W_STRIP, M_CLER),
+                               (WARC8, WARC8S, W_ARCH, M_CLER),
+                               (SPAN8, SPAN8S, W_SPAN, M_CLER)):
+        _grow7(buf, sect if close else full, win(w), mat, lamp, 0.28, 0.78,
+               cam, pose)
+
+    LAST["u8"] = min(1.0, max(0.0, win(W_SPAN)))
+    LAST["close"] = close
+
+    fr = _paint(buf)
+    _label(fr, t, stage)
+    return fr
+
+
 def draw_foundation(f, stage):
     t = f / float(FPS)
     buf = {"sh": np.zeros((G.rows, G.cols)),
@@ -1993,7 +2224,7 @@ def colour(v, m):
             M_CWALL: CW["rgb"], M_WALL3: STONE, M_PART: ROUGH,
             M_TRAN: STONE, M_PIER: STONE, M_NAVE: STONE,
             M_AISLE: STONE, M_ARCH: STONE, M_TRIF: STONE,
-            M_TRIFB: INNER}[int(m)]
+            M_TRIFB: INNER, M_CAP8: STONE, M_CLER: STONE}[int(m)]
     t = np.clip(0.22 + 0.78 * v, 0.0, 1.0)
     return blend(BG, base, t)
 
@@ -3032,7 +3263,269 @@ def check_triforium(stage):
                             "8.6 arches again", "9.9 screen", "11.4 home"])
 
 
+def check_clerestory(stage):
+    print("THE CATHEDRAL — part %s, %s" % (roman(stage + 1), STAGES[stage]))
+    print("  windows              %d a side, span %.3f m rising %.3f m"
+          % (N_WIN8, SPAN_8, RISE_8))
+    print("  storey               %.2f m to %.2f m, courses %d..%d on the "
+          "crypt's grid" % (Y_CAP8, Y_TOP8, K_CAP8 + 1, K_TOP8))
+
+    # RULE 1.  The established view has not drifted.
+    d = np.abs(_pose_at(GHOST, -58.0, 28.0) - _pose(GHOST)).max()
+    print("  established view unchanged: max disagreement %.2e m" % d)
+    assert d < 1e-3, d
+
+    # THE HALVES.  The window is the arcade arch at exactly 1:2, so the
+    # finished elevation is ONE arch at three scales -- 1, 1/4, 1/2 --
+    # and every ratio is a power of two, exact in floats.
+    r_span = BAY5 / SPAN_8
+    r_rise = ARCH_RISE5 / RISE_8
+    r_ring = RING5 / RING8
+    r_trif = SPAN_8 / SPAN_T
+    print("  span %.4f/%.4f rise %.4f/%.4f ring %.3f/%.3f -> ratios "
+          "%r %r %r" % (BAY5, SPAN_8, ARCH_RISE5, RISE_8, RING5, RING8,
+                        r_span, r_rise, r_ring))
+    print("  one arch, three storeys: arcade 1, triforium 1/4, "
+          "clerestory 1/2 (window/screen-opening = %r)" % r_trif)
+    assert r_span == 2.0 and r_rise == 2.0 and r_ring == 2.0
+    assert r_trif == 2.0
+    # and the jambs stand on the triforium's colonnette lines -- the
+    # quarter-bay grid, shared without being told to.  one ulp again.
+    worst = 0.0
+    for k in range(1, N_WIN8 + 1):
+        xa, xb = _jambs8(k)
+        worst = max(worst,
+                    abs(xa - (X_A7 + (4 * (k - 1) + 1) * SPAN_T)),
+                    abs(xb - (X_A7 + (4 * (k - 1) + 3) * SPAN_T)))
+    print("  every jamb on a colonnette line: worst error %.1e m, "
+          "all %d windows" % (worst, N_WIN8))
+    assert worst < 1e-12, worst
+
+    # THE COURSE GRID.  The wall tops out at course 45, and course 45 IS
+    # the frozen mass top from part I -- the crypt's course height and
+    # the first video's silhouette agree, to the bit.
+    dtop = Y_FOOT + K_TOP8 * COURSE3 - NAVE_Y
+    print("  Y_FOOT + %d courses = %.10f; NAVE_Y = %.1f; diff %r"
+          % (K_TOP8, Y_FOOT + K_TOP8 * COURSE3, NAVE_Y, dtop))
+    print("  the storey is %d courses exactly" % (K_TOP8 - K_CAP8))
+    assert abs(dtop) < 1e-12, dtop
+    assert K_TOP8 - K_CAP8 == 15
+    # and course 41 is the GREATEST springing whose arch clears the top.
+    over = Y_FOOT + (K_SPRING8 + 1) * COURSE3 + RISE_8 + RING8
+    crown = Y_SPRING8 + RISE_8 + RING8
+    print("  extrados crown %.3f m from course %d (clears %.2f); from "
+          "course %d it is %.3f (overtops)" % (crown, K_SPRING8,
+                                               NAVE_Y - crown,
+                                               K_SPRING8 + 1, over))
+    assert crown <= NAVE_Y, crown
+    assert over > NAVE_Y, over
+
+    # THE PROMISE.  Part VII's description: the passage is open to the
+    # sky until part VIII, and the clerestory sill is its ceiling.  The
+    # cap is course 30 at FULL pier thickness -- one course that is both
+    # the triforium's lid and the window sill.
+    print("  cap: course %d, %.2f m thick = the whole pier; the passage "
+          "keeps %.2f m of headroom under it" % (K_CAP8, 2 * PIER5_HW,
+                                                 Y_TOP7 - Y_SILL7))
+    assert abs(Y_CAP8 - Y_TOP7 - COURSE3) < 1e-12
+    assert Y_TOP7 - Y_SILL7 > 2.0
+
+    # THE WALL'S THICKNESS -- three old numbers agree, none of them new.
+    NWALL_T = 1.2                      # what part V's stress check assumed
+    zi = NAVE_Z - PIER5_HW             # the screen's own inner line
+    print("  wall %.2f m thick: = pier half-width %.2f, = part V's "
+          "assumed %.1f, and %.2f + %.2f = %.2f = the frozen mass face"
+          % (WALL8_TH, PIER5_HW, NWALL_T, zi, WALL8_TH, zi + WALL8_TH))
+    assert WALL8_TH == PIER5_HW == NWALL_T
+    assert zi + WALL8_TH == NAVE_Z
+
+    # THE LIGHT LEDGER.  How much of the storey is sky, integrated from
+    # the same curves the stones were cut to.
+    xs = np.linspace(X_A7, X_B7, 4001)
+    hgt = Y_TOP8 - Y_CAP8
+    op = np.zeros(len(xs))
+    for i, x in enumerate(xs):
+        k = int(x // BAY5)
+        if 1 <= k <= N_WIN8:
+            xa, xb = _jambs8(k)
+            if xa < x < xb:
+                op[i] = (Y_SPRING8 - Y_CAP8) + _intr(x, xa, xb)
+    open_frac = float(np.mean(op)) / hgt
+    area = float(np.mean(op)) * (X_B7 - X_A7)
+    print("  the storey is %.0f%% window; each side admits %.0f m2 of "
+          "sky" % (100 * open_frac, area))
+    assert 0.35 < open_frac < 0.55, open_frac
+    # and the mass ledger keeps running: against a solid storey at the
+    # pier's own thickness, cap included.
+    v_solid = 2 * PIER5_HW * (Y_TOP8 - Y_TOP7) * (X_B7 - X_A7)
+    v_built = (2 * PIER5_HW * COURSE3
+               + WALL8_TH * hgt * (1.0 - open_frac)) * (X_B7 - X_A7)
+    saved = (v_solid - v_built) * 2 * 2300.0 / 1000.0
+    print("  built %.0f m3 a side where solid would be %.0f -> the "
+          "windows spare the piers %.0f tonnes" % (v_built, v_solid,
+                                                   saved))
+    assert saved > 2000.0, saved
+
+    # THE MERGE THEOREM, third appearance.  The windows sit on the bay
+    # grid, so at the established yaw the mullion strips overlap exactly
+    # as the piers did in part V and the lancets in part VI -- the wall
+    # reads solid and the windows cannot be counted.  Hence the section.
+    step = BAY5 * math.cos(math.radians(58.0))
+    reads = SPAN_8 * (math.cos(math.radians(58.0))
+                      + math.sin(math.radians(58.0)))
+    print("  at the established yaw a mullion reads %.2f m against a "
+          "%.2f m step -> neighbours overlap %.2f m; the fixed view "
+          "cannot count ten windows" % (reads, step, reads - step))
+    assert reads > step, (reads, step)
+
+    # FRAME FACTS, wide, end of episode: the storey is in the picture,
+    # and the wall has arrived at the ghost's line.
+    draw(int((W_END - 0.2) * FPS), stage)
+    m = LAST["mat"]
+    cler = int((m == M_CLER).sum())
+    hits, hn = 0, 0
+    for mm in range(3, 10):
+        p = np.array([[mm * BAY5 + dx, y0, NAVE_Z - 0.5 * WALL8_TH]
+                      for dx in (-0.5, 0.0, 0.5)
+                      for y0 in (28.5, 30.0, 31.5)], np.float32)
+        c, r, _ = CAM.project(_pose(p))
+        vals = [int(m[rr, cc]) for rr, cc in zip(r, c)
+                if 0 <= rr < G.rows and 0 <= cc < G.cols]
+        if vals:
+            hn += 1
+            hits += any(v == M_CLER for v in vals)
+    top_new = float(max(STRIP8[0][:, 1].max(), SPAN8[0][:, 1].max()))
+    print("  wide: %d clerestory cells; mullion probes %d/%d; stone "
+          "reaches %.2f m of the frozen %.1f (a joint short, like every "
+          "course)" % (cler, hits, hn, top_new, NAVE_Y))
+    assert cler > 150, cler
+    assert hn >= 5 and hits >= hn - 1, (hits, hn)
+    assert top_new > NAVE_Y - 0.08, top_new
+    # reusing CAM_T is asserted, not trusted: the new wall top lands in
+    # the section frame.
+    tp = np.array([[46.0, Y_TOP8, -NAVE_Z], [61.5, Y_TOP8, -NAVE_Z]],
+                  np.float32)
+    c, r, _ = CAM_T.project(_pose_t(tp))
+    print("  section frame holds the new top: rows %s cols %s "
+          "(grid %dx%d)" % (list(r), list(c), G.rows, G.cols))
+    assert all(0 <= rr < G.rows for rr in r), r
+    assert all(0 <= cc < G.cols for cc in c), c
+
+    # SECTION FACTS.  The windows are HOLES on screen -- through every
+    # sampled aperture the sky shows -- and the cap reads as its own
+    # stone above the passage.  Multi-sample, part VI's lesson.
+    draw(int(9.3 * FPS), stage)
+    m = LAST["mat"]
+    holes, sn = 0, 0
+    for k in (8, 9, 10):
+        xa, xb = _jambs8(k)
+        p = np.array([[0.5 * (xa + xb) + dx, y0, -Z_WALL8]
+                      for dx in (-0.8, 0.0, 0.8)
+                      for y0 in (26.5, 29.0, 31.5)], np.float32)
+        c, r, _ = CAM_T.project(_pose_t(p))
+        vals = [int(m[rr, cc]) for rr, cc in zip(r, c)
+                if 0 <= rr < G.rows and 0 <= cc < G.cols]
+        if vals:
+            sn += 1
+            empty = sum(v in (0, M_GHOST) for v in vals)
+            holes += empty >= max(1, len(vals) - 3)
+    caps, cn = 0, 0
+    for x0 in (47.0, 50.0, 53.0, 56.0, 59.0):
+        p = np.array([[x0, y0, -(NAVE_Z - PIER5_HW)]
+                      for y0 in (24.30, 24.55, 24.80)], np.float32)
+        c, r, _ = CAM_T.project(_pose_t(p))
+        vals = [int(m[rr, cc]) for rr, cc in zip(r, c)
+                if 0 <= rr < G.rows and 0 <= cc < G.cols]
+        if vals:
+            cn += 1
+            caps += any(v == M_CAP8 for v in vals)
+    print("  apertures reading sky: %d/%d; cap probes reading the new "
+          "ceiling: %d/%d" % (holes, sn, caps, cn))
+    assert sn == 3 and holes >= 2, (holes, sn)
+    assert cn >= 4 and caps >= cn - 1, (caps, cn)
+
+    # HELD OUT -- read back off the pixels, nothing from the model.
+    # (a) mullion pitch / colonnette pitch = 4: the storeys share the bay.
+    # (b) window pitch / window opening = 2: the wall gives half of
+    #     itself to the sky.  Both from the finished section frame.
+    def runs(row, mat_id):
+        cs = np.nonzero(m[row] == mat_id)[0]
+        if len(cs) == 0:
+            return []
+        out, start, prev = [], cs[0], cs[0]
+        for c0 in cs[1:]:
+            if c0 > prev + 1:
+                out.append((0.5 * (start + prev), prev - start + 1))
+                start = c0
+            prev = c0
+        out.append((0.5 * (start + prev), prev - start + 1))
+        return out
+
+    jr = CAM_T.project(_pose_t(np.array([[53.0, 29.0,
+                                          -(NAVE_Z - PIER5_HW)]],
+                                        np.float32)))[1][0]
+    cr = CAM_T.project(_pose_t(np.array([[53.0, 21.0, -Z_SCREEN]],
+                                        np.float32)))[1][0]
+    mruns = runs(int(jr), M_CLER)
+    truns = runs(int(cr), M_TRIF)
+    mc = [c0 for (c0, _w) in mruns]
+    tc = [c0 for (c0, _w) in truns]
+    mg, tg = np.diff(mc), np.diff(tc)
+    tg = tg[(tg > 0.4 * np.median(tg)) & (tg < 1.6 * np.median(tg))]
+    pitch = float(np.mean(mg))
+    r4 = pitch / float(np.mean(tg))
+    gaps = [mc[i + 1] - mc[i] - 0.5 * (mruns[i][1] + mruns[i + 1][1])
+            for i in range(len(mc) - 1)]
+    # the raw pitch/opening ratio does NOT come back as 2, and the reason
+    # is worth the check it broke: the aperture is seen THROUGH a 1.2 m
+    # wall at 14 degrees off its normal, so the jamb's own thickness
+    # shades tan(14) * 1.2 = 0.30 m of the opening -- a window is
+    # narrower than its span from anywhere but straight on -- and the
+    # inclusive pixel runs shave about a cell more.  Correct for both and
+    # the pixels agree with the model; leave them out and they honestly
+    # cannot.
+    theta = math.radians(abs(T_YAW7))
+    exp_gap = ((SPAN_8 - WALL8_TH * math.tan(theta)) * pitch / BAY5) - 1.0
+    r2 = float(np.mean(gaps)) / exp_gap
+    print("  held out: mullion pitch %.1f cols / colonnette %.2f -> "
+          "%.2f (built from 4); opening %.1f cols vs %.1f predicted "
+          "through the wall's own thickness -> %.2f"
+          % (pitch, float(np.mean(tg)), r4, float(np.mean(gaps)),
+             exp_gap, r2))
+    assert len(mg) >= 2 and len(tg) >= 6, (len(mg), len(tg))
+    assert 3.4 < r4 < 4.6, r4
+    assert 0.8 < r2 < 1.2, r2
+
+    sheet = []
+    for t in (0.6, 1.4, 2.4, 4.4, 6.8, 8.4, 9.3, 10.2, 11.4):
+        fr = draw(int(t * FPS), stage)
+        ink, mat = LAST["ink"], LAST["mat"]
+        print("  t=%4.1f u=%.2f cov %.3f  ghost %5d old %5d trif %5d "
+              "cap %4d cler %5d  %s"
+              % (t, LAST["u8"], ink.mean(), (mat == M_GHOST).sum(),
+                 (mat == M_OLD).sum(), (mat == M_TRIF).sum(),
+                 (mat == M_CAP8).sum(), (mat == M_CLER).sum(),
+                 "close" if LAST["close"] else "wide"))
+        assert 0.02 < ink.mean() < 0.60, ink.mean()
+        for (c0b, r0b, w, h) in LAST["boxes"]:
+            assert r0b - 1 >= G.safe_top, ("text above safe", r0b)
+            assert r0b + h + 1 <= G.safe_bot, ("text below safe", r0b + h)
+            assert c0b - 1 >= 0 and c0b + w + 1 <= G.cols, ("width", c0b, w)
+        sheet.append(fr)
+
+    assert LAST["u8"] >= 1.0, LAST["u8"]
+    print("  runtime              %.1f s, %d frames  (VII was %.1f s)"
+          % (W_END, int(W_END * FPS), V_END))
+    contact(sheet, os.path.join(_HERE, "..", "content", "cath_sheet.png"),
+            cols=3, labels=["0.6 ghost", "1.4 wide", "2.4 the cap",
+                            "4.4 strips", "6.8 window heads",
+                            "8.4 spandrels", "9.3 done", "10.2 home",
+                            "11.4 the line"])
+
+
 def check(stage):
+    if stage == 7:
+        return check_clerestory(stage)
     if stage == 6:
         return check_triforium(stage)
     if stage == 5:
