@@ -54,6 +54,10 @@ M_WALL3, M_PART = 8, 9
 M_TRAN, M_PIER = 10, 11        # part IV: the arms, and the four that carry it
 M_NAVE = 12                    # part V: the arcade
 M_AISLE = 13                   # part VI: the aisle walls
+M_ARCH, M_TRIF, M_TRIFB = 14, 15, 16   # part VII: arches and spandrels /
+                               # the screen facing the nave / the back skin
+INNER = (0.694, 0.633, 0.506)  # stone seen through an opening: the
+                               # passage's own shadow, not a new material
 
 # the crypt wall does not get buried -- it keeps going up and becomes the
 # outside of the choir.  so it stops being warm when the room is sealed.
@@ -889,6 +893,195 @@ def aisle_wall(spacing=2.4):
     return assemble(units), nw, nb, nslot
 
 
+# --------------------------------------------- part VII: the triforium
+# The middle storey of the nave elevation: the arcade arches turned across
+# part V's piers, the spandrels levelled off, and above them the storey
+# that faces the wrong way.  A triforium is a passage INSIDE the wall's
+# thickness -- arcaded toward the nave, blank toward the sky -- and it is
+# not decoration: the wall up here carries nothing but itself and the
+# clerestory to come, so the masons hollow it and save the piers the
+# weight.  The wall was 2.4 m thick when it was solid pier.  It is still
+# 2.4 m from face to face.  Most of it is now air.
+#
+# NOTHING dimensional is chosen here.  The screen facing the nave is the
+# arcade below it built again at EXACTLY quarter scale: four openings to
+# the bay (span BAY5/4), the same two-centred arch (rise/span = sqrt(3)/2
+# whatever the span, so the small arch IS the big arch scaled), colonnette
+# height (Y_CAP5 - Y_FOOT)/4.  All three ratios are 4 to the last bit, by
+# construction, and every fourth colonnette stands on a pier centreline
+# exactly, because 4 divides the bay grid it inherited.
+#
+# The wall's cross-section is the pier's width spent three ways:
+#     0.70 m back skin + 1.35 m passage + 0.35 m screen  =  2.40 m
+# The passage width is not chosen either -- it is what is LEFT of the
+# pier width after the two skins.  It has no ceiling this episode: the
+# clerestory sill caps it in part VIII.
+RING5 = 0.29                       # arcade voussoir depth.  0.29 and not
+                                   # 0.30, because the check said so: at
+                                   # 0.30 the extrados crown pokes 1.2 mm
+                                   # above course 22.  asserted.
+RING_T = 0.10                      # screen voussoir depth
+Y_SPAN_TOP = Y_FOOT + N_COURSE6 * COURSE3   # 18.98 -- course 22.  the
+                                   # spandrels level off where the aisle
+                                   # walls topped out: the whole building
+                                   # reaches course 22 together.
+SPAN_T = BAY5 / 4.0                # 1.409 -- exactly a quarter bay
+RISE_T = 0.5 * math.sqrt(3.0) * SPAN_T      # exactly ARCH_RISE5 / 4
+SHAFT_T = (Y_CAP5 - Y_FOOT) / 4.0  # 2.775 -- exactly the pier height / 4
+Y_SILL7 = Y_SPAN_TOP + COURSE3     # 19.72 -- course 23, the passage floor
+Y_SHAFT_TOP = Y_SILL7 + SHAFT_T    # 22.495 -- where the small arches spring
+CROWN_T = Y_SHAFT_TOP + RISE_T     # 23.715
+K_TOP7 = 29                        # least course count clearing the small
+                                   # crowns; 28 does not.  asserted.
+Y_TOP7 = Y_FOOT + K_TOP7 * COURSE3          # 24.16
+SKIN_TH, SCREEN_TH = 0.70, 0.35
+PASSAGE7 = 2.0 * PIER5_HW - SKIN_TH - SCREEN_TH     # 1.35, by remainder
+Z_SKIN = NAVE_Z + PIER5_HW - 0.5 * SKIN_TH          # 8.85
+Z_SCREEN = NAVE_Z - PIER5_HW + 0.5 * SCREEN_TH      # 6.975
+X_A7, X_B7 = BAY5, X_TRAN          # the built run.  bay 0 has no west
+                                   # support until part XII; raw end.
+N_OPEN7 = 4 * (N_BAY5 - 1)         # 40 screen openings per row
+
+
+def _intr(x, xa, xb):
+    """Intrados height of a two-centred arch over [xa, xb], above its
+    springing.  Two arcs of radius = span, each centred on the opposite
+    springing point, meeting at rise sqrt(3)/2 * span."""
+    s = xb - xa
+    x = min(max(x, xa), xb)
+    d = (xb - x) if x <= 0.5 * (xa + xb) else (x - xa)
+    return math.sqrt(max(0.0, s * s - d * d))
+
+
+def _arch7(xa, xb, y0, zc, hz, hx, hy, n):
+    """One two-centred arch: voussoirs from both springings inward,
+    alternating sides, keystone last -- same order _rib used in the crypt,
+    because that is the order an arch can be built in at all."""
+    s = xb - xa
+    units = []
+    for i in range(n):
+        th = (i + 0.5) / n * (math.pi / 3.0)
+        for left in (True, False):
+            x = xb - s * math.cos(th) if left else xa + s * math.cos(th)
+            units.append(stone(x, y0 + s * math.sin(th), zc, hx, hy, hz))
+    units.append(stone(0.5 * (xa + xb), y0 + 0.5 * math.sqrt(3.0) * s,
+                       zc, hx, hy, hz))
+    return units
+
+
+def arcade_arches():
+    """Ten arches per row, east to west, both rows rising together.  The
+    east arch lands on part IV's crossing pier, which went up two episodes
+    ago without being told it was a springing."""
+    units = []
+    for k in range(N_BAY5 - 1, 0, -1):
+        xa, xb = k * BAY5, (k + 1) * BAY5
+        for zc in (-NAVE_Z, NAVE_Z):
+            units += _arch7(xa, xb, Y_CAP5, zc, PIER5_HW, 0.30, 0.16, 10)
+    return assemble(units), 2 * (N_BAY5 - 1)
+
+
+def spandrel7():
+    """The fill above the arches up to course 22, cut AT the extrados --
+    part VI's jamb lesson, applied to a curve: a stone that meets the arch
+    is dressed to it, not skipped."""
+    units = []
+    n = int(round((X_B7 - X_A7) / 0.9))
+    w = (X_B7 - X_A7) / n
+    for i in range(n):                          # east to west
+        x = X_B7 - (i + 0.5) * w
+        k = min(N_BAY5 - 1, max(1, int(x // BAY5)))
+        dy = _intr(x, k * BAY5, (k + 1) * BAY5)
+        y0 = Y_CAP5 + (dy + RING5 if dy > 0.05 else 0.0)
+        if Y_SPAN_TOP - y0 < 0.08:
+            continue
+        for zc in (-NAVE_Z, NAVE_Z):
+            units.append(stone(x, 0.5 * (y0 + Y_SPAN_TOP), zc,
+                               0.47 * w, 0.5 * (Y_SPAN_TOP - y0), PIER5_HW))
+    return assemble(units), n
+
+
+def sill7():
+    """Course 23, full thickness: the passage floor."""
+    units = []
+    n = int(round((X_B7 - X_A7) / 1.9))
+    w = (X_B7 - X_A7) / n
+    for i in range(n):                          # east to west
+        x = X_B7 - (i + 0.5) * w
+        for zc in (-NAVE_Z, NAVE_Z):
+            units.append(stone(x, Y_SPAN_TOP + 0.5 * COURSE3, zc,
+                               0.47 * w, COURSE3 * 0.43, PIER5_HW))
+    return assemble(units), n
+
+
+def skin7():
+    """The back skin: courses 24 to 29, 0.70 m thick, outboard.  This is
+    the only part of the storey the fixed view will ever read."""
+    units = []
+    nc = K_TOP7 - 23                            # 6 courses
+    n = int(round((X_B7 - X_A7) / 2.0))
+    w = (X_B7 - X_A7) / n
+    for c in range(nc):
+        y = Y_SILL7 + (c + 0.5) * COURSE3
+        for i in range(n):                      # east to west, bonded
+            x = X_B7 - ((i + 0.5 + 0.5 * (c % 2)) % n) * w
+            for o in (-1.0, 1.0):
+                units.append(stone(x, y, o * Z_SKIN,
+                                   0.47 * w, COURSE3 * 0.43, 0.5 * SKIN_TH))
+    return assemble(units), nc
+
+
+def colonnettes():
+    """41 per row: base, monolithic shaft, cap.  A colonnette is
+    turned, not coursed -- one stone tall.  Every fourth stands over a
+    pier centreline."""
+    units = []
+    b = 0.20
+    for m in range(N_OPEN7, -1, -1):            # east to west
+        x = X_A7 + m * SPAN_T
+        for o in (-1.0, 1.0):
+            zc = o * Z_SCREEN
+            units.append(stone(x, Y_SILL7 + 0.5 * b, zc,
+                               0.24, 0.5 * b, 0.5 * SCREEN_TH))
+            units.append(stone(x, 0.5 * (Y_SILL7 + Y_SHAFT_TOP), zc,
+                               0.16, 0.5 * (SHAFT_T - 2 * b), 0.16))
+            units.append(stone(x, Y_SHAFT_TOP - 0.5 * b, zc,
+                               0.24, 0.5 * b, 0.5 * SCREEN_TH))
+    return assemble(units), N_OPEN7 + 1
+
+
+def screen_arches():
+    """80 small arches, quarter-scale twins of the arcade below, keystone
+    last like their parents."""
+    units = []
+    for m in range(N_OPEN7 - 1, -1, -1):        # east to west
+        xa = X_A7 + m * SPAN_T
+        for o in (-1.0, 1.0):
+            units += _arch7(xa, xa + SPAN_T, Y_SHAFT_TOP, o * Z_SCREEN,
+                            0.5 * SCREEN_TH, 0.10, 0.075, 4)
+    return assemble(units), 2 * N_OPEN7
+
+
+def screen_fill():
+    """The screen's own spandrels, up to the band top -- cut at the small
+    extrados exactly as the big spandrels were cut at the big one."""
+    units = []
+    n = int(round((X_B7 - X_A7) / 0.55))
+    w = (X_B7 - X_A7) / n
+    for i in range(n):                          # east to west
+        x = X_B7 - (i + 0.5) * w
+        m = min(N_OPEN7 - 1, max(0, int((x - X_A7) // SPAN_T)))
+        dy = _intr(x, X_A7 + m * SPAN_T, X_A7 + (m + 1) * SPAN_T)
+        y0 = Y_SHAFT_TOP + (dy + RING_T if dy > 0.02 else 0.0)
+        if Y_TOP7 - y0 < 0.08:
+            continue
+        for o in (-1.0, 1.0):
+            units.append(stone(x, 0.5 * (y0 + Y_TOP7), o * Z_SCREEN,
+                               0.47 * w, 0.5 * (Y_TOP7 - y0),
+                               0.5 * SCREEN_TH))
+    return assemble(units), n
+
+
 # ---------------------------------------------------------------- stages
 STAGES = [
     "THE FOUNDATION",
@@ -1164,6 +1357,70 @@ _LEG6_P, _LEG6_N = _LEG5_P, _LEG5_N
 # buttress) is asserted in check_aisles, not assumed here.
 CAM_A6 = CAM_N
 
+# --- part VII
+(ARCH7, N_ARCH7) = arcade_arches()
+(SPAN7, N_SPAN7) = spandrel7()
+(SILL7, N_SILL7) = sill7()
+(SKIN7, N_SKIN7C) = skin7()
+(COL7, N_COL7) = colonnettes()
+(SARC7, N_SARC7) = screen_arches()
+(FILL7, N_FILL7) = screen_fill()
+
+# Parts I to VI stay legacy; part VI's walls join the pile.  Part V's piers
+# keep their own material one more episode -- the checks still have to find
+# an arcade cell to prove the arches landed on something.
+_LEG7_P = np.vstack([_LEG6_P, WALL6[0]]).astype(np.float32)
+_LEG7_N = np.vstack([_LEG6_N, WALL6[1]]).astype(np.float32)
+
+# THE SECTION.  The first one in the series, and it is forced, not chosen.
+# The triforium's face is on the INSIDE of the wall.  From the fixed
+# camera the near band shows its blank back, and the far band's face --
+# which the camera's 28 degrees can see clean over everything, the same
+# altitude that saved part V's far row -- crosses the frame at under one
+# glyph column per opening: forty openings you can see and cannot count.
+# The check derives that number.  So the episode cuts to what a mason
+# would draw instead: the building cut open, the north side alone, the
+# east three bays, from inside the nave.  Everything south of the cut is
+# simply not drawn.  That is what a section IS, and it is declared in the
+# description as one.
+T_YAW7, T_PITCH7 = -14.0, 8.0
+
+
+def _pose_t(p):
+    return _pose_at(p, T_YAW7, T_PITCH7)
+
+
+def _nfilt(part):
+    m = part[0][:, 2] < 0.0
+    return (part[0][m], part[1][m], part[2][m])
+
+
+ARCH7S, SPAN7S, SILL7S = _nfilt(ARCH7), _nfilt(SPAN7), _nfilt(SILL7)
+SKIN7S, COL7S = _nfilt(SKIN7), _nfilt(COL7)
+SARC7S, FILL7S = _nfilt(SARC7), _nfilt(FILL7)
+
+_X_SECT = X_TRAN - 3.0 * BAY5                  # 45.1 -- the east three bays
+_m7 = ((_LEG7_P[:, 2] < -4.5) & (_LEG7_P[:, 0] > _X_SECT - 2.0)
+       & (_LEG7_P[:, 0] < 66.0))
+_LEG7T_P, _LEG7T_N = _LEG7_P[_m7], _LEG7_N[_m7]
+_mp7 = (PIERS5[0][:, 2] < 0.0) & (PIERS5[0][:, 0] > _X_SECT - 1.5)
+PIERS5S = (PIERS5[0][_mp7], PIERS5[1][_mp7], PIERS5[2][_mp7])
+
+_S_NEW = np.vstack([q[0] for q in
+                    (ARCH7S, SPAN7S, SILL7S, SKIN7S, COL7S, SARC7S, FILL7S)])
+_S_NEW = _S_NEW[_S_NEW[:, 0] > _X_SECT]
+GHOST_T = GHOST[(GHOST[:, 2] < -6.0) & (GHOST[:, 0] > _X_SECT - 1.2)
+                & (GHOST[:, 0] < 63.5) & (GHOST[:, 1] < 37.0)]
+_S_PTS = np.vstack([_S_NEW, PIERS5S[0], GHOST_T]).astype(np.float32)
+_spad = _S_PTS.copy()
+_spad[:, 1] = _S_PTS[:, 1].min() - 4.5         # keep the caption clear
+CAM_T = Camera(G).fit([_pose_t(np.vstack([_S_PTS, _spad]))], margin=1.05)
+
+# inside the nave the light is the nave's own: from the south, high, the
+# way clerestory light will actually fall on this screen for centuries.
+LAMP7 = np.array([-0.30, 0.52, 0.80])
+LAMP7 = LAMP7 / np.linalg.norm(LAMP7)
+
 
 # ---------------------------------------------------------------- timeline
 T_GHOST, T_HOLD, T_DIG, T_LAY, T_END = 1.5, 2.4, 3.6, 9.9, 12.4
@@ -1221,7 +1478,27 @@ A_WALL = (1.7, 7.8)
 A_BACK = 8.3
 A_END = 10.4
 
-T_ENDS = [T_END, C_END, H_END, Q_END, P_END, A_END]
+# part VII.  Cut OUT early for VI's reason (nothing this small reads at
+# the established yaw -- the check derives under one column per opening)
+# and BACK at the end for VI's reason too: the payoff of the wide frame is
+# a new blank storey riding above the aisle wall, showing you its back.
+# In between, the masonry in the order the masonry has to go in: arches
+# (keystones last), spandrels, the passage floor, the back skin, then the
+# screen -- colonnettes, arches, fill -- east to west, both rows,
+# the camera holding the east three bays of the north side, in section.
+V_GHOST = 0.9
+V_CUT = 1.5
+V_ARCH = (1.6, 3.5)
+V_SPAN = (3.5, 4.5)
+V_SILL = (4.5, 5.0)
+V_SKIN = (5.0, 6.3)
+V_COL = (6.3, 7.8)
+V_SARC = (7.8, 9.2)
+V_FILL = (9.2, 9.8)
+V_BACK = 10.3
+V_END = 11.8
+
+T_ENDS = [T_END, C_END, H_END, Q_END, P_END, A_END, V_END]
 LAST = {}
 
 
@@ -1258,8 +1535,8 @@ def _put(buf, col, row, z, sh, mat, cover):
 
 
 def draw(f, stage):
-    return (draw_foundation, draw_crypt, draw_choir,
-            draw_transept, draw_nave, draw_aisles)[stage](f, stage)
+    return (draw_foundation, draw_crypt, draw_choir, draw_transept,
+            draw_nave, draw_aisles, draw_triforium)[stage](f, stage)
 
 
 def _label(fr, t, stage, t0=0.8):
@@ -1303,6 +1580,45 @@ def _grow(buf, part, u, mat, lamp, amb, gain, cam=None, near=1.0, far=0.86,
     col, row, z = (cam or CAM).project((pose or _pose)(P[m]))
     sh = (amb + gain * lambert(N[m], lamp)) * depth_cue(z, near, far)
     _put(buf, col, row, z, np.clip(sh, 0.06, 1.0), mat, True)
+    return int(m.sum())
+
+
+def _put7(buf, col, row, z, sh, mat):
+    """Part VII draws its stone through a real z-buffer.  Every episode
+    before it could order painter's calls back-to-front by hand; VII is
+    the first where the work interleaves in depth both ways at once -- a
+    far screen seen OVER a near band, a near skin hiding a far screen --
+    so the depth decides, not the calling order.  Nearer is larger
+    projected z: that is the convention zbuffer() keeps, and part VI's
+    occlusion probes established it empirically."""
+    ok = visible(G, col, row)
+    if not ok.any():
+        return
+    col, row, z, sh, mat = col[ok], row[ok], z[ok], sh[ok], mat[ok]
+    flat, keep = zbuffer(G, col, row, z)
+    c, r, zz, s, mt = col[keep], row[keep], z[keep], sh[keep], mat[keep]
+    idx = r * G.cols + c
+    better = zz > buf["z"].ravel()[idx]
+    idx = idx[better]
+    buf["z"].ravel()[idx] = zz[better]
+    buf["sh"].ravel()[idx] = s[better]
+    buf["mat"].ravel()[idx] = mt[better]
+
+
+def _grow7(buf, part, u, mat, lamp, amb, gain, cam, pose):
+    """_grow for part VII: z-buffered, and u < 0 draws nothing at all
+    (assemble gives its first unit O = 0, so a clamped u of 0 would lay
+    the east stone of every element in frame one)."""
+    if u < 0.0:
+        return 0
+    P, N, O = part
+    m = O <= min(1.0, u)
+    if not m.any():
+        return 0
+    col, row, z = cam.project(pose(P[m]))
+    sh = (amb + gain * lambert(N[m], lamp)) * depth_cue(z, 1.0, 0.86)
+    _put7(buf, col, row, z,
+          np.clip(sh, 0.06, 1.0), np.full(int(m.sum()), mat, np.int16))
     return int(m.sum())
 
 
@@ -1550,6 +1866,68 @@ def draw_aisles(f, stage):
     return fr
 
 
+def draw_triforium(f, stage):
+    """Part VII.  Open home with six episodes standing; cut to the section
+    -- the north side alone, the east three bays, from inside the nave;
+    the middle storey goes up in the order the stone demands; then home,
+    where the new storey rides above the aisle wall and shows the fixed
+    frame nothing but its back."""
+    t = f / float(FPS)
+    close = V_CUT <= t < V_BACK
+    cam = CAM_T if close else CAM
+    pose = _pose_t if close else _pose
+    lamp = LAMP7 if close else LAMP
+    buf = {"sh": np.zeros((G.rows, G.cols)),
+           "mat": np.zeros((G.rows, G.cols), np.int16),
+           "z": np.full((G.rows, G.cols), -1e9)}
+
+    gfade = min(1.0, t / V_GHOST)
+    n = int(len(GHOST) * gfade)
+    if n > 8:
+        col, row, z = cam.project(pose(GHOST[:n]))
+        lift = 1.0 + 0.55 * min(1.0, max(0.0, (t - V_FILL[1] - 0.3) / 1.1))
+        sh = ((0.20 + 0.34 * depth_cue(z, 1.0, 0.30))
+              * (0.72 + 0.28 * gfade) * lift)
+        _put(buf, col, row, z + 4000.0, sh, M_GHOST, False)
+
+    # parts I to VI, standing, at the level part III set.  In the section
+    # everything south of the cut simply is not drawn.
+    lp, ln = (_LEG7T_P, _LEG7T_N) if close else (_LEG7_P, _LEG7_N)
+    col, row, z = cam.project(pose(lp))
+    sh = (0.17 + 0.44 * lambert(ln, lamp)) * depth_cue(z, 1.0, 0.86)
+    _put7(buf, col, row, z, np.clip(sh, 0.05, 1.0),
+          np.full(len(z), M_OLD, np.int16))
+
+    # part V, its own material one more episode: the arches have to be
+    # seen landing on something the checks can name.
+    pp = PIERS5S if close else PIERS5
+    col, row, z = cam.project(pose(pp[0]))
+    sh = (0.17 + 0.44 * lambert(pp[1], lamp)) * depth_cue(z, 1.0, 0.86)
+    _put7(buf, col, row, z, np.clip(sh, 0.05, 1.0),
+          np.full(len(z), M_NAVE, np.int16))
+
+    def win(w):
+        return (t - w[0]) / (w[1] - w[0])
+
+    for full, sect, w, mat, amb, gain in (
+            (ARCH7, ARCH7S, V_ARCH, M_ARCH, 0.28, 0.78),
+            (SPAN7, SPAN7S, V_SPAN, M_ARCH, 0.28, 0.78),
+            (SILL7, SILL7S, V_SILL, M_ARCH, 0.28, 0.78),
+            (SKIN7, SKIN7S, V_SKIN, M_TRIFB, 0.22, 0.62),
+            (COL7, COL7S, V_COL, M_TRIF, 0.30, 0.80),
+            (SARC7, SARC7S, V_SARC, M_TRIF, 0.30, 0.80),
+            (FILL7, FILL7S, V_FILL, M_TRIF, 0.30, 0.80)):
+        _grow7(buf, sect if close else full, win(w), mat, lamp, amb, gain,
+               cam, pose)
+
+    LAST["u7"] = min(1.0, max(0.0, win(V_FILL)))
+    LAST["close"] = close
+
+    fr = _paint(buf)
+    _label(fr, t, stage)
+    return fr
+
+
 def draw_foundation(f, stage):
     t = f / float(FPS)
     buf = {"sh": np.zeros((G.rows, G.cols)),
@@ -1614,7 +1992,8 @@ def colour(v, m):
             M_OLD: OLD, M_CRYPT: CRYPT, M_SLAB: STONE,
             M_CWALL: CW["rgb"], M_WALL3: STONE, M_PART: ROUGH,
             M_TRAN: STONE, M_PIER: STONE, M_NAVE: STONE,
-            M_AISLE: STONE}[int(m)]
+            M_AISLE: STONE, M_ARCH: STONE, M_TRIF: STONE,
+            M_TRIFB: INNER}[int(m)]
     t = np.clip(0.22 + 0.78 * v, 0.0, 1.0)
     return blend(BG, base, t)
 
@@ -2420,7 +2799,242 @@ def check_aisles(stage):
                             "10.0 home"])
 
 
+def check_triforium(stage):
+    print("THE CATHEDRAL — part %s, %s" % (roman(stage + 1), STAGES[stage]))
+    print("  arches               %d of span %.3f m rising %.3f m, "
+          "crown %.3f m" % (N_ARCH7, BAY5, ARCH_RISE5, Y_CAP5 + ARCH_RISE5))
+    print("  screen               %d colonnettes and %d arches per row, "
+          "%d openings" % (N_COL7, N_SARC7 // 2, N_OPEN7))
+    print("  band                 %.2f m to %.2f m, courses 23..%d on the "
+          "crypt's grid" % (Y_SPAN_TOP, Y_TOP7, K_TOP7))
+
+    # RULE 1.  The established view has not drifted.
+    d = np.abs(_pose_at(GHOST, -58.0, 28.0) - _pose(GHOST)).max()
+    print("  established view unchanged: max disagreement %.2e m" % d)
+    assert d < 1e-3, d
+
+    # THE QUARTER.  The screen is the arcade below it at 1:4, and all
+    # three ratios are 4 to the last bit -- not approximately, because
+    # each small dimension is the big one divided by 4 and nothing else.
+    r_span = BAY5 / SPAN_T
+    r_rise = ARCH_RISE5 / RISE_T
+    r_shaft = (Y_CAP5 - Y_FOOT) / SHAFT_T
+    print("  span %.4f/%.4f  rise %.4f/%.4f  shaft %.4f/%.4f -> "
+          "ratios %r %r %r" % (BAY5, SPAN_T, ARCH_RISE5, RISE_T,
+                               Y_CAP5 - Y_FOOT, SHAFT_T,
+                               r_span, r_rise, r_shaft))
+    assert r_span == 4.0 and r_rise == 4.0 and r_shaft == 4.0
+    # and 4 divides the bay, so every fourth colonnette stands on a pier
+    # centreline -- to within one float ulp, which is under a picometre.
+    worst = max(abs(X_A7 + (4 * (k - 1)) * SPAN_T - k * BAY5)
+                for k in range(1, N_BAY5))
+    print("  every 4th colonnette on a pier centreline: worst error "
+          "%.1e m, all %d" % (worst, N_BAY5 - 1))
+    assert worst < 1e-12, worst
+
+    # THE COURSE GRID.  Spandrels level off at course 22 -- the height the
+    # aisle walls topped out at, so the whole building reaches course 22
+    # together.  The voussoir ring is 0.30 m and not more: the extrados
+    # crown clears the spandrel top by millimetres.
+    extr = Y_CAP5 + ARCH_RISE5 + RING5
+    print("  course 22 at %.4f m, arch extrados crown %.4f m -> clears "
+          "by %.1f mm" % (Y_SPAN_TOP, extr, 1000 * (Y_SPAN_TOP - extr)))
+    assert extr < Y_SPAN_TOP, (extr, Y_SPAN_TOP)
+    assert N_COURSE6 * COURSE3 + Y_FOOT == Y_SPAN_TOP
+    # and 29 is the least course count that covers the small crowns.
+    low = Y_FOOT + (K_TOP7 - 1) * COURSE3
+    print("  small crowns %.3f m + %.2f ring: course 28 tops at %.2f "
+          "(under), 29 at %.2f (over)" % (CROWN_T, RING_T, low, Y_TOP7))
+    assert low < CROWN_T, (low, CROWN_T)
+    assert Y_TOP7 >= CROWN_T + RING_T, (Y_TOP7, CROWN_T)
+
+    # THE CROSS-SECTION.  The pier width spent three ways; the passage is
+    # the remainder, not a choice.
+    print("  %.2f skin + %.2f passage + %.2f screen = %.2f m = the pier"
+          % (SKIN_TH, PASSAGE7, SCREEN_TH, SKIN_TH + PASSAGE7 + SCREEN_TH))
+    assert abs(SKIN_TH + PASSAGE7 + SCREEN_TH - 2 * PIER5_HW) < 1e-12
+    assert PASSAGE7 >= 1.0, PASSAGE7
+    head = Y_TOP7 - Y_SILL7
+    print("  passage              %.2f m wide, %.2f m of headroom, "
+          "open to the sky until part VIII" % (PASSAGE7, head))
+    assert head > 2.0, head
+
+    # THE MASS LEDGER.  What hollowing the storey saves, integrated from
+    # the same curves the stones were cut to.  Part V sized its piers
+    # assuming 1.2 m of solid wall above the capitals (NWALL_T in
+    # check_nave); a solid storey at the pier's own 2.4 m would have
+    # doubled that.  Hollow, the average comes back to the assumption.
+    xs = np.linspace(X_A7, X_B7, 4001)
+    op = np.zeros(len(xs))
+    for i, x in enumerate(xs):
+        m = min(N_OPEN7 - 1, max(0, int((x - X_A7) // SPAN_T)))
+        xa = X_A7 + m * SPAN_T
+        dx = min(x - xa, xa + SPAN_T - x)
+        if dx > 0.16:                       # outside the colonnette
+            op[i] = min(_intr(x, xa, xa + SPAN_T) + (SHAFT_T - 0.2),
+                        head)
+    open_frac = float(np.mean(op)) / head
+    t_avg = (0.74 * 2 * PIER5_HW
+             + head * (SKIN_TH + SCREEN_TH * (1.0 - open_frac))) / (
+                 0.74 + head)
+    run = X_B7 - X_A7
+    saved = ((2 * PIER5_HW - t_avg) * (0.74 + head) * run * 2
+             * 2300.0 / 1000.0)
+    print("  screen zone          %.0f%% open; band averages %.2f m of "
+          "solid stone in a %.2f m wall" % (100 * open_frac, t_avg,
+                                            2 * PIER5_HW))
+    print("  part V assumed %.1f m of wall above the capitals; hollow "
+          "delivers %.2f.  solid would be %.1f" % (1.2, t_avg,
+                                                   2 * PIER5_HW))
+    print("  the passage spares the piers %.0f tonnes of stone" % saved)
+    assert 1.0 < t_avg < 1.45, t_avg
+    assert saved > 1000.0, saved
+
+    # THE RESOLUTION THEOREM -- why this episode needs a section.  The
+    # fixed camera's 28 degrees see the FAR screen's face clean over the
+    # near band (the altitude that saved part V's far row saves it), but
+    # at the established yaw one opening crosses the frame in under a
+    # column.  Forty openings you can see and cannot count.
+    pa = np.array([[20.0, 21.0, -Z_SCREEN], [20.0 + 10 * SPAN_T, 21.0,
+                                             -Z_SCREEN]], np.float32)
+    ca, _, _ = CAM.project(_pose(pa))
+    ppc = abs(float(ca[1]) - float(ca[0])) / 10.0
+    clear = 21.0 + 2 * NAVE_Z * math.tan(math.radians(28.0))
+    print("  far screen from the fixed view: sight line clears the near "
+          "band at %.1f m (band tops at %.2f)" % (clear, Y_TOP7))
+    print("  one opening = %.2f columns in the fixed frame -> the face "
+          "is visible and cannot be read" % ppc)
+    assert clear > Y_TOP7, (clear, Y_TOP7)
+    assert ppc < 1.0, ppc
+
+    # FRAME FACTS, wide, end of episode: the storey is in the picture,
+    # its back is what you get, and it is the tallest stone yet laid.
+    draw(int(1.4 * FPS), stage)
+    before = int((LAST["mat"] == M_TRIFB).sum())
+    draw(int((V_END - 0.2) * FPS), stage)
+    m = LAST["mat"]
+    after = int((m == M_TRIFB).sum())
+    pts = np.array([[k * BAY5 + 2.8, 21.5, NAVE_Z + PIER5_HW]
+                    for k in range(2, 9)], np.float32)
+    c, r, _ = CAM.project(_pose(pts))
+    bvals = [int(m[rr, cc]) for rr, cc in zip(r, c)
+             if 0 <= rr < G.rows and 0 <= cc < G.cols]
+    hits = sum(v == M_TRIFB for v in bvals)
+    far = int((m == M_TRIF).sum())
+    y_old = float(max(_LEG7_P[:, 1].max(), PIERS5[0][:, 1].max()))
+    print("  back-skin cells wide: %d before, %d after; outer-face probes "
+          "%d/%d; far screen's face: %d cells, seen and unreadable"
+          % (before, after, hits, len(bvals), far))
+    print("  tallest stone before this episode %.2f m; the band tops at "
+          "%.2f -- the storey is the new high point" % (y_old, Y_TOP7))
+    assert before == 0, before
+    assert after > 60, after
+    assert hits >= 5, (hits, bvals)
+    assert far > 20, far
+    assert Y_TOP7 > y_old, (Y_TOP7, y_old)
+
+    # SECTION FACTS.  Through every sampled opening the back skin shows --
+    # the storey is hollow ON SCREEN, not just in the model -- and the
+    # colonnettes read as their own material where the model puts them.
+    draw(int(9.9 * FPS), stage)
+    m = LAST["mat"]
+    # An opening is 1.1 m clear; a single centre pixel can land on a
+    # colonnette edge or a bond gap (part VI's lancet lesson, again), so
+    # each opening is sampled across its width and counts hollow if ANY
+    # sample reads the back skin through it.
+    hole, hn = 0, 0
+    for mm in range(29, 38):
+        p = np.array([[X_A7 + (mm + 0.5) * SPAN_T + dx, y0,
+                       -(NAVE_Z + PIER5_HW - SKIN_TH)]
+                      for dx in (-0.35, 0.0, 0.35)
+                      for y0 in (20.9, 21.3, 21.7)], np.float32)
+        c, r, _ = CAM_T.project(_pose_t(p))
+        vals = [int(m[rr, cc]) for rr, cc in zip(r, c)
+                if 0 <= rr < G.rows and 0 <= cc < G.cols]
+        if vals:
+            hn += 1
+            hole += any(v == M_TRIFB for v in vals)
+    # and a colonnette is 0.32 m -- under two columns -- so it too gets
+    # sampled along its height rather than trusted to one pixel.
+    colh, cn = 0, 0
+    for mm in range(30, 40):
+        p = np.array([[X_A7 + mm * SPAN_T, y0, -Z_SCREEN]
+                      for y0 in (20.3, 20.9, 21.5, 22.1)], np.float32)
+        c, r, _ = CAM_T.project(_pose_t(p))
+        vals = [int(m[rr, cc]) for rr, cc in zip(r, c)
+                if 0 <= rr < G.rows and 0 <= cc < G.cols]
+        if vals:
+            cn += 1
+            colh += any(v == M_TRIF for v in vals)
+    print("  openings showing the back skin: %d/%d, colonnettes reading "
+          "as screen: %d/%d" % (hole, hn, colh, cn))
+    assert hn >= 6 and hole >= hn - 2, (hole, hn)
+    assert cn >= 6 and colh >= cn - 2, (colh, cn)
+
+    # HELD OUT -- THE QUARTER, read back off the pixels.  Nothing below
+    # measures the model: pier repeats and colonnette repeats are taken
+    # from the material buffer of the finished section frame, and their
+    # ratio has to hand back the 4 the geometry was built from.
+    def runs(row, mat_id):
+        cs = np.nonzero(m[row] == mat_id)[0]
+        if len(cs) == 0:
+            return []
+        out, start, prev = [], cs[0], cs[0]
+        for c0 in cs[1:]:
+            if c0 > prev + 1:
+                out.append(0.5 * (start + prev))
+                start = c0
+            prev = c0
+        out.append(0.5 * (start + prev))
+        return out
+
+    pr = CAM_T.project(_pose_t(np.array([[50.7, 8.0, -(NAVE_Z - PIER5_HW)]],
+                                        np.float32)))[1][0]
+    cr = CAM_T.project(_pose_t(np.array([[50.7, 21.0, -Z_SCREEN]],
+                                        np.float32)))[1][0]
+    pc = runs(int(pr), M_NAVE)
+    cc0 = runs(int(cr), M_TRIF)
+    pg = np.diff(pc)
+    cg = np.diff(cc0)
+    cg = cg[(cg > 0.4 * np.median(cg)) & (cg < 1.6 * np.median(cg))]
+    pg = pg[(pg > 0.4 * np.median(pg)) & (pg < 1.6 * np.median(pg))]
+    ratio = float(np.mean(pg)) / float(np.mean(cg))
+    print("  pier repeat %.1f cols over %d gaps, colonnette repeat %.2f "
+          "over %d -> ratio %.2f (built from 4)"
+          % (float(np.mean(pg)), len(pg), float(np.mean(cg)), len(cg),
+             ratio))
+    assert len(pg) >= 2 and len(cg) >= 6, (len(pg), len(cg))
+    assert 3.5 < ratio < 4.5, ratio
+
+    sheet = []
+    for t in (0.6, 1.4, 2.6, 4.1, 5.6, 7.2, 8.6, 9.9, 11.4):
+        fr = draw(int(t * FPS), stage)
+        ink, mat = LAST["ink"], LAST["mat"]
+        print("  t=%4.1f u=%.2f cov %.3f  ghost %5d old %5d arch %5d "
+              "skin %4d screen %4d  %s"
+              % (t, LAST["u7"], ink.mean(), (mat == M_GHOST).sum(),
+                 (mat == M_OLD).sum(), (mat == M_ARCH).sum(),
+                 (mat == M_TRIFB).sum(), (mat == M_TRIF).sum(),
+                 "close" if LAST["close"] else "wide"))
+        assert 0.02 < ink.mean() < 0.60, ink.mean()
+        for (c0b, r0b, w, h) in LAST["boxes"]:
+            assert r0b - 1 >= G.safe_top, ("text above safe", r0b)
+            assert r0b + h + 1 <= G.safe_bot, ("text below safe", r0b + h)
+            assert c0b - 1 >= 0 and c0b + w + 1 <= G.cols, ("width", c0b, w)
+        sheet.append(fr)
+
+    assert LAST["u7"] >= 1.0, LAST["u7"]
+    print("  runtime              %.1f s, %d frames  (VI was %.1f s)"
+          % (V_END, int(V_END * FPS), A_END))
+    contact(sheet, os.path.join(_HERE, "..", "content", "cath_sheet.png"),
+            cols=3, labels=["0.6 ghost", "1.4 wide", "2.6 arches",
+                            "4.1 spandrel", "5.6 skin", "7.2 colonnettes",
+                            "8.6 arches again", "9.9 screen", "11.4 home"])
+
+
 def check(stage):
+    if stage == 6:
+        return check_triforium(stage)
     if stage == 5:
         return check_aisles(stage)
     if stage == 4:
