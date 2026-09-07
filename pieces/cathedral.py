@@ -64,6 +64,13 @@ M_BUT9, M_FLY9, M_COP9 = 19, 20, 21    # part IX: pier+pinnacle / the arc /
 M_RIB10, M_WEB10 = 22, 23      # part X: the ribs (the skeleton the thrust
                                # travels along) / the web (the shell that
                                # only has to reach the nearest rib)
+OAK = (0.655, 0.447, 0.247)    # part XI: the first thing in this building
+                               # that is not stone, and the only thing in
+                               # it that burns
+LEAD = (0.475, 0.506, 0.565)   # the weather skin.  cold grey, and the
+                               # colour the building's silhouette keeps
+                               # for the rest of the series
+M_TIMB11, M_LEAD11 = 24, 25
 INNER = (0.694, 0.633, 0.506)  # stone seen through an opening: the
                                # passage's own shadow, not a new material
 
@@ -1578,6 +1585,344 @@ def web10():
     return assemble(units), KW
 
 
+# ------------------------------------------------------------- part XI
+# THE ROOF -- in two acts, because the first draft of this episode's
+# check was refused by its own lead sheeting.
+#
+# ACT ONE: THE VAULT DOES NOT FIT UNDER THE ROOF.  Part X built LEVEL
+# ridges -- every rib rising to the semicircle's crown, asserted level
+# to 1e-9 -- and part I froze the roof plane at y = 46 - 1.25|z|.
+# Nobody put the two in one inequality.  The transverse ridges run
+# level at 40.40 all the way to the walls, where the plane has come
+# down to 37.50: the vault stands THROUGH its own roof over 27% of
+# its surface, 3.6 m deep at the worst, for every |z| beyond 3.9 m.
+# Part X even printed "the vault clears the roof by 1.58 m" -- a true
+# number about the transverse ARCHES (which dip at the bay lines),
+# attached to a false sentence about the vault.  The first draft of
+# part XI's burial assert failed with 166 cells of ceiling showing
+# THROUGH the finished lead, and those cells were not a rendering
+# bug.  They were the collision, caught by a z-buffer.
+#
+# The fix is what French masons actually built: the outer severies
+# RAMP (the warped webs the trade calls ploughshare vaulting), and
+# the wall rib's crown comes DOWN.  The cap
+# is derived, not chosen: intrados <= plane - one principal's depth
+# - one web.  The wall rib's rise drops from 7.36 to 3.69 and its
+# centre offset from 8.20 to 1.01 -- the roof takes the lancet away
+# (q < sb now: its centres come back inside the span).  Its ring
+# depth is still RING5: that derivation was span-based and survives.
+# And the thrust re-run on the planed surface ARRIVES AT 24.00, the
+# very number part X published: the claim about the roof was wrong,
+# the claim about the thrust was right to the tonne.
+#
+# ACT TWO: THE ROOF ITSELF.
+#   - The carpenter's first move -- a tie beam across the wall tops
+#     at y = 36 -- is REFUSED by the stone hill, which still stands
+#     4.69 m through it at the crown (the crown was never the
+#     problem; the crown clears the ridge by 5.3 m).
+#   - The historical answer is the RAISED TIE (entrait retroussé:
+#     the tie that "does not form the base of the truss triangle,
+#     but is placed higher up" to clear what is below -- here, what
+#     is below is a stone hill).  It sits where a carpenter puts it
+#     anyway, at the rafters' midpoints, and that rule survives the
+#     hill by 0.29 m.  Nobody designed the clearance; three
+#     episodes' frozen numbers did.
+#   - Trusses land on the BAY LINES, because part V promised they
+#     would when it fixed the bay.
+#   - Two scantlings are CHOSEN, the first new chosen dimensions in
+#     six episodes: principals 0.30 m square, commons 0.12 -- of the
+#     order of surviving medieval work, and named as choices.
+#
+# THE STATICS ARE THE SEQUEL.  A roof with no tie at its feet pushes
+# its walls outward, and part X left exactly 4.5 t a bay of headroom
+# in part IX's budget.  check_roof rebuilds both walks (the vault's,
+# on the PLANED surface, and part IX's, verbatim in structure), puts
+# the roof's weight on the wall top, and threads the system twice:
+# once with the tie's pegged joints holding tension (the walls feel
+# only weight), and once with every joint dead (gravity closes at
+# the ridge and sends its worst outward).  The cheque must clear
+# BOTH ways.
+THETA11 = math.atan2(46.0 - NAVE_Y, NAVE_Z)    # 51.34 deg -- the pitch
+                                   # part I froze, now with rafters in it
+SLOPE11 = (46.0 - NAVE_Y) / NAVE_Z             # 1.25
+Z_PLATE11 = 0.5 * (S10 + NAVE_Z)   # 7.4 -- the wall-top centreline: the
+                                   # plate sits over part X's node
+SC11 = 0.30                        # principal scantling.  CHOSEN
+SCC11 = 0.12                       # common scantling.  CHOSEN
+HILL11 = Y_SPR10 + RHO10 + TW10    # 40.69 -- the stone hill's peak
+ZT11 = 0.5 * Z_PLATE11             # 3.7 -- tie attach, the rafter's
+                                   # midpoint in plan
+_OFF11 = 0.5 * SC11 / math.cos(THETA11)        # rafter axis below the
+                                   # frozen plane by half its own depth
+Y_TIE11 = 46.0 - SLOPE11 * ZT11 - _OFF11       # 41.13 -- the tie's axis
+Y_RIDGE11 = 46.0 - _OFF11          # ridge axis under the apex
+N_TRUSS11 = N_BAY5 + 1             # twelve principals, lines 0..11
+N_COMM11 = N_BAY5                  # eleven common pairs, on the bay
+                                   # midpoints -- one over every boss
+
+# act one: the cap the roof imposes, and the stilted wall rib.
+RAFTD11 = SC11 / math.cos(THETA11)             # 0.48 -- a principal's
+                                   # depth measured vertically
+Z_KINK11 = (46.0 - RAFTD11 - TW10 - Y_CROWN10) / SLOPE11   # 3.86 --
+                                   # the ridge runs level this far,
+                                   # then ramps under the roof
+RISE_W11 = (46.0 - SLOPE11 * S10) - RAFTD11 - TW10 - Y_SPR10   # 3.69
+QW11 = (RISE_W11 ** 2 - SB10 ** 2) / (2.0 * SB10)  # 1.006 -- the roof
+                                   # takes the lancet away: q < sb,
+                                   # the centres come back inside
+RW11 = SB10 + QW11                 # 3.82 -- stilted wall-rib radius
+
+
+def _cap11(z):
+    """The highest intrados the roof allows: the frozen plane, less
+    one principal's depth, less one web."""
+    return 46.0 - SLOPE11 * abs(z) - RAFTD11 - TW10
+
+
+def _y11(xi, z):
+    """The web as the roof allows it: part X's surface, planed.  The
+    ridges run level to Z_KINK11 and then ramp parallel to the roof,
+    0.77 m under it -- the ploughshare warp, derived."""
+    return min(_y10(xi, z), _cap11(z))
+
+
+def _viol11(xi, z):
+    """True where part X's level surface stands too high -- the region
+    the masons take down and relay."""
+    return _y10(xi % BAY5, z) > _cap11(z) - 0.10
+
+
+def wribs11():
+    """The wall ribs, rebuilt with their crowns brought down: same
+    span, same ring depth
+    (RING5 -- that derivation was span-based and survives).  Same
+    build style as part X's."""
+    units = []
+    psimax = math.atan2(RISE_W11, QW11)
+    n = max(4, int(round(RW11 * psimax / 0.66)))
+    r_mid = RW11 - 0.5 * D10W
+    for i in range(n):
+        psi = (i + 0.5) / n * psimax
+        for m in range(N_VBAY10, 0, -1):
+            xm = (m + 0.5) * BAY5
+            for o in (-1.0, 1.0):
+                for h in (-1.0, 1.0):
+                    x = xm + h * (r_mid * math.cos(psi) - QW11)
+                    units.append(stone(x,
+                                       Y_SPR10 + r_mid * math.sin(psi),
+                                       o * (S10 - 0.5 * D10W),
+                                       0.33, 0.55 * D10W, 0.55 * D10W))
+    return assemble(units), n
+
+
+def reweb11():
+    """The severies relaid under the cap.  Courses from the wall
+    toward the kink, all ten bays at once, exactly where the level
+    surface stood too high."""
+    units = []
+    KR = 12
+    z0, z1 = 0.90 * Z_KINK11, S10
+    for l in range(KR):
+        z = z1 - (l + 0.5) / KR * (z1 - z0)
+        zn = max(z0, z - (z1 - z0) / KR)
+        for m in range(N_VBAY10, 0, -1):
+            xb = m * BAY5
+            ns = max(2, int(round(BAY5 / 0.72)))
+            for i in range(ns):
+                xi = (i + 0.5) / ns * BAY5
+                if not _viol11(xi, z):
+                    continue
+                y = _y11(xi, z)
+                yn = _y11(xi, zn)
+                hy = 0.55 * max(TW10, abs(yn - y))
+                for o in (-1.0, 1.0):
+                    units.append(stone(xb + xi, y + 0.5 * TW10, o * z,
+                                       0.55 * BAY5 / ns, hy,
+                                       0.55 * (z1 - z0) / KR))
+    return assemble(units), KR
+
+
+def _yraft11(z):
+    """Rafter axis height at |z|: the frozen plane, less half a
+    principal's depth measured square to the slope."""
+    return 46.0 - SLOPE11 * abs(z) - _OFF11
+
+
+def plates11():
+    """Two wall plates the length of the nave, seated flush into the
+    wall top (the top course is the seat).  West to east, both walls
+    at once."""
+    units = []
+    n = int(round(62.0 / 1.3))
+    for i in range(n):
+        x = (i + 0.5) / n * 62.0
+        for o in (-1.0, 1.0):
+            units.append(stone(x, NAVE_Y - 0.5 * SC11, o * Z_PLATE11,
+                               0.55 * 62.0 / n, 0.5 * SC11, 0.5 * SC11))
+    return assemble(units), n
+
+
+def rafts11():
+    """Twenty-four principal rafters: a pair on every bay line, feet
+    on the plates, meeting under the apex.  Climb outer, lines inner
+    (part IX's stall lesson): all twelve frames rise together."""
+    units = []
+    n = int(round((Z_PLATE11 / math.cos(THETA11)) / 0.62))
+    for i in range(n):
+        z = Z_PLATE11 * (1.0 - (i + 0.5) / n)
+        z = max(z, 0.22)
+        for m in range(N_BAY5, -1, -1):             # east to west
+            for o in (-1.0, 1.0):
+                units.append(stone(m * BAY5, _yraft11(z), o * z,
+                                   0.5 * SC11,
+                                   0.42 * SLOPE11 * Z_PLATE11 / n,
+                                   0.55 * Z_PLATE11 / n))
+    return assemble(units), n
+
+
+def ties11():
+    """Twelve raised ties -- the beam the stone hill would not let lie
+    at the wall tops.  Laid from both rafters toward the middle, so
+    each one closes directly over the crown it clears by 0.29 m."""
+    units = []
+    n = int(round(2.0 * ZT11 / 0.60))
+    if n % 2 == 1:
+        n += 1
+    for i in range(n // 2):
+        for m in range(N_BAY5, -1, -1):
+            for h in (-1.0, 1.0):
+                z = h * (ZT11 - (i + 0.5) * 2.0 * ZT11 / n)
+                units.append(stone(m * BAY5, Y_TIE11, z,
+                                   0.5 * SC11, 0.5 * SC11,
+                                   0.55 * 2.0 * ZT11 / n))
+    return assemble(units), n
+
+
+def posts11():
+    """Twelve king posts, tie to apex.  Each one stands over a
+    keystone it never touches."""
+    units = []
+    n = int(round((46.0 - Y_TIE11) / 0.60))
+    for i in range(n):
+        y = Y_TIE11 + (i + 0.5) / n * (Y_RIDGE11 - Y_TIE11)
+        for m in range(N_BAY5, -1, -1):
+            units.append(stone(m * BAY5, y, 0.0,
+                               0.5 * SC11,
+                               0.55 * (Y_RIDGE11 - Y_TIE11) / n,
+                               0.5 * SC11))
+    return assemble(units), n
+
+
+def commons11():
+    """Eleven common pairs on the bay midpoints -- one over every
+    boss -- with their own collars.  A third the section of the
+    principals; the deck rides on these."""
+    units = []
+    n = int(round((Z_PLATE11 / math.cos(THETA11)) / 0.62))
+    for i in range(n):
+        z = max(Z_PLATE11 * (1.0 - (i + 0.5) / n), 0.20)
+        for m in range(N_BAY5 - 1, -1, -1):
+            for o in (-1.0, 1.0):
+                units.append(stone((m + 0.5) * BAY5,
+                                   46.0 - SLOPE11 * z
+                                   - 0.5 * SCC11 / math.cos(THETA11),
+                                   o * z,
+                                   0.5 * SCC11,
+                                   0.42 * SLOPE11 * Z_PLATE11 / n,
+                                   0.55 * Z_PLATE11 / n))
+    nc = int(round(2.0 * ZT11 / 0.60))
+    for i in range(nc):
+        z = -ZT11 + (i + 0.5) / nc * 2.0 * ZT11
+        for m in range(N_BAY5 - 1, -1, -1):
+            units.append(stone((m + 0.5) * BAY5,
+                               46.0 - SLOPE11 * ZT11
+                               - 0.5 * SCC11 / math.cos(THETA11), z,
+                               0.5 * SCC11, 0.5 * SCC11,
+                               0.55 * 2.0 * ZT11 / nc))
+    return assemble(units), n
+
+
+def ridge11():
+    """The ridge beam, east to west along y = 46 less half a
+    principal: the one line the whole series has been drawing since
+    part I, now in oak."""
+    units = []
+    n = int(round(62.0 / 1.2))
+    for i in range(n):
+        x = 62.0 * (1.0 - (i + 0.5) / n)
+        units.append(stone(x, Y_RIDGE11 - 0.15, 0.0,
+                           0.55 * 62.0 / n, 0.5 * SC11, 0.5 * SC11))
+    return assemble(units), n
+
+
+def laths11():
+    """Laths across the rafters, eaves to ridge, gapped -- the hill
+    stays visible between them.  The lead is what buries it."""
+    units = []
+    KL = 11
+    for l in range(KL):
+        z = NAVE_Z * (1.0 - (l + 0.35) / KL)
+        y = 46.0 - SLOPE11 * z - 0.10
+        for m in range(int(round(62.0 / 1.4)) - 1, -1, -1):
+            x = (m + 0.5) * 1.4
+            for o in (-1.0, 1.0):
+                units.append(stone(x, y, o * z, 0.72, 0.05, 0.10))
+    return assemble(units), KL
+
+
+def gables11():
+    """Two boarded gables, planked upright: the west end waits for
+    part XII's front, the east for the crossing tower, and until
+    then the carpenter closes the triangles -- a building that takes
+    centuries is weatherproofed in instalments (Cologne stood
+    half-finished for four hundred years)."""
+    units = []
+    n = int(round(2.0 * NAVE_Z / 0.55))
+    for i in range(n):
+        z = -NAVE_Z + (i + 0.5) / n * 2.0 * NAVE_Z
+        ytop = 46.0 - SLOPE11 * abs(z)
+        for xg in (61.75, 0.25):
+            nb = max(1, int(round((ytop - NAVE_Y) / 0.62)))
+            for j in range(nb):
+                y = NAVE_Y + (j + 0.5) / nb * (ytop - NAVE_Y)
+                units.append(stone(xg, y, z, 0.10,
+                                   0.55 * (ytop - NAVE_Y) / nb,
+                                   0.5 * 2.0 * NAVE_Z / n, step=0.3))
+    return assemble(units), n
+
+
+def lead11():
+    """The lead, in courses from the eaves to the ridge, both flanks
+    at once -- the burial.  Its top face lies ON part I's frozen
+    plane: the drawing keeps its word to the millimetre, ten episodes
+    late."""
+    units = []
+    KP = 24
+    step = NAVE_Z / KP
+    dy = SLOPE11 * step                # the drop from course to course:
+    hy = 0.55 * dy                     # each box bridges it (web10's
+    hz = 0.70 * step                   # trick for building a slope out
+                                       # of boxes; the z overlap closes
+                                       # the seam lines that leaked the
+                                       # hill through as moiré stripes),
+                                       # stair centred ON the plane
+    for l in range(KP):
+        z = NAVE_Z * (1.0 - (l + 0.5) / KP)
+        y = 46.0 - SLOPE11 * z - 0.5 * dy
+        for m in range(int(round(62.0 / 1.3)) - 1, -1, -1):
+            x = (m + 0.5) * 1.3
+            for o in (-1.0, 1.0):
+                units.append(stone(x, y, o * z, 0.66, hy, hz,
+                                   step=0.25))
+    # and the ridge cap, laid last of all: the apex strip no course
+    # reaches, closed along the one line the series has drawn since
+    # part I.
+    for m in range(int(round(62.0 / 1.3)) - 1, -1, -1):
+        units.append(stone((m + 0.5) * 1.3, 46.0 - 0.5 * dy, 0.0,
+                           0.66, hy, 0.22, step=0.25))
+    return assemble(units), KP
+
+
 # ---------------------------------------------------------------- stages
 STAGES = [
     "THE FOUNDATION",
@@ -2070,6 +2415,84 @@ _x10pad[:, 1] = _X10_PTS[:, 1].min() - 6.0     # caption reserve: this
 CAM_X10 = Camera(G).fit([_pose_x9(np.vstack([_X10_PTS, _x10pad]))],
                         margin=1.05)
 
+# --- part XI
+(PLATE11, N_PL11) = plates11()
+(RAFT11, N_RB11) = rafts11()
+(TIE11, N_TB11) = ties11()
+(POST11, N_PB11) = posts11()
+(COMM11, N_CB11) = commons11()
+(RIDGE11, N_RGB11) = ridge11()
+(LATH11, N_LB11) = laths11()
+(GABLE11, N_GB11) = gables11()
+(LEADS11, N_LDB11) = lead11()
+(WRIB11, N_WV11) = wribs11()
+(REWEB11, N_RWC11) = reweb11()
+
+# act one's demolition set: every point of part X's web that stands in
+# the region the roof refuses, plus the wall ribs entire (their crown
+# is the worst offender and their stones get re-cut into the stilted
+# arch).  Classified by REGION, not height, so whole course columns
+# come down and the relay replaces them wholly.
+_wm = np.array([_viol11(float(px), float(pz))
+                for px, pz in zip(WEB10[0][:, 0], WEB10[0][:, 2])])
+WEB11_KEEP = (WEB10[0][~_wm], WEB10[1][~_wm], WEB10[2][~_wm])
+DOWN11 = (np.vstack([WEB10[0][_wm], WRIB10[0]]).astype(np.float32),
+          np.vstack([WEB10[1][_wm], WRIB10[1]]).astype(np.float32),
+          np.concatenate([WEB10[2][_wm], WRIB10[2]]).astype(np.float32))
+# (drawn with a REVERSED clock, u = 1 - win: last laid, first down.)
+
+# Part IX joins the legacy pile -- its thread is spliced and probed,
+# and that check is closed.  Part X keeps BOTH its materials one more
+# episode: the whole point of this one is a stone hill being buried,
+# so the probes have to find the web inside the attic (the section
+# still sees it after the lead has hidden it from the sky).
+_LEG11_P = np.vstack([_LEG10_P, PIER9[0], FLY9[0], COP9[0],
+                      PIN9[0]]).astype(np.float32)
+_LEG11_N = np.vstack([_LEG10_N, PIER9[1], FLY9[1], COP9[1],
+                      PIN9[1]]).astype(np.float32)
+_m11 = ((_LEG11_P[:, 0] > _X_SECT - 2.0) & (_LEG11_P[:, 0] < 63.5)
+        & (_LEG11_P[:, 2] > -1.0))
+_LEG11X_P, _LEG11X_N = _LEG11_P[_m11], _LEG11_N[_m11]
+PLATE11X, RAFT11X = _x9(PLATE11), _x9(RAFT11)
+TIE11X, POST11X = _x9(TIE11), _x9(POST11)
+COMM11X, RIDGE11X = _x9(COMM11), _x9(RIDGE11)
+LATH11X = _x9(LATH11)
+LEADS11X = _x9(LEADS11)
+WRIB11X, REWEB11X = _x9(WRIB11), _x9(REWEB11)
+WEB11_KEEPX, DOWN11X = _x9(WEB11_KEEP), _x9(DOWN11)
+# the EAST gable sits at x = 61.75, squarely between the section
+# camera and the attic it is looking into: boarded, it would end the
+# episode staring at a triangle of planks.  In the close view the
+# gables are simply not drawn (part VII's phrase); the wide frame
+# gets both.  The west one is outside the section cut anyway.
+GABLE11X = (GABLE11[0][:0], GABLE11[1][:0], GABLE11[2][:0])
+
+# part X, standing -- but the wall ribs and the refused severies live
+# in DOWN11 now (act one takes them), and the web that stays is the
+# KEEP set.  The arches, diagonals and bosses all clear the roof and
+# stand untouched.
+_X_STAND = ((TARCH10, TARCH10X, M_RIB10), (DIAG10, DIAG10X, M_RIB10),
+            (BOSS10, BOSS10X, M_RIB10),
+            (WEB11_KEEP, WEB11_KEEPX, M_WEB10))
+
+# THE SAME HALF-SECTION AGAIN, RAISED TO THE ATTIC.  Part IX's angles,
+# part VII's storey rule: frame the floor the workers are on.  This
+# episode that floor is the stone hill itself -- everything from the
+# vault springing up: the hill, part IX's flyer heads and pinnacles,
+# the new carpentry, the ghost's roof line it must land on.  The
+# ground and both arcades leave the picture; nothing happens there.
+_X11_NEW = np.vstack([RAFT11X[0], TIE11X[0], RIDGE11X[0], LEADS11X[0]])
+_X11_PTS = np.vstack([_X11_NEW,
+                      _LEG11X_P[_LEG11X_P[:, 1] > Y_SPRING8][::4],
+                      GHOST_X[GHOST_X[:, 1] > Y_SPRING8]]
+                     ).astype(np.float32)
+_x11pad = _X11_PTS.copy()
+_x11pad[:, 1] = _X11_PTS[:, 1].min() - 5.0     # caption reserve: a
+                                   # storey-and-a-half frame, between
+                                   # part VII's -4.5 and part X's -6
+CAM_X11 = Camera(G).fit([_pose_x9(np.vstack([_X11_PTS, _x11pad]))],
+                        margin=1.05)
+
 
 # ---------------------------------------------------------------- timeline
 T_GHOST, T_HOLD, T_DIG, T_LAY, T_END = 1.5, 2.4, 3.6, 9.9, 12.4
@@ -2199,8 +2622,32 @@ Z_WEB = (7.3, 10.4)
 Z_BACK = 10.9
 Z_END = 13.0
 
+# part XI, two acts.  Act one: the refused severies and the wall ribs
+# come DOWN (reversed clock, last laid first out) and the planed web
+# and stilted ribs go back up.  Act two, carpentry order: plates
+# seated, principals up (all twelve frames rise together), the raised
+# ties in over the hill, posts, commons, the ridge, laths (the hill
+# still shows between them), the gables boarded, and then the lead,
+# eaves to ridge: the burial.  Wide for the last 1.4 s: the
+# silhouette turns grey and keeps that colour forever.
+R_GHOST = 0.9
+R_CUT = 1.5
+R_DOWN = (1.6, 3.0)
+R_RELAY = (3.0, 4.8)
+R_PLATE = (4.8, 5.6)
+R_RAFT = (5.6, 7.4)
+R_TIE = (7.4, 8.4)
+R_POST = (8.4, 9.0)
+R_COMM = (9.0, 10.1)
+R_RIDGE = (10.1, 10.6)
+R_LATH = (10.6, 11.5)
+R_GABLE = (11.5, 12.1)
+R_LEAD = (12.1, 14.1)
+R_BACK = 14.6
+R_END = 16.0
+
 T_ENDS = [T_END, C_END, H_END, Q_END, P_END, A_END, V_END, W_END, X_END,
-          Z_END]
+          Z_END, R_END]
 LAST = {}
 
 
@@ -2239,7 +2686,8 @@ def _put(buf, col, row, z, sh, mat, cover):
 def draw(f, stage):
     return (draw_foundation, draw_crypt, draw_choir, draw_transept,
             draw_nave, draw_aisles, draw_triforium,
-            draw_clerestory, draw_buttress, draw_vault)[stage](f, stage)
+            draw_clerestory, draw_buttress, draw_vault,
+            draw_roof)[stage](f, stage)
 
 
 def _label(fr, t, stage, t0=0.8):
@@ -2813,6 +3261,85 @@ def draw_vault(f, stage):
     return fr
 
 
+def draw_roof(f, stage):
+    """Part XI, two acts.  Open home with the stone hill showing for
+    the last time; cut to the attic.  ACT ONE: the severies the roof
+    refuses and both wall ribs come down, and the planed web goes
+    back up under the derived cap -- part X's vault, corrected in
+    masonry.  ACT TWO: the carpentry -- plates, twelve frames, the
+    raised ties floating over the crown they clear by a hand's
+    width, posts, commons, ridge, laths, gables -- then the lead
+    closes over everything, eaves to ridge; then home, where the
+    silhouette has turned grey and the hill is gone for good.  The
+    section still sees it.  Nothing else ever will."""
+    t = f / float(FPS)
+    close = R_CUT <= t < R_BACK
+    cam = CAM_X11 if close else CAM
+    pose = _pose_x9 if close else _pose
+    lamp = LAMP7 if close else LAMP
+    buf = {"sh": np.zeros((G.rows, G.cols)),
+           "mat": np.zeros((G.rows, G.cols), np.int16),
+           "z": np.full((G.rows, G.cols), -1e9)}
+
+    gfade = min(1.0, t / R_GHOST)
+    gsrc = GHOST_X if close else GHOST
+    n = int(len(gsrc) * gfade) if not close else len(gsrc)
+    if n > 8:
+        col, row, z = cam.project(pose(gsrc[:n]))
+        lift = 1.0 + 0.55 * min(1.0, max(0.0, (t - R_LEAD[1] - 0.3) / 1.1))
+        sh = ((0.20 + 0.34 * depth_cue(z, 1.0, 0.30))
+              * (0.72 + 0.28 * gfade) * lift)
+        _put(buf, col, row, z + 4000.0, sh, M_GHOST, False)
+
+    # parts I to IX, standing, at the level part III set.
+    lp, ln = (_LEG11X_P, _LEG11X_N) if close else (_LEG11_P, _LEG11_N)
+    col, row, z = cam.project(pose(lp))
+    sh = (0.17 + 0.44 * lambert(ln, lamp)) * depth_cue(z, 1.0, 0.86)
+    _put7(buf, col, row, z, np.clip(sh, 0.05, 1.0),
+          np.full(len(z), M_OLD, np.int16))
+
+    # part X, standing, held back, own materials: the hill this
+    # episode corrects and then buries.  The probes have to find it
+    # under the lead.
+    for full, slab, mat in _X_STAND:
+        _grow7(buf, slab if close else full, 1.0, mat, lamp, 0.17, 0.44,
+               cam, pose)
+
+    def win(w):
+        return (t - w[0]) / (w[1] - w[0])
+
+    # ACT ONE.  The refused stone comes down on a reversed clock --
+    # last laid, first out -- and the planed severies and stilted
+    # wall ribs go back up.
+    u_dn = min(1.0, max(0.0, win(R_DOWN)))
+    _grow7(buf, DOWN11X if close else DOWN11, 1.0 - 1.05 * u_dn,
+           M_WEB10, lamp, 0.17, 0.44, cam, pose)
+    for full, slab, w, mat in ((REWEB11, REWEB11X, R_RELAY, M_WEB10),
+                               (WRIB11, WRIB11X, R_RELAY, M_RIB10)):
+        _grow7(buf, slab if close else full, win(w), mat, lamp, 0.28,
+               0.78, cam, pose)
+
+    # ACT TWO.  The carpentry.
+    for full, slab, w, mat in ((PLATE11, PLATE11X, R_PLATE, M_TIMB11),
+                               (RAFT11, RAFT11X, R_RAFT, M_TIMB11),
+                               (TIE11, TIE11X, R_TIE, M_TIMB11),
+                               (POST11, POST11X, R_POST, M_TIMB11),
+                               (COMM11, COMM11X, R_COMM, M_TIMB11),
+                               (RIDGE11, RIDGE11X, R_RIDGE, M_TIMB11),
+                               (LATH11, LATH11X, R_LATH, M_TIMB11),
+                               (GABLE11, GABLE11X, R_GABLE, M_TIMB11),
+                               (LEADS11, LEADS11X, R_LEAD, M_LEAD11)):
+        _grow7(buf, slab if close else full, win(w), mat, lamp, 0.26, 0.72,
+               cam, pose)
+
+    LAST["u11"] = min(1.0, max(0.0, win(R_LEAD)))
+    LAST["close"] = close
+
+    fr = _paint(buf)
+    _label(fr, t, stage)
+    return fr
+
+
 def draw_foundation(f, stage):
     t = f / float(FPS)
     buf = {"sh": np.zeros((G.rows, G.cols)),
@@ -2880,7 +3407,8 @@ def colour(v, m):
             M_AISLE: STONE, M_ARCH: STONE, M_TRIF: STONE,
             M_TRIFB: INNER, M_CAP8: STONE, M_CLER: STONE,
             M_BUT9: STONE, M_FLY9: STONE, M_COP9: STONE,
-            M_RIB10: STONE, M_WEB10: STONE}[int(m)]
+            M_RIB10: STONE, M_WEB10: STONE,
+            M_TIMB11: OAK, M_LEAD11: LEAD}[int(m)]
     t = np.clip(0.22 + 0.78 * v, 0.0, 1.0)
     return blend(BG, base, t)
 
@@ -4579,8 +5107,18 @@ def check_vault(stage):
           "through the frozen roof at z = %.1f (before any web goes "
           "on).  first loss in ten episodes" % (viol, zv))
     assert viol > 0.25, viol
-    print("  the derived vault clears the roof by %.2f m at its "
-          "tightest (z = %.1f)" % (clear, zc))
+    # CORRECTED BY PART XI: this line used to say "the derived vault
+    # clears the roof" -- but g above is the transverse ARCH profile,
+    # which dips at the bay lines.  The vault's LEVEL RIDGES run at
+    # 40.69 to the walls, where the plane is 37.50: the surface stood
+    # through the roof over 27% of its area, and no check here ever
+    # looked.  Part XI's lead sheeting caught it (166 cells of
+    # ceiling through the finished roof) and part XI planes the
+    # severies and stilts the wall ribs.  The number below is true of
+    # the arches; the old sentence was not true of the vault.
+    print("  the transverse ARCHES clear the roof by %.2f m at their "
+          "tightest (z = %.1f) -- see part XI for what the ridges do"
+          % (clear, zc))
     assert clear > 1.0, clear
     # and the ridges are level, everywhere, by construction.
     for xi, z in ((SB10, 0.0), (0.3 * SB10, 0.0), (SB10, 0.5 * S10),
@@ -4962,7 +5500,544 @@ def check_vault(stage):
                             "12.8 the stone hill"])
 
 
+def check_roof(stage):
+    print("THE CATHEDRAL — part %s, %s" % (roman(stage + 1), STAGES[stage]))
+    print("  roof                 %d principal trusses on the bay lines "
+          "(part V's promise), %d common pairs, pitch %.2f deg -- the "
+          "plane part I froze" % (N_TRUSS11, N_COMM11,
+                                  math.degrees(THETA11)))
+
+    # RULE 1.  The established view has not drifted.
+    d = np.abs(_pose_at(GHOST, -58.0, 28.0) - _pose(GHOST)).max()
+    print("  established view unchanged: max disagreement %.2e m" % d)
+    assert d < 1e-3, d
+
+    # THE DISCOVERY.  Part X's level ridges against part I's frozen
+    # plane -- the inequality nobody wrote for one episode.  Found by
+    # this episode's own lead: the first burial assert failed with
+    # 166 cells of ceiling showing THROUGH the finished roof, and the
+    # z-buffer was right.
+    def roofpl(z):
+        return 46.0 - SLOPE11 * abs(z)
+
+    viol_frac, worst, tot = 0, 0.0, 0
+    for xi in np.linspace(0.02, BAY5 - 0.02, 80):
+        for z in np.linspace(0.0, S10 - 0.01, 160):
+            tot += 1
+            dd = _y10(xi, z) + TW10 - roofpl(z)
+            if _y10(xi, z) > _cap11(z):
+                viol_frac += 1
+            worst = max(worst, dd)
+    print("  THE VAULT DOES NOT FIT UNDER THE ROOF: part X's level "
+          "ridge runs at %.2f to the wall, where the plane is %.2f "
+          "-- through its own roof by %.2f m at the worst, over "
+          "%.0f%% of the surface"
+          % (Y_CROWN10 + TW10, roofpl(S10), worst,
+             100.0 * viol_frac / tot))
+    assert worst > 2.5, worst
+    arch_clear = min(roofpl(z) - (Y_SPR10 + math.sqrt(max(0.0,
+                     RT10 * RT10 - (z + QT10) ** 2)) + TW10)
+                     for z in np.linspace(0.0, S10, 400))
+    print("  (part X printed 'the vault clears the roof by %.2f m' -- "
+          "a true number about the transverse ARCHES, attached to a "
+          "false sentence about the vault.  the arches do clear by "
+          "exactly that)" % arch_clear)
+    assert arch_clear > 1.0, arch_clear
+
+    # THE FIX, derived, and it is the historical one: the outer
+    # severies ramp (the ploughshare warp) and the wall rib is
+    # stilted.  Cap = plane - one principal - one web.
+    print("  the cap: intrados <= plane - %.2f (principal) - %.2f "
+          "(web).  the ridge runs level for %.2f m, then ramps "
+          "0.77 m under the roof" % (RAFTD11, TW10, Z_KINK11))
+    print("  the wall rib, its crown brought down: rise %.2f (was "
+          "%.2f), offset "
+          "q %.3f (was %.3f) -- the roof takes the lancet away: "
+          "the centres come back inside the span (q < sb: %s)"
+          % (RISE_W11, RHO10, QW11, QW10, QW11 < SB10))
+    assert 0.0 < QW11 < SB10, QW11
+    print("  its ring depth is still RING5 = %.2f: that derivation "
+          "was span-based and survives the lowering" % D10W)
+    ok11 = max(_y11(xi, z) + TW10 - (roofpl(z) - RAFTD11)
+               for xi in np.linspace(0.02, BAY5 - 0.02, 60)
+               for z in np.linspace(0.0, S10 - 0.01, 120))
+    print("  the planed vault clears everywhere: max extrados vs "
+          "(plane - principal) = %.1e m (<= 0 by construction)"
+          % ok11)
+    assert ok11 <= 1e-9, ok11
+
+    # THE REFUSAL.  The carpenter's first move -- a tie beam across
+    # the wall tops, closing the triangle at y = 36 -- runs straight
+    # into the hill part X confessed to.
+    print("  the tie beam is REFUSED: the stone hill stands %.2f m "
+          "through it (crown+web %.2f over wall top %.1f) -- last "
+          "episode's confession is this episode's designer"
+          % (HILL11 - NAVE_Y, HILL11, NAVE_Y))
+    assert HILL11 - NAVE_Y > 4.5
+
+    # THE RAISED TIE.  The carpenter's rule (halve the rafter's
+    # unsupported run) puts the tie at the midpoints; the mason's
+    # hill, built from three other episodes' frozen numbers, misses
+    # its underside by a hand's width.  Nobody designed that.
+    def hill_y(z):
+        g = RT10 * RT10 - (abs(z) + QT10) ** 2
+        return Y_SPR10 + (math.sqrt(g) if g > 0 else 0.0) + TW10
+
+    clear = min((Y_TIE11 - 0.5 * SC11) - hill_y(z)
+                for z in np.linspace(0.0, ZT11, 400))
+    print("  the raised tie (entrait retroussé) at the rafters' "
+          "midpoints: axis y %.4f, underside clears the crown by "
+          "%.4f m at its tightest" % (Y_TIE11, clear))
+    assert 0.0 < clear < 0.5, clear
+    print("  had part X's crown landed %.0f cm higher, the carpenter's "
+          "rule would have failed and this would be a different roof"
+          % (100.0 * clear))
+    # an accident checked so nobody wonders: the clearance lands 4 mm
+    # from TW10, the web's own thickness.  Not equal, no theorem --
+    # the series' third such near-miss.
+    print("  (clearance %.4f vs web thickness %.4f: %.1f mm apart and "
+          "unrelated -- not every agreement is a theorem)"
+          % (clear, TW10, 1000.0 * abs(clear - TW10)))
+    assert abs(clear - TW10) > 1e-4
+
+    # THE DRAWING KEEPS ITS WORD.  The lead's surface is a stair of
+    # boxes centred on the plane part I froze; nothing may stand more
+    # than one course-step proud of the drawing, and the stair must
+    # actually reach it.  (The tolerance is DERIVED from the course
+    # step, not wished for: a slope built out of boxes stair-steps at
+    # exactly that scale.)
+    lp_ = LEADS11[0]
+    dev = lp_[:, 1] - (46.0 - SLOPE11 * np.abs(lp_[:, 2]))
+    step11 = SLOPE11 * NAVE_Z / N_LDB11
+    print("  the lead stair-steps part I's frozen plane in %d courses: "
+          "highest point %.3f m proud of the drawing (allowed: one "
+          "course-step, %.3f m), ten episodes late"
+          % (N_LDB11, float(dev.max()), step11))
+    assert float(dev.max()) < step11, (dev.max(), step11)
+    assert float(dev.max()) > -0.05, dev.max()
+
+    # WEIGHTS.  Oak at 0.8 t/m3 (green framing), lead sheet 2.4 mm at
+    # 11.34 t/m3.  The first tonnage in this building that burns.
+    rho_oak, rho_lead = 0.80, 11.34
+    L_raft = Z_PLATE11 / math.cos(THETA11)
+    L_deck = NAVE_Z / math.cos(THETA11)
+    w_truss = (2 * L_raft + 2 * ZT11 + (46.0 - Y_TIE11)) \
+        * SC11 ** 2 * rho_oak
+    w_comm = (2 * L_raft + 2 * ZT11) * SCC11 ** 2 * rho_oak
+    A_deck = 2 * L_deck * 62.0
+    w_boards = A_deck * 0.025 * rho_oak
+    w_lead = A_deck * 0.0024 * rho_lead
+    w_timber = (N_TRUSS11 * w_truss + N_COMM11 * w_comm
+                + 3 * 62.0 * SC11 ** 2 * rho_oak + w_boards)
+    w_roof = w_timber + w_lead
+    print("  weights: timber %.1f t + lead %.1f t = %.1f t of roof "
+          "over %d bays (%.0f m2 of deck)"
+          % (w_timber, w_lead, w_roof, N_BAY5, A_deck))
+    assert 90.0 < w_roof < 160.0, w_roof
+    w_bay_side = w_roof / N_BAY5 / 2.0
+    print("  the wall top receives %.2f t a bay a flank" % w_bay_side)
+
+    # THE THRUST FAMILY.  A rafter pair with a raised tie is one
+    # equation short of determinate: the closure splits between the
+    # tie (tension T) and the ridge (R).  Moment about the foot:
+    # R*h_apex = W*d + T*h_tie; the wall feels H = R - T outward.
+    # Gravity stretches the tie, so T runs from 0 (joints dead) to
+    # the value that zeroes the thrust (joints hold).
+    h_apex, h_tie, d_cg = 46.0 - NAVE_Y, Y_TIE11 - NAVE_Y, 0.5 * Z_PLATE11
+    H_dead = w_bay_side * d_cg / h_apex
+    T_hold = w_bay_side * d_cg / (h_apex - h_tie)
+    print("  joints hold: tie takes %.2f t of tension a bay (%.0f kN) "
+          "and the walls feel only weight" % (T_hold, 9.81 * T_hold))
+    print("  joints dead: gravity closes at the ridge and pushes the "
+          "wall top outward with %.2f t a bay" % H_dead)
+    assert 1.5 < H_dead < 3.5, H_dead
+    assert T_hold < 8.0, T_hold
+
+    # THE THREAD, RE-RUN WITH THE ROOF ON -- and on the PLANED vault.
+    # Both walks rebuilt verbatim in structure (part X's precedent:
+    # recompute the published number, never hardcode your own
+    # cliffhanger), plus the roof's vertical at the plate and, in the
+    # worst case, its thrust at the wall top.  The flyer must carry
+    # H_v + H_roof.
+    rho = 2.3
+    K = 40
+    dz10 = S10 / K
+
+    def web_bins(fn):
+        wb_ = np.zeros(K)
+        nx, nz = 60, 240
+        dxi, dzz = BAY5 / nx, S10 / nz
+        for i in range(nx):
+            xi = (i + 0.5) * dxi
+            for j in range(nz):
+                z = (j + 0.5) * dzz
+                y0_ = fn(xi, z)
+                yx = (fn(xi + 0.01, z) - y0_) / 0.01
+                yz = (fn(xi, z + 0.01) - y0_) / 0.01
+                dA = math.sqrt(1.0 + yx * yx + yz * yz) * dxi * dzz
+                wb_[min(K - 1, int(z / dz10))] += dA * TW10 * rho
+        return wb_
+
+    phimax = math.atan2(RHO10, QT10)
+
+    def rib_bins(rw, qw, rise):
+        psim = math.atan2(rise, qw)
+        wb_ = np.zeros(K)
+        n = 800
+        w_ta = RT10 * phimax * D10T * (0.96 * W9X) * rho
+        for i in range(n):
+            phi = (i + 0.5) / n * phimax
+            z = max(0.0, RT10 * math.cos(phi) - QT10)
+            wb_[min(K - 1, int(z / dz10))] += w_ta / n
+        w_dg = math.pi * RHO10 * D10D * (0.90 * W9X) * rho
+        for i in range(n):
+            th = (i + 0.5) / n * math.pi
+            z = abs(RHO10 * math.cos(th)) * S10 / RHO10
+            wb_[min(K - 1, int(z / dz10))] += w_dg / n
+        w_wr = 2.0 * rw * psim * (1.10 * D10W) * (1.10 * D10W) * rho
+        wb_[K - 1] += w_wr
+        wb_[0] += 0.5 * 1.0 * 0.9 * 1.0 * rho
+        return wb_
+
+    wb10 = web_bins(_y11) + rib_bins(RW11, QW11, RISE_W11)
+    wb10_level = web_bins(_y10) + rib_bins(RW10, QW10, RHO10)
+    print("  flank-bay weights: %.2f t as part X laid it, %.2f t "
+          "planed -- the correction costs %.2f t"
+          % (wb10_level.sum(), wb10.sum(),
+             wb10_level.sum() - wb10.sum()))
+
+    def lo10(z):
+        v = (RT10 - D10T) ** 2 - (z + QT10) ** 2
+        return Y_SPR10 + math.sqrt(v) if v > 0 else Y_SPR10 - 0.4
+
+    def hi10(z):
+        g = RT10 * RT10 - (z + QT10) ** 2
+        return Y_SPR10 + (math.sqrt(g) if g > 0 else 0.0) + TW10
+
+    def vwalk(H, y0, wb=None):
+        wb = wb10 if wb is None else wb
+        Fz, Fy, M = H, 0.0, -y0 * H
+        for k in range(K):
+            z1 = (k + 1) * dz10
+            zm_ = (k + 0.5) * dz10
+            Fy -= wb[k]
+            M -= zm_ * wb[k]
+            y = (z1 * Fy - M) / Fz
+            if not (lo10(z1) - 0.06 <= y <= hi10(z1) + 0.06):
+                return None
+        y_arr = (S10 * Fy - M) / Fz
+        if not (Y_SPR10 - 0.5 <= y_arr <= Y_TOP8):
+            return None
+        return y_arr, -Fy
+
+    cz9, cy9, at9, ah9 = _arc9(1.0)
+    zt9 = Z_PIER9 - PIER9_HZ
+    r_in9, r_mid9 = R_SEG9 - D9, R_SEG9 - 0.5 * D9
+    K9 = 40
+
+    def y_chord9(z):
+        return Y_HEAD9 - (z - NAVE_Z)
+
+    def y_intra9(z):
+        return cy9 - math.sqrt(max(R_SEG9 ** 2 - (z - cz9) ** 2, 0.0))
+
+    aa = np.linspace(at9, ah9, 800)
+    az = cz9 + r_mid9 * np.cos(aa)
+    w_arc = (R_SEG9 * math.pi / 3.0) * D9 * W9X * rho
+    ab = np.histogram(az, bins=K9, range=(NAVE_Z, zt9))[0] / 800.0 * w_arc
+    wbn = np.zeros(K9)
+    dz9 = (zt9 - NAVE_Z) / K9
+    for k in range(K9):
+        z = NAVE_Z + (k + 0.5) * dz9
+        d2 = (z - cz9) ** 2
+        yb = (cy9 - math.sqrt(r_in9 * r_in9 - d2) if r_in9 * r_in9 > d2
+              else y_chord9(z))
+        wbn[k] = max(0.0, y_chord9(z) - yb) * dz9 * W9X * rho
+    wbin9 = ab + wbn + R9 * D9 * W9X * rho / K9
+    w_pier = (2 * PIER9_HX) * (2 * PIER9_HZ) * (Y_TOP9 - Y_BASE9) * rho
+    w_pin = (2 * PIER9_HX) * (2 * PIER9_HZ) * PIN9_H / 3.0 * rho
+
+    def walk9(H, Vw, y0):
+        if H < 1e-6:
+            return False
+        Fz, Fy = H, Vw
+        M = NAVE_Z * Fy - y0 * Fz
+        for k in range(K9):
+            z1 = NAVE_Z + (zt9 - NAVE_Z) * (k + 1) / K9
+            zm_ = NAVE_Z + (zt9 - NAVE_Z) * (k + 0.5) / K9
+            Fy -= wbin9[k]
+            M -= zm_ * wbin9[k]
+            y = (z1 * Fy - M) / Fz
+            if not (y_intra9(z1) - 0.06 <= y <= y_chord9(z1) + D9 + 0.06):
+                return False
+        y_arr = (zt9 * Fy - M) / Fz
+        if not (Y_SPR9 - 0.5 <= y_arr <= Y_TOP9):
+            return False
+        Fy -= w_pin
+        M -= Z_PIER9 * w_pin
+        nc = K_PIER9 - N_COURSE6
+        for c in range(nc):
+            Fy -= w_pier / nc
+            M -= Z_PIER9 * (w_pier / nc)
+            yc_ = Y_TOP9 - (c + 1) * COURSE3
+            z_ = (M + yc_ * Fz) / Fy
+            if not (zt9 - 0.05 <= z_ <= Z_PIER9 + PIER9_HZ + 0.05):
+                return False
+        return True
+
+    def feasible9(H):
+        for Vw in np.linspace(-30.0, 10.0, 81):
+            for y0 in np.linspace(Y_HEAD9, Y_HEAD9 + D9, 7):
+                if walk9(H, Vw, y0):
+                    return True
+        return False
+
+    H_budget = 0.0
+    for h in np.arange(0.5, 60.0, 0.25)[::-1]:
+        if feasible9(float(h)):
+            H_budget = float(h)
+            break
+    print("  the budget, recomputed again by part IX's own walk: "
+          "%.2f t a bay" % H_budget)
+    assert 12.0 <= H_budget <= 60.0, H_budget
+
+    w_strip = 0.5 * BAY5 * WALL8_TH * (Y_TOP8 - Y_CAP8) * rho
+    zn_c = 0.5 * (S10 + NAVE_Z)
+    y0s = np.linspace(Y_CROWN10 - 0.70, Y_CROWN10 + TW10, 9)
+
+    # part X's published arrival, re-earned: the vault settles to the
+    # same thrust on the level surface it was laid as and the planed
+    # surface it becomes.  The claim about the roof was wrong; the
+    # claim about the thrust survives its correction.
+    arr = {}
+    for nm, wb in (("level", wb10_level), ("planed", wb10)):
+        arr[nm] = next(float(h) for h in np.arange(2.0, 60.0, 0.25)
+                       if any(vwalk(float(h), y0, wb) is not None
+                              for y0 in y0s))
+    print("  the vault arrives at %.2f t as part X laid it and %.2f "
+          "planed (walk resolution 0.25): the published number "
+          "survives its own correction" % (arr["level"], arr["planed"]))
+    assert arr["level"] == arr["planed"], arr
+
+    def node_ok(H, y_a, V_v, Vw, y_h, V_roof, H_roof):
+        T_head = -Vw
+        V_wall = V_v - T_head + w_strip + V_roof
+        if V_wall <= 0.0:
+            return False
+        M = (H * (y_a - y_h) + H_roof * (NAVE_Y - y_h)
+             + V_v * (S10 - zn_c) - T_head * (NAVE_Z - zn_c)
+             + V_roof * (Z_PLATE11 - zn_c))
+        zstar = zn_c + M / V_wall
+        return (S10 - 0.10) <= zstar <= (NAVE_Z + 0.10)
+
+    def thread(H, H_roof):
+        for y0 in y0s:
+            r = vwalk(H, y0)
+            if r is None:
+                continue
+            y_a, V_v = r
+            for Vw in np.linspace(-30.0, 10.0, 81):
+                for y_h in np.linspace(Y_HEAD9, Y_HEAD9 + D9, 7):
+                    if (node_ok(H, y_a, V_v, Vw, y_h, w_bay_side, H_roof)
+                            and walk9(H + H_roof, Vw, y_h)):
+                        return True
+        return False
+
+    for name, hr in (("joints hold", 0.0), ("joints dead", H_dead)):
+        Ht = [float(h) for h in np.arange(2.0, 60.0, 0.25)
+              if thread(float(h), hr)]
+        assert Ht, "no thrust threads the system (%s)" % name
+        fly_lo = Ht[0] + hr
+        print("  %s (roof thrust %.2f): the system threads at H_v in "
+              "[%.2f, %.2f]; settling, the flyer carries %.2f of the "
+          "%.2f budget -- %.0f%% spent, %.2f t to spare"
+              % (name, hr, Ht[0], Ht[-1], fly_lo, H_budget,
+                 100.0 * fly_lo / H_budget, H_budget - fly_lo))
+        assert fly_lo <= H_budget + 1e-9, (fly_lo, H_budget)
+    print("  THE CHEQUE STILL CLEARS BOTH WAYS: even with every peg "
+          "in the roof dead, the thread holds.  the headroom is a "
+          "promise the joints get to keep, not one the walls depend on")
+
+    # FRAME FACTS, wide.  Part X's confession, closed: the hill shows
+    # before the cut (its last sky), and after the lead it is GONE.
+    draw(int(1.35 * FPS), stage)
+    m_open = LAST["mat"]
+    hill_before = int(((m_open == M_RIB10) | (m_open == M_WEB10)).sum())
+    draw(int((R_END - 0.2) * FPS), stage)
+    m_end = LAST["mat"]
+    hill_cells = (m_end == M_RIB10) | (m_end == M_WEB10)
+    hill_after = int(hill_cells.sum())
+    lead_end = int((m_end == M_LEAD11).sum())
+    # the crossing opening projects at cols ~47..61: the transept has
+    # no roof and the crossing tower does not exist, so the EAST
+    # bays' rib springings still show SIDEWAYS through that void.
+    # The lead cannot bury what a missing tower leaves open -- that
+    # is a later episode's job, and the sky, at least, is closed.
+    _rr, _cc = np.nonzero(hill_cells)
+    east = int((_cc >= 45).sum())
+    print("  wide: the hill shows %d cells at t=1.35 (its last sky); "
+          "after the lead, %d from above and %d through the OPEN "
+          "CROSSING at the east end (%d cells of roof).  the sky is "
+          "closed; the tower's job remains"
+          % (hill_before, hill_after - east, east, lead_end))
+    assert hill_before > 100, hill_before
+    assert hill_after - east < 12, (hill_after, east)
+    assert hill_after < 60, hill_after
+    assert lead_end > 400, lead_end
+
+    # the raised fit holds its promise: plate, tie, ridge and the
+    # hill's peak all project inside the grid in the close view.
+    chk = CAM_X11.project(_pose_x9(np.array(
+        [[10.0 * BAY5, NAVE_Y, Z_PLATE11],
+         [9.0 * BAY5, Y_TIE11, 0.0],
+         [52.0, Y_RIDGE11, 0.0],
+         [9.5 * BAY5, HILL11, 0.0]], np.float32)))
+    assert all(0 <= cc < G.cols for cc in chk[0]), chk[0]
+    assert all(0 <= rr < G.rows for rr in chk[1]), chk[1]
+    print("  raised fit: plate, tie, ridge, hill peak all inside the "
+          "grid (cols %s, rows %s)" % (list(chk[0]), list(chk[1])))
+
+    # SECTION FACTS.  The frames are probed with the attic still open
+    # (after the posts, before the laths); the lead and the web it
+    # hides -- the burial and the buried, one frame -- at the end.
+    def probe(m_, pts, mat_id):
+        c, r, _ = CAM_X11.project(_pose_x9(np.asarray(pts, np.float32)))
+        vals = [int(m_[rr, cc]) for rr, cc in zip(r, c)
+                if 0 <= rr < G.rows and 0 <= cc < G.cols]
+        return vals and any(v == mat_id for v in vals)
+
+    draw(int(9.3 * FPS), stage)
+    m_sk = LAST["mat"]
+    rf_h, ti_h, po_h, tot = 0, 0, 0, 0
+    sr_h, oc_e = 0, 0
+    r_mid_w = RW11 - 0.5 * D10W
+    psim11 = math.atan2(RISE_W11, QW11)
+    for mm in (9, 10, 11):
+        xb = mm * BAY5
+        tot += 1
+        rf_h += probe(m_sk, [[xb + dx, _yraft11(zz), zz]
+                             for dx in (-0.12, 0.0, 0.12)
+                             for zz in (2.5, 4.0, 5.5)], M_TIMB11)
+        ti_h += probe(m_sk, [[xb + dx, Y_TIE11, zz]
+                             for dx in (-0.12, 0.0, 0.12)
+                             for zz in (0.5, 1.5, 2.5)], M_TIMB11)
+        po_h += probe(m_sk, [[xb + dx, yy, 0.0]
+                             for dx in (-0.12, 0.0, 0.12)
+                             for yy in (Y_TIE11 + 1.0, Y_TIE11 + 2.0,
+                                        Y_TIE11 + 3.0)], M_TIMB11)
+    # act one, probed: the lowered rib stands at its new crown.
+    for mm in (8, 9, 10):
+        xc = (mm + 0.5) * BAY5
+        sr_h += probe(m_sk, [[xc + dx,
+                              Y_SPR10 + r_mid_w * math.sin(0.8 * psim11),
+                              (S10 - 0.5 * D10W)]
+                             for dx in (-0.3, 0.0, 0.3)], M_RIB10)
+    print("  frame probes (attic open) -- rafters %d/%d, raised ties "
+          "%d/%d, king posts %d/%d; lowered wall rib %d/3"
+          % (rf_h, tot, ti_h, tot, po_h, tot, sr_h))
+    assert rf_h >= tot - 1, (rf_h, tot)
+    assert ti_h >= tot - 1, (ti_h, tot)
+    assert po_h >= tot - 1, (po_h, tot)
+    assert sr_h >= 2, sr_h
+    # the old crown's emptiness is a MODEL fact (a first draft probed
+    # the screen for it and failed on occlusion, not presence): no
+    # kept point sits in the refused region, and everything drawn
+    # after act one is capped by construction.
+    kp = WEB11_KEEP[0][::7]
+    bad = sum(1 for px, pz in zip(kp[:, 0], kp[:, 2])
+              if _viol11(float(px), float(pz)))
+    print("  no kept web point in the refused region: %d of %d "
+          "sampled" % (bad, len(kp)))
+    assert bad == 0, bad
+    # and the demolition is a FRAME fact: the web the section shows
+    # shrinks while act one runs.
+    draw(int((R_DOWN[0] + 0.05) * FPS), stage)
+    w_pre = int((LAST["mat"] == M_WEB10).sum())
+    draw(int((R_DOWN[1] - 0.05) * FPS), stage)
+    w_post = int((LAST["mat"] == M_WEB10).sum())
+    print("  the section's web while act one runs: %d cells -> %d "
+          "(the refused severies leave the frame; the kept ridge "
+          "hides part of the loss at this yaw)" % (w_pre, w_post))
+    assert w_post < 0.85 * w_pre, (w_pre, w_post)
+
+    draw(int(14.35 * FPS), stage)
+    m_fn = LAST["mat"]
+    ld_h, wb_h, tot2 = 0, 0, 0
+    for mm in (8, 9, 10):
+        xb = (mm + 0.5) * BAY5
+        tot2 += 1
+        ld_h += probe(m_fn, [[xb + dx, 46.0 - SLOPE11 * zz, zz]
+                             for dx in (-0.4, 0.0, 0.4)
+                             for zz in (2.0, 3.5, 5.0)], M_LEAD11)
+    # the buried web: at 8 degrees of pitch a ray into the attic
+    # exits through the sloped lead within ~10 m, so the section
+    # sees the interior only in the EAST bay's ridge zone (a first
+    # draft probed three bays deep and hit the roof's inside).
+    for xw in (59.5, 60.5, 61.5):
+        wb_h += probe(m_fn, [[xw + dx,
+                              _y11((xw + dx) % BAY5, zz) + 0.5 * TW10,
+                              zz]
+                             for dx in (-0.3, 0.0, 0.3)
+                             for zz in (-0.7, 0.3, 1.3)], M_WEB10)
+    print("  finished-section probes -- lead %d/%d; the buried web "
+          "still visible INSIDE (east bay ridge zone) %d/3: from the "
+          "sky the hill is gone; the section still knows"
+          % (ld_h, tot2, wb_h))
+    assert ld_h >= tot2 - 1, (ld_h, tot2)
+    assert wb_h >= 2, wb_h
+
+    # HELD OUT: the ridge, read off the pixels of the WIDE frame.
+    # The line y = 46 at z = 0 has been in the drawing since part I;
+    # the built lead must put its silhouette exactly there.  Same
+    # instrument as part X's level-ridge check: row error at the
+    # frame's two ends, never slope ratios near zero.
+    rows_, cols_ = np.nonzero(m_end == M_LEAD11)
+    p2 = CAM.project(_pose(np.array([[0.0, 46.0, 0.0],
+                                     [62.0, 46.0, 0.0]], np.float32)))
+    cA, rA = p2[0].astype(float), p2[1].astype(float)
+    sl_p = (rA[1] - rA[0]) / (cA[1] - cA[0])
+    b_p = rA[0] - sl_p * cA[0]
+    near = np.abs(rows_ - (sl_p * cols_ + b_p)) < 2.5
+    used = int(near.sum())
+    fit = np.polyfit(cols_[near], rows_[near], 1)
+    e0 = abs((fit[0] * cA[0] + fit[1]) - rA[0])
+    e1 = abs((fit[0] * cA[1] + fit[1]) - rA[1])
+    print("  held out: part I's ridge line off %d lead cells -- row "
+          "error %.2f and %.2f at the frame's two ends" % (used, e0, e1))
+    assert used >= 20, used
+    assert e0 < 3.0 and e1 < 3.0, (e0, e1)
+
+    sheet = []
+    for t in (0.6, 1.35, 2.4, 4.1, 6.4, 7.9, 9.4, 12.9, 15.8):
+        fr = draw(int(t * FPS), stage)
+        ink, mat = LAST["ink"], LAST["mat"]
+        print("  t=%4.1f u=%.2f cov %.3f  ghost %5d old %5d web %4d "
+              "timb %5d lead %5d  %s"
+              % (t, LAST["u11"], ink.mean(), (mat == M_GHOST).sum(),
+                 (mat == M_OLD).sum(), (mat == M_WEB10).sum(),
+                 (mat == M_TIMB11).sum(), (mat == M_LEAD11).sum(),
+                 "close" if LAST["close"] else "wide"))
+        assert 0.02 < ink.mean() < 0.60, ink.mean()
+        for (c0b, r0b, w, h) in LAST["boxes"]:
+            assert r0b - 1 >= G.safe_top, ("text above safe", r0b)
+            assert r0b + h + 1 <= G.safe_bot, ("text below safe", r0b + h)
+            assert c0b - 1 >= 0 and c0b + w + 1 <= G.cols, ("width", c0b, w)
+        sheet.append(fr)
+
+    assert LAST["u11"] >= 1.0, LAST["u11"]
+    print("  runtime              %.1f s, %d frames  (X was %.1f s)"
+          % (R_END, int(R_END * FPS), Z_END))
+    contact(sheet, os.path.join(_HERE, "..", "content", "cath_sheet.png"),
+            cols=3, labels=["0.6 ghost", "1.35 the hill's last sky",
+                            "2.4 taking it down", "4.1 planed",
+                            "6.4 rafters", "7.9 the raised ties",
+                            "9.4 posts, commons", "12.9 the lead",
+                            "15.8 grey forever"])
+
+
 def check(stage):
+    if stage == 10:
+        return check_roof(stage)
     if stage == 9:
         return check_vault(stage)
     if stage == 8:
