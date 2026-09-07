@@ -61,6 +61,9 @@ M_CAP8, M_CLER = 17, 18        # part VIII: the passage ceiling / the wall
 M_BUT9, M_FLY9, M_COP9 = 19, 20, 21    # part IX: pier+pinnacle / the arc /
                                # the straight coping -- two load paths, so
                                # two materials the checks can tell apart
+M_RIB10, M_WEB10 = 22, 23      # part X: the ribs (the skeleton the thrust
+                               # travels along) / the web (the shell that
+                               # only has to reach the nearest rib)
 INNER = (0.694, 0.633, 0.506)  # stone seen through an opening: the
                                # passage's own shadow, not a new material
 
@@ -1372,6 +1375,209 @@ def pinnacles9():
     return assemble(units), nt
 
 
+# --------------------------------------------- part X: the high vault
+# The episode the last one wrote a cheque for.  Part IX's statics
+# published a budget -- the vault must arrive pushing less than
+# H_MAX t a bay -- and this is the vault arriving.  Quadripartite rib
+# vaults over the ten clerestory bays: a transverse arch on every bay
+# line, two diagonal ribs crossing at a boss, a wall rib against each
+# clerestory wall, and the thin stone web spanning between them.
+#
+# NOTHING dimensional is chosen here either -- and this time the two
+# oldest decisions in the series do the sizing between them:
+#   - The span is the clerestory's clear width, 2 * (NAVE_Z - WALL8_TH)
+#     = 13.6 m; the springing is course 41, the line part VIII NAMED
+#     the springing line.  Both frozen.
+#   - The series' own equilateral arch, on that span, is REFUSED BY
+#     THE ROOF: part I's frozen roof plane (eaves 36, ridge 46) cuts
+#     its intrados 0.31 m deep at z = 3.8.  The first time in ten
+#     episodes the equilateral loses.
+#   - The mason's answer, which is THE historical answer: the diagonal
+#     of the bay gets a SEMICIRCLE -- the only round arch this building
+#     will ever hold -- radius RHO10 = hypot(S10, BAY5/2).  Every other
+#     rib must rise from a shorter span to the semicircle's crown, and
+#     an arch forced higher than its span wants is a POINTED arch.
+#     The centre offsets have closed forms, and they are symmetric:
+#     transverse q_t = sb^2 / 2s, wall rib q_w = s^2 / 2sb (a lancet:
+#     its centres lie outside its own span).  The pointed arch is not
+#     a style here.  It is what a round arch forces on its neighbours.
+#   - Ring depths use the series' ratio RHO9 = RING5/BAY5, and the wall
+#     rib's comes out at RHO9 * BAY5 = RING5 exactly -- the arcade's own
+#     voussoir depth, because its span IS the bay.  The web is one such
+#     voussoir thick.
+#   - Every ridge is LEVEL at Y_SPR10 + RHO10: each rib was built to
+#     reach the same crown, so the crowns agree by construction.
+#
+# THE BUDGET IS THE EPISODE.  check_vault walks one thrust line from
+# the keystone through the springing, across the wall, into part IX's
+# flyer head and down the pier to the ground -- the vault's own walk
+# spliced onto last episode's, one H threading both.  The vault's
+# feasible band and the buttress system's window overlap on a few
+# tonnes, and the low end of the vault's band -- the thrust a masonry
+# arch actually settles to as its abutments give -- lands under the
+# published number.  The check asserts it.
+S10 = NAVE_Z - WALL8_TH            # 6.8 -- half the clear span, the
+                                   # clerestory's inner faces.  frozen.
+SB10 = 0.5 * BAY5                  # 2.818 -- half the bay
+RHO10 = math.hypot(S10, SB10)      # 7.361 -- half the bay diagonal:
+                                   # the semicircle's radius, and the
+                                   # rise of every rib in the vault
+Y_SPR10 = Y_SPRING8                # 33.04 -- part VIII's springing
+                                   # line, doing what its name promised
+Y_CROWN10 = Y_SPR10 + RHO10        # 40.40 -- every ridge, level
+QT10 = SB10 * SB10 / (2.0 * S10)   # 0.584 -- transverse centre offset
+RT10 = S10 + QT10                  # 7.384 -- transverse radius
+QW10 = S10 * S10 / (2.0 * SB10)    # 8.204 -- wall-rib offset: centres
+                                   # OUTSIDE the span.  a lancet.
+RW10 = SB10 + QW10                 # 11.022 -- wall-rib radius
+D10T = RHO9 * 2.0 * S10            # 0.700 -- transverse ring depth
+D10D = RHO9 * 2.0 * RHO10          # 0.757 -- diagonal ring depth
+D10W = RHO9 * 2.0 * SB10           # 0.290 == RING5: the arcade
+                                   # voussoir, back at its own scale
+TW10 = D10W                        # the web: one wall-rib voussoir thick
+N_VBAY10 = N_BAY5 - 1              # ten vaulted bays, 1..10
+
+
+def _y10(xi, z):
+    """Web intrados over bay-local (xi in [0, BAY5], z in [-S10, S10]).
+    Four cells cut by the plan diagonals a = b.  In each cell the
+    course from the diagonal seam to the level ridge is its own
+    bounding rib's profile, scaled -- the series' one arch, at every
+    size from full to nothing."""
+    a = min(1.0, abs(z) / S10)
+    b = min(1.0, abs(2.0 * xi / BAY5 - 1.0))
+    t = max(a, b)
+    d = RHO10 * math.sqrt(max(0.0, 1.0 - t * t))
+    if t < 1e-9:
+        return Y_SPR10 + RHO10
+    if a >= b:                      # wall cell: the lancet, scaled
+        pr = math.sqrt(max(0.0, RW10 * RW10
+                           - ((b / a) * SB10 + QW10) ** 2)) / RHO10
+    else:                           # arch cell: the pointed arch, scaled
+        pr = math.sqrt(max(0.0, RT10 * RT10
+                           - ((a / b) * S10 + QT10) ** 2)) / RHO10
+    return Y_SPR10 + d + (RHO10 - d) * pr
+
+
+def tarches10():
+    """Eleven transverse arches, lines 1..11 (line 11 leans on the
+    transept, which was built four episodes before it was needed).
+    Voussoir angle outer, lines inner: all eleven rise together and
+    the crown pairs meet last -- part IX's stall lesson, kept."""
+    units = []
+    phimax = math.atan2(RHO10, QT10)
+    n = int(round(RT10 * phimax / 0.62))
+    r_mid = RT10 - 0.5 * D10T
+    for i in range(n):
+        phi = (i + 0.5) / n * phimax
+        for m in range(N_VBAY10 + 1, 0, -1):        # east to west
+            for o in (-1.0, 1.0):
+                z = o * (r_mid * math.cos(phi) - QT10)
+                y = Y_SPR10 + r_mid * math.sin(phi)
+                units.append(stone(m * BAY5, y, z,
+                                   0.48 * W9X, 0.52 * D10T, 0.52 * D10T))
+    return assemble(units), n
+
+
+def diags10():
+    """Twenty diagonal ribs -- the only round arches in the building.
+    Each stops one voussoir short of its crossing; the boss closes
+    both at once.  Level outer (both springings rise toward the
+    middle), bays inner."""
+    units = []
+    n = int(round(math.pi * RHO10 / 0.66))
+    if n % 2 == 0:
+        n += 1                      # odd: a single crown slot, kept open
+    A = math.atan2(2.0 * S10, BAY5)
+    r_mid = RHO10 - 0.5 * D10D
+    for l in range(n // 2):
+        for m in range(N_VBAY10, 0, -1):
+            xc = (m + 0.5) * BAY5
+            for sg in (-1.0, 1.0):
+                for e in (l, n - 1 - l):
+                    th = (e + 0.5) / n * math.pi
+                    dd = r_mid * math.cos(th)
+                    units.append(stone(xc + dd * BAY5 / (2.0 * RHO10),
+                                       Y_SPR10 + r_mid * math.sin(th),
+                                       sg * dd * S10 / RHO10,
+                                       0.31, 0.52 * D10D, 0.45 * W9X,
+                                       ang=-sg * A))
+    return assemble(units), n
+
+
+def wribs10():
+    """Wall ribs against both clerestory walls: the lancet, one per
+    bay per side, centres outside its own span.  Its derived ring
+    depth is RING5 to the bit."""
+    units = []
+    psimax = math.atan2(RHO10, QW10)
+    n = int(round(RW10 * psimax / 0.66))
+    r_mid = RW10 - 0.5 * D10W
+    for i in range(n):
+        psi = (i + 0.5) / n * psimax
+        for m in range(N_VBAY10, 0, -1):
+            xm = (m + 0.5) * BAY5
+            for o in (-1.0, 1.0):
+                for h in (-1.0, 1.0):
+                    x = xm + h * (r_mid * math.cos(psi) - QW10)
+                    units.append(stone(x, Y_SPR10 + r_mid * math.sin(psi),
+                                       o * (S10 - 0.5 * D10W),
+                                       0.33, 0.55 * D10W, 0.55 * D10W))
+    return assemble(units), n
+
+
+def bosses10():
+    """Ten bosses, east to west: each one is the keystone of four
+    ribs at once.  The only stone in the vault with no rib of its
+    own."""
+    units = []
+    for m in range(N_VBAY10, 0, -1):
+        units.append(stone((m + 0.5) * BAY5,
+                           Y_SPR10 + RHO10 - 0.5 * D10D, 0.0,
+                           0.50, 0.45, 0.50))
+    return assemble(units), N_VBAY10
+
+
+def web10():
+    """The shell between the ribs, one voussoir thick.  Course outer,
+    bays inner: sixteen courses rise from the springing on every bay
+    at once and close around the bosses.  Each course is an arc --
+    its cell's own rib profile, scaled -- so the web is the series'
+    one arch repeated at every size down to nothing."""
+    units = []
+    KW = 16
+    for l in range(KW):
+        t = 1.0 - (l + 0.5) / KW
+        tn = max(0.02, t - 1.0 / KW)
+        for m in range(N_VBAY10, 0, -1):
+            xb = m * BAY5
+            # wall cells: a course along x at |z| = t * S10, both flanks
+            half = 0.90 * t * SB10
+            ns = max(2, int(round(2.0 * half / 0.72)))
+            for i in range(ns):
+                dxi = -half + (i + 0.5) / ns * 2.0 * half
+                y = _y10(SB10 + dxi, t * S10)
+                yn = _y10(SB10 + dxi * tn / t, tn * S10)
+                hy = 0.55 * max(TW10, abs(yn - y))
+                for o in (-1.0, 1.0):
+                    units.append(stone(xb + SB10 + dxi, y + 0.5 * TW10,
+                                       o * t * S10,
+                                       0.55 * 2.0 * half / ns, hy, 0.30))
+            # arch cells: two courses at xi = mid +- t * SB10, along z
+            zh = 0.90 * t * S10
+            ns = max(2, int(round(2.0 * zh / 0.72)))
+            for i in range(ns):
+                z = -zh + (i + 0.5) / ns * 2.0 * zh
+                for h in (-1.0, 1.0):
+                    xi = SB10 + h * t * SB10
+                    y = _y10(xi, z)
+                    yn = _y10(SB10 + h * tn * SB10, z * tn / t)
+                    hy = 0.55 * max(TW10, abs(yn - y))
+                    units.append(stone(xb + xi, y + 0.5 * TW10, z,
+                                       0.30, hy, 0.55 * 2.0 * zh / ns))
+    return assemble(units), KW
+
+
 # ---------------------------------------------------------------- stages
 STAGES = [
     "THE FOUNDATION",
@@ -1803,6 +2009,67 @@ _xpad[:, 1] = _X_PTS[:, 1].min() - 11.0        # keep the caption clear:
 CAM_X9 = Camera(G).fit([_pose_x9(np.vstack([_X_PTS, _xpad]))],
                        margin=1.05)
 
+# --- part X
+(TARCH10, N_TV10) = tarches10()
+(DIAG10, N_DV10) = diags10()
+(WRIB10, N_WV10) = wribs10()
+(BOSS10, N_BOSS10) = bosses10()
+(WEB10, N_WCRS10) = web10()
+
+# Part VIII joins the legacy pile -- its strips held their material one
+# episode so part IX's probes could find them, and that check is closed.
+# Part IX keeps ALL its materials one more, because this episode's whole
+# point is a force arriving at the flyer: the probes have to find a
+# flyer to prove the system is in the frame, and the thread walk is
+# spliced onto part IX's own.
+_LEG10_P = np.vstack([_LEG9_P, CAP8[0], STRIP8[0], WARC8[0],
+                      SPAN8[0]]).astype(np.float32)
+_LEG10_N = np.vstack([_LEG9_N, CAP8[1], STRIP8[1], WARC8[1],
+                      SPAN8[1]]).astype(np.float32)
+
+# THE SAME HALF-SECTION, RAISED TO THE WORK.  The angles are part IX's
+# unchanged (which were part VII's, negated) -- but reusing IX's FIT
+# was tried first and refused by looking at it: ground-to-roof, the
+# vault is the top 15% of the frame and the episode happens in a
+# corner.  So the fit does what part VII's did the day sections were
+# invented here: frame the STOREY the masons are on.  Everything from
+# the triforium cap up -- the clerestory, part IX's flyers waiting at
+# the wall, the new vault, the ghost's roof over it.  The ground
+# leaves the picture because nothing happens there this episode.
+# check_vault asserts the crown and the flyer both project inside the
+# grid instead of trusting this comment.
+# And the wide view keeps a surprise this episode owes to the NEXT
+# one: the crown rises 4.4 m proud of the wall top (the springing is
+# frozen at 33.04 and the semicircle's rise is derived, so nobody
+# chose this), which means the ceiling shows from OUTSIDE -- a low
+# stone hill in the attic, under the ghost's roof line.  Part XI's
+# roof will bury it forever.  This is the only episode that ever sees
+# the building's sky from above.
+_m10 = ((_LEG10_P[:, 0] > _X_SECT - 2.0) & (_LEG10_P[:, 0] < 63.5)
+        & (_LEG10_P[:, 2] > -1.0))
+_LEG10X_P, _LEG10X_N = _LEG10_P[_m10], _LEG10_N[_m10]
+TARCH10X, DIAG10X = _x9(TARCH10), _x9(DIAG10)
+WRIB10X, BOSS10X = _x9(WRIB10), _x9(BOSS10)
+WEB10X = _x9(WEB10)
+
+_IX_STAND = ((PIER9, PIER9X, M_BUT9), (FLY9, FLY9X, M_FLY9),
+             (COP9, COP9X, M_COP9), (PIN9, PIN9X, M_BUT9))
+
+_X10_NEW = np.vstack([TARCH10X[0], DIAG10X[0], WRIB10X[0], BOSS10X[0],
+                      WEB10X[0]])
+_IX_HI = np.vstack([PIER9X[0], FLY9X[0], COP9X[0], PIN9X[0]])
+_IX_HI = _IX_HI[_IX_HI[:, 1] > Y_CAP8]
+_X10_PTS = np.vstack([_X10_NEW, _LEG10X_P[_LEG10X_P[:, 1] > Y_CAP8][::4],
+                      _IX_HI,
+                      GHOST_X[GHOST_X[:, 1] > Y_CAP8]]).astype(np.float32)
+_x10pad = _X10_PTS.copy()
+_x10pad[:, 1] = _X10_PTS[:, 1].min() - 6.0     # caption reserve: this
+                                   # frame is two storeys, not the
+                                   # whole building, so the -11 pad of
+                                   # part IX would waste half the grid
+CAM_X10 = Camera(G).fit([_pose_x9(np.vstack([_X10_PTS, _x10pad]))],
+                        margin=1.05)
+
 
 # ---------------------------------------------------------------- timeline
 T_GHOST, T_HOLD, T_DIG, T_LAY, T_END = 1.5, 2.4, 3.6, 9.9, 12.4
@@ -1912,7 +2179,28 @@ X_PIN = (8.5, 9.4)
 X_BACK = 9.9
 X_END = 12.2
 
-T_ENDS = [T_END, C_END, H_END, Q_END, P_END, A_END, V_END, W_END, X_END]
+# part X.  Same shape one more time: out early (the vault is interior
+# work and the section is the only view that can watch a rib rise),
+# home at the end -- where the payoff is a hump of stone cresting the
+# wall tops, the back of the new ceiling standing in the open attic,
+# one episode before the roof buries it.  The masonry order is the
+# mason's: transverse
+# arches first (each bay needs its frame), then the diagonals rising
+# toward an open crown slot, the wall ribs, the ten bosses closing
+# four ribs each in one moment, and only then the web -- the shell can
+# only exist after the skeleton it spans between.
+Z_GHOST = 0.9
+Z_CUT = 1.5
+Z_TARCH = (1.6, 3.8)
+Z_DIAG = (3.8, 5.9)
+Z_WRIB = (5.9, 6.8)
+Z_BOSS = (6.8, 7.3)
+Z_WEB = (7.3, 10.4)
+Z_BACK = 10.9
+Z_END = 13.0
+
+T_ENDS = [T_END, C_END, H_END, Q_END, P_END, A_END, V_END, W_END, X_END,
+          Z_END]
 LAST = {}
 
 
@@ -1951,7 +2239,7 @@ def _put(buf, col, row, z, sh, mat, cover):
 def draw(f, stage):
     return (draw_foundation, draw_crypt, draw_choir, draw_transept,
             draw_nave, draw_aisles, draw_triforium,
-            draw_clerestory, draw_buttress)[stage](f, stage)
+            draw_clerestory, draw_buttress, draw_vault)[stage](f, stage)
 
 
 def _label(fr, t, stage, t0=0.8):
@@ -2467,6 +2755,64 @@ def draw_buttress(f, stage):
     return fr
 
 
+def draw_vault(f, stage):
+    """Part X.  Open home with nine episodes standing; cut to the
+    half-section and watch the skeleton go up -- arches, diagonals,
+    wall ribs, ten bosses in one moment -- then the web close over
+    all of it; then home, where the new ceiling crests the wall tops
+    as a low stone hill in the open attic: the only view of the
+    building's sky from above there will ever be."""
+    t = f / float(FPS)
+    close = Z_CUT <= t < Z_BACK
+    cam = CAM_X10 if close else CAM
+    pose = _pose_x9 if close else _pose
+    lamp = LAMP7 if close else LAMP
+    buf = {"sh": np.zeros((G.rows, G.cols)),
+           "mat": np.zeros((G.rows, G.cols), np.int16),
+           "z": np.full((G.rows, G.cols), -1e9)}
+
+    gfade = min(1.0, t / Z_GHOST)
+    gsrc = GHOST_X if close else GHOST
+    n = int(len(gsrc) * gfade) if not close else len(gsrc)
+    if n > 8:
+        col, row, z = cam.project(pose(gsrc[:n]))
+        lift = 1.0 + 0.55 * min(1.0, max(0.0, (t - Z_WEB[1] - 0.3) / 1.1))
+        sh = ((0.20 + 0.34 * depth_cue(z, 1.0, 0.30))
+              * (0.72 + 0.28 * gfade) * lift)
+        _put(buf, col, row, z + 4000.0, sh, M_GHOST, False)
+
+    # parts I to VIII, standing, at the level part III set.
+    lp, ln = (_LEG10X_P, _LEG10X_N) if close else (_LEG10_P, _LEG10_N)
+    col, row, z = cam.project(pose(lp))
+    sh = (0.17 + 0.44 * lambert(ln, lamp)) * depth_cue(z, 1.0, 0.86)
+    _put7(buf, col, row, z, np.clip(sh, 0.05, 1.0),
+          np.full(len(z), M_OLD, np.int16))
+
+    # part IX, standing, held back, own materials: the machine that has
+    # been waiting one whole episode for what happens in this one.
+    for full, slab, mat in _IX_STAND:
+        _grow7(buf, slab if close else full, 1.0, mat, lamp, 0.17, 0.44,
+               cam, pose)
+
+    def win(w):
+        return (t - w[0]) / (w[1] - w[0])
+
+    for full, slab, w, mat in ((TARCH10, TARCH10X, Z_TARCH, M_RIB10),
+                               (DIAG10, DIAG10X, Z_DIAG, M_RIB10),
+                               (WRIB10, WRIB10X, Z_WRIB, M_RIB10),
+                               (BOSS10, BOSS10X, Z_BOSS, M_RIB10),
+                               (WEB10, WEB10X, Z_WEB, M_WEB10)):
+        _grow7(buf, slab if close else full, win(w), mat, lamp, 0.28, 0.78,
+               cam, pose)
+
+    LAST["u10"] = min(1.0, max(0.0, win(Z_WEB)))
+    LAST["close"] = close
+
+    fr = _paint(buf)
+    _label(fr, t, stage)
+    return fr
+
+
 def draw_foundation(f, stage):
     t = f / float(FPS)
     buf = {"sh": np.zeros((G.rows, G.cols)),
@@ -2533,7 +2879,8 @@ def colour(v, m):
             M_TRAN: STONE, M_PIER: STONE, M_NAVE: STONE,
             M_AISLE: STONE, M_ARCH: STONE, M_TRIF: STONE,
             M_TRIFB: INNER, M_CAP8: STONE, M_CLER: STONE,
-            M_BUT9: STONE, M_FLY9: STONE, M_COP9: STONE}[int(m)]
+            M_BUT9: STONE, M_FLY9: STONE, M_COP9: STONE,
+            M_RIB10: STONE, M_WEB10: STONE}[int(m)]
     t = np.clip(0.22 + 0.78 * v, 0.0, 1.0)
     return blend(BG, base, t)
 
@@ -4170,7 +4517,454 @@ def check_buttress(stage):
                             "11.9 outside the line"])
 
 
+def check_vault(stage):
+    print("THE CATHEDRAL — part %s, %s" % (roman(stage + 1), STAGES[stage]))
+    print("  vault                %d bays, span %.1f m, springing %.2f "
+          "(course 41 -- the line part VIII named)"
+          % (N_VBAY10, 2 * S10, Y_SPR10))
+
+    # RULE 1.  The established view has not drifted.
+    d = np.abs(_pose_at(GHOST, -58.0, 28.0) - _pose(GHOST)).max()
+    print("  established view unchanged: max disagreement %.2e m" % d)
+    assert d < 1e-3, d
+
+    # THE DERIVATIONS.  Every dimension is older than this episode, and
+    # the arch shapes are FORCED, not styled.
+    #  (ratios with ==, positions with < 1e-12 -- part VII's lesson.)
+    print("  diagonal semicircle: radius = hypot(%.1f, %.4f) = %.4f -- "
+          "the only round arch in the building" % (S10, SB10, RHO10))
+    assert RHO10 == math.hypot(S10, SB10)
+    rise_t = math.sqrt(S10 * S10 + 2.0 * S10 * QT10)
+    rise_w = math.sqrt(SB10 * SB10 + 2.0 * SB10 * QW10)
+    print("  every rib rises to the semicircle's crown: transverse "
+          "%.6f, wall rib %.6f, semicircle %.6f (diffs %.1e, %.1e)"
+          % (rise_t, rise_w, RHO10, abs(rise_t - RHO10),
+             abs(rise_w - RHO10)))
+    assert abs(rise_t - RHO10) < 1e-12
+    assert abs(rise_w - RHO10) < 1e-12
+    print("  centre offsets, symmetric closed forms: q_t = sb^2/2s = "
+          "%.4f, q_w = s^2/2sb = %.4f" % (QT10, QW10))
+    print("  the wall rib is a LANCET: its centres sit %.2f m outside "
+          "its own %.2f m half-span" % (QW10 - SB10, SB10))
+    assert QW10 > SB10
+    print("  wall-rib ring depth: RHO9 * BAY5 = %.5f = RING5 %.5f "
+          "(diff %.1e) -- the arcade voussoir, back at its own scale, "
+          "because the wall rib's span IS the bay"
+          % (D10W, RING5, abs(D10W - RING5)))
+    assert abs(D10W - RING5) < 1e-15
+    # an accident that ISN'T one, checked so nobody wonders: q_w lands
+    # 1.4 mm from part IX's arc radius.  Not equal, no theorem.
+    print("  (q_w %.4f vs part IX's R_seg %.4f: %.1f mm apart and "
+          "unrelated -- not every agreement is a theorem)"
+          % (QW10, R_SEG9, 1000 * abs(QW10 - R_SEG9)))
+    assert abs(QW10 - R_SEG9) > 1e-4
+
+    # THE REFUSAL.  The series' own equilateral, on this span, breaks
+    # part I's roof: the frozen plane from eaves 36 to ridge 46.
+    def roofpl(z):
+        return 46.0 - (46.0 - NAVE_Y) / NAVE_Z * abs(z)
+
+    viol, zv = -1e9, 0.0
+    clear, zc = 1e9, 0.0
+    for z in np.linspace(0.0, S10, 400):
+        y_eq = Y_SPR10 + math.sqrt(max(0.0, (2 * S10) ** 2
+                                       - (z + S10) ** 2))
+        if y_eq - roofpl(z) > viol:
+            viol, zv = y_eq - roofpl(z), z
+        g = Y_SPR10 + math.sqrt(max(0.0, RT10 * RT10
+                                    - (z + QT10) ** 2)) + TW10
+        if roofpl(z) - g < clear:
+            clear, zc = roofpl(z) - g, z
+    print("  the equilateral is REFUSED: its intrados stands %.2f m "
+          "through the frozen roof at z = %.1f (before any web goes "
+          "on).  first loss in ten episodes" % (viol, zv))
+    assert viol > 0.25, viol
+    print("  the derived vault clears the roof by %.2f m at its "
+          "tightest (z = %.1f)" % (clear, zc))
+    assert clear > 1.0, clear
+    # and the ridges are level, everywhere, by construction.
+    for xi, z in ((SB10, 0.0), (0.3 * SB10, 0.0), (SB10, 0.5 * S10),
+                  (SB10, 0.9 * S10)):
+        assert abs(_y10(xi, z) - Y_CROWN10) < 1e-9 or z > 0 or xi != SB10
+    rrr = [abs(_y10(SB10, zz) - Y_CROWN10) for zz in (0.0, 2.0, 5.0)]
+    rrr += [abs(_y10(x_, 0.0) - Y_CROWN10) for x_ in (0.5, 2.0, 4.0)]
+    print("  ridges level at %.3f: max deviation along both ridge "
+          "lines %.1e m" % (Y_CROWN10, max(rrr)))
+    assert max(rrr) < 1e-9
+
+    # THE STATICS.  One thrust line, keystone to ground.  The vault's
+    # own walk (crown to springing, weights binned off the real
+    # surface) splices onto part IX's (head, flyer, pier) through an
+    # equilibrium node at the wall.  Tonnes, metres, stone at 2.3.
+    rho = 2.3
+    K = 40
+    dz10 = S10 / K
+
+    def web_bins():
+        wb_ = np.zeros(K)
+        nx, nz = 60, 240
+        dxi, dzz = BAY5 / nx, S10 / nz
+        for i in range(nx):
+            xi = (i + 0.5) * dxi
+            for j in range(nz):
+                z = (j + 0.5) * dzz
+                y0_ = _y10(xi, z)
+                yx = (_y10(xi + 0.01, z) - y0_) / 0.01
+                yz = (_y10(xi, z + 0.01) - y0_) / 0.01
+                dA = math.sqrt(1.0 + yx * yx + yz * yz) * dxi * dzz
+                wb_[min(K - 1, int(z / dz10))] += dA * TW10 * rho
+        return wb_
+
+    phimax = math.atan2(RHO10, QT10)
+    psimax = math.atan2(RHO10, QW10)
+
+    def rib_bins():
+        wb_ = np.zeros(K)
+        n = 800
+        w_ta = RT10 * phimax * D10T * (0.96 * W9X) * rho
+        for i in range(n):
+            phi = (i + 0.5) / n * phimax
+            z = max(0.0, RT10 * math.cos(phi) - QT10)
+            wb_[min(K - 1, int(z / dz10))] += w_ta / n
+        w_dg = math.pi * RHO10 * D10D * (0.90 * W9X) * rho
+        for i in range(n):
+            th = (i + 0.5) / n * math.pi
+            z = abs(RHO10 * math.cos(th)) * S10 / RHO10
+            wb_[min(K - 1, int(z / dz10))] += w_dg / n
+        w_wr = 2.0 * RW10 * psimax * (1.10 * D10W) * (1.10 * D10W) * rho
+        wb_[K - 1] += w_wr
+        wb_[0] += 0.5 * 1.0 * 0.9 * 1.0 * rho     # half a boss
+        return wb_
+
+    wb_web, wb_rib = web_bins(), rib_bins()
+    wb10 = wb_web + wb_rib
+    w_flank = float(wb10.sum())
+    print("  weights, one flank of one bay: web %.1f t + ribs %.1f t "
+          "= %.1f t; the whole vault %.0f t"
+          % (wb_web.sum(), wb_rib.sum(), w_flank, 20.0 * w_flank))
+    assert 1200.0 <= 20.0 * w_flank <= 2000.0
+
+    def lo10(z):
+        v = (RT10 - D10T) ** 2 - (z + QT10) ** 2
+        return Y_SPR10 + math.sqrt(v) if v > 0 else Y_SPR10 - 0.4
+
+    def hi10(z):
+        g = RT10 * RT10 - (z + QT10) ** 2
+        return Y_SPR10 + (math.sqrt(g) if g > 0 else 0.0) + TW10
+
+    def vwalk(H, y0):
+        Fz, Fy, M = H, 0.0, -y0 * H
+        for k in range(K):
+            z1 = (k + 1) * dz10
+            zm = (k + 0.5) * dz10
+            Fy -= wb10[k]
+            M -= zm * wb10[k]
+            y = (z1 * Fy - M) / Fz
+            if not (lo10(z1) - 0.06 <= y <= hi10(z1) + 0.06):
+                return None
+        y_arr = (S10 * Fy - M) / Fz
+        if not (Y_SPR10 - 0.5 <= y_arr <= Y_TOP8):
+            return None
+        return y_arr, -Fy
+
+    # part IX's walk, verbatim in structure: the flyer and the pier.
+    cz9, cy9, at9, ah9 = _arc9(1.0)
+    zt9 = Z_PIER9 - PIER9_HZ
+    r_in9, r_mid9 = R_SEG9 - D9, R_SEG9 - 0.5 * D9
+    K9 = 40
+
+    def y_chord9(z):
+        return Y_HEAD9 - (z - NAVE_Z)
+
+    def y_intra9(z):
+        return cy9 - math.sqrt(max(R_SEG9 ** 2 - (z - cz9) ** 2, 0.0))
+
+    aa = np.linspace(at9, ah9, 800)
+    az = cz9 + r_mid9 * np.cos(aa)
+    w_arc = (R_SEG9 * math.pi / 3.0) * D9 * W9X * rho
+    ab = np.histogram(az, bins=K9, range=(NAVE_Z, zt9))[0] / 800.0 * w_arc
+    wbn = np.zeros(K9)
+    dz9 = (zt9 - NAVE_Z) / K9
+    for k in range(K9):
+        z = NAVE_Z + (k + 0.5) * dz9
+        d2 = (z - cz9) ** 2
+        yb = (cy9 - math.sqrt(r_in9 * r_in9 - d2) if r_in9 * r_in9 > d2
+              else y_chord9(z))
+        wbn[k] = max(0.0, y_chord9(z) - yb) * dz9 * W9X * rho
+    wbin9 = ab + wbn + R9 * D9 * W9X * rho / K9
+    w_pier = (2 * PIER9_HX) * (2 * PIER9_HZ) * (Y_TOP9 - Y_BASE9) * rho
+    w_pin = (2 * PIER9_HX) * (2 * PIER9_HZ) * PIN9_H / 3.0 * rho
+
+    def walk9(H, Vw, y0):
+        if H < 1e-6:
+            return False
+        Fz, Fy = H, Vw
+        M = NAVE_Z * Fy - y0 * Fz
+        for k in range(K9):
+            z1 = NAVE_Z + (zt9 - NAVE_Z) * (k + 1) / K9
+            zm = NAVE_Z + (zt9 - NAVE_Z) * (k + 0.5) / K9
+            Fy -= wbin9[k]
+            M -= zm * wbin9[k]
+            y = (z1 * Fy - M) / Fz
+            if not (y_intra9(z1) - 0.06 <= y <= y_chord9(z1) + D9 + 0.06):
+                return False
+        y_arr = (zt9 * Fy - M) / Fz
+        if not (Y_SPR9 - 0.5 <= y_arr <= Y_TOP9):
+            return False
+        Fy -= w_pin
+        M -= Z_PIER9 * w_pin
+        nc = K_PIER9 - N_COURSE6
+        for c in range(nc):
+            Fy -= w_pier / nc
+            M -= Z_PIER9 * (w_pier / nc)
+            yc_ = Y_TOP9 - (c + 1) * COURSE3
+            z_ = (M + yc_ * Fz) / Fy
+            if not (zt9 - 0.05 <= z_ <= Z_PIER9 + PIER9_HZ + 0.05):
+                return False
+        return True
+
+    # the budget, recomputed today by the same walk that published it.
+    def feasible9(H):
+        for Vw in np.linspace(-30.0, 10.0, 81):
+            for y0 in np.linspace(Y_HEAD9, Y_HEAD9 + D9, 7):
+                if walk9(H, Vw, y0):
+                    return True
+        return False
+
+    Hs = np.arange(0.5, 60.0, 0.25)
+    H_budget = 0.0
+    for h in Hs[::-1]:
+        if feasible9(float(h)):
+            H_budget = float(h)
+            break
+    print("  the budget, recomputed by part IX's own walk: %.2f t a bay"
+          % H_budget)
+    assert 12.0 <= H_budget <= 60.0, H_budget
+
+    # the vault alone: the band it can push in.  a masonry arch on
+    # abutments that give settles to the LOW end of its band.
+    y0s = np.linspace(Y_CROWN10 - 0.70, Y_CROWN10 + TW10, 9)
+
+    def vfeas(H):
+        for y0 in y0s:
+            if vwalk(H, y0) is not None:
+                return True
+        return False
+
+    Hv = [float(h) for h in np.arange(2.0, 60.0, 0.25) if vfeas(float(h))]
+    assert Hv, "no thrust fits the vault"
+    Hv_lo, Hv_hi = Hv[0], Hv[-1]
+    print("  the vault's own band: it can push %.2f to %.2f t a bay; "
+          "settling on giving abutments, it ARRIVES at %.2f"
+          % (Hv_lo, Hv_hi, Hv_lo))
+    print("  THE CHEQUE CLEARS: %.2f arrives under the %.2f budget "
+          "with %.2f t to spare -- the budget is %.0f%% spent"
+          % (Hv_lo, H_budget, H_budget - Hv_lo,
+             100.0 * Hv_lo / H_budget))
+    assert Hv_lo <= H_budget, (Hv_lo, H_budget)
+    assert Hv_lo >= 12.0, Hv_lo
+
+    # the THREAD: one H through the whole system.  the vault line
+    # arrives at the wall; an equilibrium node hands H to the flyer
+    # head (the strip takes the vertical the head does not); part IX's
+    # walk carries it to the ground.
+    w_strip = 0.5 * BAY5 * WALL8_TH * (Y_TOP8 - Y_CAP8) * rho
+    zn_c = 0.5 * (S10 + NAVE_Z)
+
+    def node_ok(H, y_a, V_v, Vw, y_h):
+        T_head = -Vw
+        V_wall = V_v - T_head + w_strip
+        if V_wall <= 0.0:
+            return False
+        M = H * (y_a - y_h) + V_v * (S10 - zn_c) - T_head * (NAVE_Z - zn_c)
+        zstar = zn_c + M / V_wall
+        return (S10 - 0.10) <= zstar <= (NAVE_Z + 0.10)
+
+    def thread(H):
+        for y0 in y0s:
+            r = vwalk(H, y0)
+            if r is None:
+                continue
+            y_a, V_v = r
+            for Vw in np.linspace(-30.0, 10.0, 81):
+                for y_h in np.linspace(Y_HEAD9, Y_HEAD9 + D9, 7):
+                    if node_ok(H, y_a, V_v, Vw, y_h) and walk9(H, Vw, y_h):
+                        return y0, y_a, V_v, Vw, y_h
+        return None
+
+    Ht = [float(h) for h in np.arange(2.0, 60.0, 0.25)
+          if thread(float(h)) is not None]
+    assert Ht, "no single thrust threads the system"
+    sol = thread(Ht[0])
+    print("  ONE LINE, KEYSTONE TO GROUND: the system threads at any "
+          "H in [%.2f, %.2f].  at %.2f t: leaves the keystone at "
+          "y %.1f, crosses the springing at %.1f, enters the flyer "
+          "head at %.1f with %.1f t bearing down (30 allowed), and "
+          "walks part IX's pier to the base"
+          % (Ht[0], Ht[-1], Ht[0], sol[0], sol[1], sol[4], -sol[3]))
+    assert Ht[-1] <= H_budget + 1e-9, (Ht[-1], H_budget)
+    assert -sol[3] <= 30.0 + 1e-9, sol[3]
+    print("  the springing carries %.1f t a bay down the wall; the "
+          "arcade piers were sized for overhead wall in part V" % sol[2])
+
+    # FRAME FACTS, wide, end of episode.  The first draft of this
+    # check asserted the vault was INVISIBLE from outside -- interior
+    # work, sealed box.  The frame refused it: 523 cells of ceiling.
+    # The frame was right.  The crown stands proud of the wall top
+    # (both numbers frozen or derived, nobody chose it), so the vault
+    # CRESTS the walls -- a stone hill in the open attic, under the
+    # ghost's roof line, visible for exactly one episode until part
+    # XI's roof buries it.
+    print("  the crown crests the wall top by %.2f m: Y_CROWN10 + web "
+          "%.2f > NAVE_Y %.1f" % (Y_CROWN10 + TW10 - NAVE_Y,
+                                  Y_CROWN10 + TW10, NAVE_Y))
+    assert Y_CROWN10 + TW10 > NAVE_Y
+    draw(int((Z_END - 0.2) * FPS), stage)
+    m = LAST["mat"]
+    new = int(((m == M_RIB10) | (m == M_WEB10)).sum())
+    print("  wide, everything up: %d cells of the ceiling's BACK "
+          "visible from outside -- the only episode that ever sees "
+          "the building's sky from above" % new)
+    assert new > 150, new
+    # and the hump must sit under the ghost's roof: crown projects
+    # BELOW the ghost ridge in the frame (rows grow downward).
+    pr_ = CAM.project(_pose(np.array([[30.0, Y_CROWN10 + TW10, 0.0],
+                                      [30.0, 46.0, 0.0]], np.float32)))
+    assert pr_[1][0] > pr_[1][1], pr_
+    print("  and the hill keeps the drawing's word: crown row %d sits "
+          "below the ghost ridge row %d" % (pr_[1][0], pr_[1][1]))
+
+    # the raised fit holds what its comment promised: the crown and
+    # part IX's flyer both project inside the grid.
+    amid9 = 0.5 * (at9 + ah9)
+    chk = CAM_X10.project(_pose_x9(np.array(
+        [[9.5 * BAY5, Y_CROWN10, 0.0],
+         [9.0 * BAY5, cy9 + r_mid9 * math.sin(amid9),
+          cz9 + r_mid9 * math.cos(amid9)]], np.float32)))
+    assert all(0 <= cc < G.cols for cc in chk[0]), chk[0]
+    assert all(0 <= rr < G.rows for rr in chk[1]), chk[1]
+    print("  raised fit: crown and flyer both inside the grid "
+          "(cols %s, rows %s)" % (list(chk[0]), list(chk[1])))
+
+    # SECTION FACTS.  The skeleton is probed BEFORE the web seals it
+    # in (t just after the bosses); the web, boss cut-face and part
+    # IX's flyer -- the whole system in one frame -- after.
+    def probe(m_, pts, mat_id):
+        c, r, _ = CAM_X10.project(_pose_x9(np.asarray(pts, np.float32)))
+        vals = [int(m_[rr, cc]) for rr, cc in zip(r, c)
+                if 0 <= rr < G.rows and 0 <= cc < G.cols]
+        return vals and any(v == mat_id for v in vals)
+
+    draw(int(7.25 * FPS), stage)
+    m_sk = LAST["mat"]
+    ta_h, dg_h, wr_h, tot = 0, 0, 0, 0
+    r_mid_t = RT10 - 0.5 * D10T
+    for mm in (9, 10, 11):
+        tot += 1
+        ta_h += probe(m_sk, [[mm * BAY5 + dx,
+                              Y_SPR10 + r_mid_t * math.sin(phi),
+                              r_mid_t * math.cos(phi) - QT10]
+                             for dx in (-0.12, 0.0, 0.12)
+                             for phi in (0.55 * phimax, 0.75 * phimax,
+                                         0.95 * phimax)], M_RIB10)
+    for mm in (8, 9, 10):
+        xc = (mm + 0.5) * BAY5
+        r_mid_d = RHO10 - 0.5 * D10D
+        dg_h += probe(m_sk, [[xc + r_mid_d * math.cos(th) * BAY5
+                              / (2 * RHO10) + dx,
+                              Y_SPR10 + r_mid_d * math.sin(th),
+                              r_mid_d * math.cos(th) * S10 / RHO10]
+                             for dx in (-0.12, 0.0, 0.12)
+                             for th in (0.30 * math.pi, 0.40 * math.pi,
+                                        0.60 * math.pi)], M_RIB10)
+        wr_h += probe(m_sk, [[xc + dx, Y_SPR10 + (RW10 - 0.5 * D10W)
+                              * math.sin(0.7 * psimax)
+                              - 0 * dx, (S10 - 0.5 * D10W)]
+                             for dx in (-0.3, 0.0, 0.3)], M_RIB10)
+    print("  skeleton probes (before the web) -- transverse %d/%d, "
+          "diagonal %d/%d, wall rib %d/%d"
+          % (ta_h, tot, dg_h, tot, wr_h, tot))
+    assert ta_h >= tot - 1, (ta_h, tot)
+    assert dg_h >= tot - 1, (dg_h, tot)
+    assert wr_h >= tot - 1, (wr_h, tot)
+
+    draw(int(10.6 * FPS), stage)
+    m_fn = LAST["mat"]
+    wb_h, fl_h, tot2 = 0, 0, 0
+    for mm in (8, 9, 10):
+        xb = mm * BAY5
+        tot2 += 1
+        wb_h += probe(m_fn, [[xb + SB10 + dx,
+                              _y10(SB10 + dx, zz) + 0.5 * TW10, zz]
+                             for dx in (-0.4, 0.0, 0.4)
+                             for zz in (0.35 * S10, 0.55 * S10,
+                                        0.75 * S10)], M_WEB10)
+        amid9 = 0.5 * (at9 + ah9)
+        fl_h += probe(m_fn, [[xb + dx, cy9 + r_mid9 * math.sin(a),
+                              cz9 + r_mid9 * math.cos(a)]
+                             for dx in (-0.12, 0.0, 0.12)
+                             for a in (amid9 - 0.35, amid9,
+                                       amid9 + 0.35)], M_FLY9)
+    print("  finished-frame probes -- web %d/%d; part IX's flyer "
+          "still in frame %d/%d: the push and the thing that catches "
+          "it, one picture" % (wb_h, tot2, fl_h, tot2))
+    assert wb_h >= tot2 - 1, (wb_h, tot2)
+    assert fl_h >= tot2 - 1, (fl_h, tot2)
+
+    # HELD OUT: the level ridge, read off the pixels.  Predict the
+    # projected line of y = crown + web along the nave axis at z = 0
+    # from the camera alone; select web cells NEAR that line (one
+    # line, part IX's pooling lesson); fit; compare.  Near-horizontal
+    # lines make slope RATIOS unstable, so compare row error at the
+    # two ends instead.
+    rows_, cols_ = np.nonzero(m_fn == M_WEB10)
+    p2 = CAM_X10.project(_pose_x9(np.array(
+        [[8.0 * BAY5, Y_CROWN10 + TW10, 0.0],
+         [11.0 * BAY5, Y_CROWN10 + TW10, 0.0]], np.float32)))
+    cA, rA = p2[0].astype(float), p2[1].astype(float)
+    sl_p = (rA[1] - rA[0]) / (cA[1] - cA[0])
+    b_p = rA[0] - sl_p * cA[0]
+    near = np.abs(rows_ - (sl_p * cols_ + b_p)) < 2.5
+    used = int(near.sum())
+    fit = np.polyfit(cols_[near], rows_[near], 1)
+    e0 = abs((fit[0] * cA[0] + fit[1]) - rA[0])
+    e1 = abs((fit[0] * cA[1] + fit[1]) - rA[1])
+    print("  held out: ridge line off %d web cells -- row error %.2f "
+          "and %.2f at the frame's two ends (slope %.3f vs %.3f "
+          "predicted for a LEVEL ridge)" % (used, e0, e1, fit[0], sl_p))
+    assert used >= 25, used
+    assert e0 < 3.0 and e1 < 3.0, (e0, e1)
+
+    sheet = []
+    for t in (0.6, 1.4, 2.9, 5.0, 6.6, 7.1, 9.0, 10.6, 12.8):
+        fr = draw(int(t * FPS), stage)
+        ink, mat = LAST["ink"], LAST["mat"]
+        print("  t=%4.1f u=%.2f cov %.3f  ghost %5d old %5d fly %4d "
+              "rib %5d web %5d  %s"
+              % (t, LAST["u10"], ink.mean(), (mat == M_GHOST).sum(),
+                 (mat == M_OLD).sum(), (mat == M_FLY9).sum(),
+                 (mat == M_RIB10).sum(), (mat == M_WEB10).sum(),
+                 "close" if LAST["close"] else "wide"))
+        assert 0.02 < ink.mean() < 0.60, ink.mean()
+        for (c0b, r0b, w, h) in LAST["boxes"]:
+            assert r0b - 1 >= G.safe_top, ("text above safe", r0b)
+            assert r0b + h + 1 <= G.safe_bot, ("text below safe", r0b + h)
+            assert c0b - 1 >= 0 and c0b + w + 1 <= G.cols, ("width", c0b, w)
+        sheet.append(fr)
+
+    assert LAST["u10"] >= 1.0, LAST["u10"]
+    print("  runtime              %.1f s, %d frames  (IX was %.1f s)"
+          % (Z_END, int(Z_END * FPS), X_END))
+    contact(sheet, os.path.join(_HERE, "..", "content", "cath_sheet.png"),
+            cols=3, labels=["0.6 ghost", "1.4 wide", "2.9 arches",
+                            "5.0 diagonals", "6.6 wall ribs",
+                            "7.1 bosses", "9.0 the web", "10.6 sealed",
+                            "12.8 the stone hill"])
+
+
 def check(stage):
+    if stage == 9:
+        return check_vault(stage)
     if stage == 8:
         return check_buttress(stage)
     if stage == 7:
