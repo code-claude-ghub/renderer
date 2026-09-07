@@ -58,6 +58,9 @@ M_ARCH, M_TRIF, M_TRIFB = 14, 15, 16   # part VII: arches and spandrels /
                                # the screen facing the nave / the back skin
 M_CAP8, M_CLER = 17, 18        # part VIII: the passage ceiling / the wall
                                # that is mostly window
+M_BUT9, M_FLY9, M_COP9 = 19, 20, 21    # part IX: pier+pinnacle / the arc /
+                               # the straight coping -- two load paths, so
+                               # two materials the checks can tell apart
 INNER = (0.694, 0.633, 0.506)  # stone seen through an opening: the
                                # passage's own shadow, not a new material
 
@@ -1206,6 +1209,169 @@ def spandrel8():
     return assemble(units), N_WIN8
 
 
+# --------------------------------------------- part IX: the buttresses
+# The answer to part VIII's question: a wall that is 44% hole does not
+# hold a vault's push.  It hires help that leaps the aisle.  Ten outer
+# piers a side rise from part VI's bay-line buttresses -- which went up
+# three episodes ago without being told what for, like the crossing pier
+# before them -- and a flyer springs from each one to the clerestory
+# wall.  Part V's comment, the day the bay was frozen: "the buttresses
+# and the roof trusses all have to land on these lines."  They land on
+# these lines.
+#
+# NOTHING dimensional is chosen here either.
+#   - The leap R9 is the pier's inner face to the wall's outer face:
+#     AISLE_Z - PIER5_HW - NAVE_Z = 5.8 m.  All three terms are frozen.
+#   - The flyer head arrives at the LEAST course that reaches over the
+#     clerestory springing line (course 41's, part VIII's) -- course 34;
+#     course 33 falls 0.12 m short.  Asserted both ways.
+#   - The chord from tail to head is 45 degrees EXACTLY: rise = run = R9
+#     by construction, because the head course was chosen on the same
+#     grid the tail springs from.
+#   - The intrados is a 60-degree arc, and 60 degrees is not a style: it
+#     is the ONLY sweep for which the radius equals the chord -- the
+#     equilateral fact this series has built every arch out of since the
+#     crypt.  R_seg = sqrt(2) * R9.  Tangents fall at 75 and 15 degrees.
+#   - The flyer is as wide as the wall it props is thick: PIER5_HW.
+#     The pier below it keeps part VI's buttress width (2.3 m) and the
+#     arcade pier's depth (2.4 m): the arcade pier, moved outside.
+#   - The pinnacle is the series' own triangle made solid: 60-degree
+#     faces, height PIER5_HW * sqrt(3).
+#
+# THE SHAPE WAS CORRECTED BY ITS OWN ARITHMETIC, TWICE.  The first
+# draft was the open flyer the books draw -- arc band, coping, nothing
+# between -- at the pier's own 2.3 m width.  The thrust-line walk in
+# check_buttress refused it: below ~26 t of thrust there is NO path
+# through that shape (the line falls through the open spandrel), and a
+# flyer that cannot stand until a vault pushes on it is a flyer that
+# falls the day the centering drops.  So (1) the spandrel got a web,
+# masonry's own fix, and (2) the width was SIZED IN CHECK, like the
+# arcade piers were: at 2.3 m the flyer leans ~26 t on a wall that can
+# lend ~6; at half the wall's thickness it stands on a few.  The check
+# asserts both halves of that sentence.
+RHO9 = RING5 / BAY5                # voussoir depth per span, the series'
+                                   # own ratio (0.0514, set in part VII)
+R9 = AISLE_Z - PIER5_HW - NAVE_Z   # 5.8 -- the leap, all terms frozen
+D9 = RHO9 * (2.0 * R9)             # 0.597 -- ring depth for that span
+K_SPR9 = 34                        # tail springing course: LEAST whose
+                                   # head reaches over Y_SPRING8
+Y_SPR9 = Y_FOOT + K_SPR9 * COURSE3          # 27.86
+Y_HEAD9 = Y_SPR9 + R9              # 33.66 -- 45-degree chord, rise = run
+K_PIER9 = 35                       # pier top: LEAST course over the
+                                   # coping's tail arrival.  34 is under.
+Y_TOP9 = Y_FOOT + K_PIER9 * COURSE3         # 28.60
+Y_BASE9 = Y_FOOT + N_COURSE6 * COURSE3      # 18.98 -- part VI's wall top
+Z_PIER9 = AISLE_Z                  # 15.0 -- the aisle wall line
+PIER9_HX, PIER9_HZ = 1.15, PIER5_HW         # 2.3 x 2.4: the arcade pier,
+                                   # moved outside the building
+W9X = 0.5 * PIER5_HW               # 0.6 -- flyer width, SIZED IN CHECK:
+                                   # the least width whose standing
+                                   # thrust the wall can carry.  see the
+                                   # header comment and check_buttress.
+R_SEG9 = math.sqrt(2.0) * R9       # 8.202 -- radius = chord: 60 degrees
+PIN9_H = PIER5_HW * math.sqrt(3.0)          # 2.078 -- 60-degree faces
+N_BUT9 = N_BAY5 - 1                # ten a side, bay lines 1..10
+
+
+def _arc9(o):
+    """Centre and end angles of the intrados arc, side o = +-1.
+    Chord runs tail (13.8, Y_SPR9) -> head (8.0, Y_HEAD9); the centre
+    sits R_seg*cos(30) off the chord midpoint, away from the bulge."""
+    zt, zh = Z_PIER9 - PIER9_HZ, NAVE_Z
+    mz, my = 0.5 * (zt + zh), 0.5 * (Y_SPR9 + Y_HEAD9)
+    d = R_SEG9 * math.cos(math.pi / 6.0)
+    n = 1.0 / math.sqrt(2.0)
+    cz, cy = mz + d * n, my + d * n
+    at = math.atan2(Y_SPR9 - cy, zt - cz)
+    ah = math.atan2(Y_HEAD9 - cy, zh - cz)
+    return cz, cy, at, ah
+
+
+def piers9():
+    """Ten outer piers a side, courses 23..35, standing on part VI's
+    bay-line buttresses.  East to west, both sides rising together."""
+    units = []
+    for c in range(N_COURSE6, K_PIER9):
+        y = Y_FOOT + (c + 0.5) * COURSE3
+        for m in range(N_BUT9, 0, -1):
+            x = m * BAY5
+            for o in (-1.0, 1.0):
+                j = RNG.uniform(-0.02, 0.02, 2)
+                units.append(stone(x + j[0], y, o * Z_PIER9 + j[1],
+                                   PIER9_HX, COURSE3 * 0.43, PIER9_HZ))
+    return assemble(units), N_BUT9, K_PIER9 - N_COURSE6
+
+
+def flyers9():
+    """All twenty arcs rise together, voussoir by voussoir from the
+    tail up -- the way the whole run has risen since the aisle walls.
+    The head stones, the ones that touch the wall, go in last, in one
+    moment, on every bay line at once.  Then the spandrel webs.  The
+    web is not decoration: without it the thrust line has no path
+    (see the header comment)."""
+    units = []
+    n = int(round((R_SEG9 * math.pi / 3.0) / 0.62))
+    cz, cy, at, ah = _arc9(1.0)
+    r_in = R_SEG9 - D9
+    for i in range(n):                  # all twenty arcs rise together
+        a = at + (ah - at) * (i + 0.5) / n
+        r = R_SEG9 - 0.5 * D9
+        z, y = cz + r * math.cos(a), cy + r * math.sin(a)
+        for m in range(N_BUT9, 0, -1):
+            for o in (-1.0, 1.0):
+                units.append(stone(m * BAY5, y, o * z,
+                                   0.48 * W9X, 0.52 * D9, 0.52 * D9))
+    nw = 9
+    for i in range(nw):                 # then the webs, tail to head
+        z = NAVE_Z + 0.35 + (nw - 1 - i + 0.5) / nw * (
+            Z_PIER9 - PIER9_HZ - NAVE_Z - 0.7)
+        dz2 = (z - cz) ** 2
+        yb = (cy - math.sqrt(r_in * r_in - dz2)
+              if r_in * r_in > dz2 else Y_HEAD9 - (z - NAVE_Z))
+        yt = Y_HEAD9 - (z - NAVE_Z)
+        if yt - yb < 0.12:
+            continue
+        for m in range(N_BUT9, 0, -1):
+            for o in (-1.0, 1.0):
+                units.append(stone(m * BAY5, 0.5 * (yb + yt), o * z,
+                                   0.44 * W9X, 0.5 * (yt - yb), 0.26))
+    return assemble(units), n
+
+
+def copings9():
+    """The straight band on the 45-degree chord: the strut part X's
+    thrust will actually travel down.  Vertical thickness D9."""
+    units = []
+    zt, zh = Z_PIER9 - PIER9_HZ, NAVE_Z
+    n = int(round((zt - zh) * math.sqrt(2.0) / 0.62))
+    for i in range(n):                  # tail to head, together; the
+        u = 1.0 - (i + 0.5) / n         # last stone touches the wall
+        z = zh + (zt - zh) * u
+        y = Y_HEAD9 - R9 * u + 0.5 * D9
+        for m in range(N_BUT9, 0, -1):
+            for o in (-1.0, 1.0):
+                units.append(stone(m * BAY5, y, o * z,
+                                   0.48 * W9X, 0.55 * D9, 0.36))
+    return assemble(units), n
+
+
+def pinnacles9():
+    """Ballast last: the pinnacle goes on after the flyer exists to
+    need it.  Five shrinking tiers to a point."""
+    units = []
+    nt = 5
+    for j in range(nt):                 # all twenty tips rise together
+        f = (j + 0.5) / nt
+        y = Y_TOP9 + f * PIN9_H
+        for m in range(N_BUT9, 0, -1):
+            for o in (-1.0, 1.0):
+                units.append(stone(m * BAY5, y, o * Z_PIER9,
+                                   max(0.10, PIER9_HX * (1.0 - f)),
+                                   0.45 * PIN9_H / nt,
+                                   max(0.10, PIER9_HZ * (1.0 - f))))
+    return assemble(units), nt
+
+
 # ---------------------------------------------------------------- stages
 STAGES = [
     "THE FOUNDATION",
@@ -1572,6 +1738,71 @@ _LEG8T_P, _LEG8T_N = _LEG8_P[_m8], _LEG8_N[_m8]
 CAP8S, STRIP8S = _nfilt(CAP8), _nfilt(STRIP8)
 WARC8S, SPAN8S = _nfilt(WARC8), _nfilt(SPAN8)
 
+# --- part IX
+(PIER9, N_PIER9, N_PC9) = piers9()
+(FLY9, N_VOUS9) = flyers9()
+(COP9, N_COP9) = copings9()
+(PIN9, N_TIER9) = pinnacles9()
+
+# Part VII joins the legacy pile -- its held-out checks closed last
+# episode.  Part VIII keeps its own materials one more episode, because
+# this episode's statics press on the mullion strips and the probes have
+# to find a strip to prove the flyer head landed on solid wall.
+_LEG9_P = np.vstack([_LEG8_P, ARCH7[0], SPAN7[0], SILL7[0], SKIN7[0],
+                     COL7[0], SARC7[0], FILL7[0]]).astype(np.float32)
+_LEG9_N = np.vstack([_LEG8_N, ARCH7[1], SPAN7[1], SILL7[1], SKIN7[1],
+                     COL7[1], SARC7[1], FILL7[1]]).astype(np.float32)
+
+# THE TRANSVERSE SECTION -- the third camera this series' close work has
+# ever taken, and like the other two it is forced, not chosen.  The merge
+# theorem runs a FOURTH time and comes back worse than ever: a buttress
+# is 8.2 m deep along z, the first element deeper than its own bay pitch,
+# so at the established yaw ten of them read as one solid corridor.  And
+# the section camera parts VII and VIII shared cannot help either: the
+# flyers land on the bay lines, which is exactly where the wall is solid,
+# so from inside the nave the machine holding the windows open hides
+# behind the very stone it presses on.  What is left is the drawing every
+# book about these buildings opens with: the HALF-SECTION -- the nave
+# spine to the outer pier of one flank, cut across the building.  The
+# south half alone: everything north of the spine is simply not drawn,
+# exactly as part VII did not draw the south.  A full transverse slice
+# was tried first and refused by looking at it: with both flanks in, the
+# far flyer hides behind the far wall and the near one drowns between
+# two towers of masonry.  Angles: -90 for the axis, VII's own 14 for the
+# lean, VII's own 8 of pitch.  Zero new angle decisions.
+X_YAW9, X_PITCH9 = -90.0 - T_YAW7, T_PITCH7          # -76, 8
+
+
+def _pose_x9(p):
+    return _pose_at(p, X_YAW9, X_PITCH9)
+
+
+def _x9(part):
+    m = ((part[0][:, 0] > _X_SECT - 2.0) & (part[0][:, 0] < 63.5)
+         & (part[0][:, 2] > -1.0))
+    return (part[0][m], part[1][m], part[2][m])
+
+
+_m9 = ((_LEG9_P[:, 0] > _X_SECT - 2.0) & (_LEG9_P[:, 0] < 63.5)
+       & (_LEG9_P[:, 2] > -1.0))
+_LEG9X_P, _LEG9X_N = _LEG9_P[_m9], _LEG9_N[_m9]
+CAP8X, STRIP8X = _x9(CAP8), _x9(STRIP8)
+WARC8X, SPAN8X = _x9(WARC8), _x9(SPAN8)
+PIER9X, FLY9X = _x9(PIER9), _x9(FLY9)
+COP9X, PIN9X = _x9(COP9), _x9(PIN9)
+
+GHOST_X = GHOST[(GHOST[:, 0] > _X_SECT - 1.2) & (GHOST[:, 0] < 63.5)
+                & (GHOST[:, 1] < 47.0) & (GHOST[:, 2] > -1.0)]
+_X_NEW = np.vstack([PIER9X[0], FLY9X[0], COP9X[0], PIN9X[0]])
+_X_PTS = np.vstack([_X_NEW, _LEG9X_P[::5], GHOST_X]).astype(np.float32)
+_xpad = _X_PTS.copy()
+_xpad[:, 1] = _X_PTS[:, 1].min() - 11.0        # keep the caption clear:
+                                   # this section runs ground to roof
+                                   # line, so it needs a deeper reserve
+                                   # than VII's storey-high frames
+CAM_X9 = Camera(G).fit([_pose_x9(np.vstack([_X_PTS, _xpad]))],
+                       margin=1.05)
+
 
 # ---------------------------------------------------------------- timeline
 T_GHOST, T_HOLD, T_DIG, T_LAY, T_END = 1.5, 2.4, 3.6, 9.9, 12.4
@@ -1666,7 +1897,22 @@ W_SPAN = (7.9, 9.0)
 W_BACK = 9.5
 W_END = 11.6
 
-T_ENDS = [T_END, C_END, H_END, Q_END, P_END, A_END, V_END, W_END]
+# part IX.  Same shape as VII and VIII, one axis over: out early (the
+# merge theorem, fourth appearance, worst case yet), home at the end
+# (the payoff of the wide frame is the first stone the ghost never
+# drew).  The masonry order is the structural order: piers first (a
+# flyer needs both ends), then the arcs -- tail to head, the head
+# touching the wall last -- then the coping strut, then the ballast.
+X_GHOST = 0.9
+X_CUT = 1.5
+X_PIER = (1.6, 4.6)
+X_FLY = (4.6, 7.4)
+X_COP = (7.4, 8.5)
+X_PIN = (8.5, 9.4)
+X_BACK = 9.9
+X_END = 12.2
+
+T_ENDS = [T_END, C_END, H_END, Q_END, P_END, A_END, V_END, W_END, X_END]
 LAST = {}
 
 
@@ -1705,7 +1951,7 @@ def _put(buf, col, row, z, sh, mat, cover):
 def draw(f, stage):
     return (draw_foundation, draw_crypt, draw_choir, draw_transept,
             draw_nave, draw_aisles, draw_triforium,
-            draw_clerestory)[stage](f, stage)
+            draw_clerestory, draw_buttress)[stage](f, stage)
 
 
 def _label(fr, t, stage, t0=0.8):
@@ -2159,6 +2405,68 @@ def draw_clerestory(f, stage):
     return fr
 
 
+# the four elements of part VIII, standing, in both framings of THIS
+# episode (full / transverse slab).  own materials one more episode --
+# see _LEG9_P for why.
+_VIII_STAND = ((CAP8, CAP8X, M_CAP8), (STRIP8, STRIP8X, M_CLER),
+               (WARC8, WARC8X, M_CLER), (SPAN8, SPAN8X, M_CLER))
+
+
+def draw_buttress(f, stage):
+    """Part IX.  Open home with eight episodes standing; cut ACROSS the
+    building -- the transverse section, the diagram -- and watch the
+    piers rise, the arcs leap, the coping land, the ballast go on; then
+    home, where the south flank has grown a comb of stone standing 1.2 m
+    outside every line the ghost has drawn since part I."""
+    t = f / float(FPS)
+    close = X_CUT <= t < X_BACK
+    cam = CAM_X9 if close else CAM
+    pose = _pose_x9 if close else _pose
+    lamp = LAMP7 if close else LAMP
+    buf = {"sh": np.zeros((G.rows, G.cols)),
+           "mat": np.zeros((G.rows, G.cols), np.int16),
+           "z": np.full((G.rows, G.cols), -1e9)}
+
+    gfade = min(1.0, t / X_GHOST)
+    gsrc = GHOST_X if close else GHOST
+    n = int(len(gsrc) * gfade) if not close else len(gsrc)
+    if n > 8:
+        col, row, z = cam.project(pose(gsrc[:n]))
+        lift = 1.0 + 0.55 * min(1.0, max(0.0, (t - X_PIN[1] - 0.3) / 1.1))
+        sh = ((0.20 + 0.34 * depth_cue(z, 1.0, 0.30))
+              * (0.72 + 0.28 * gfade) * lift)
+        _put(buf, col, row, z + 4000.0, sh, M_GHOST, False)
+
+    # parts I to VII, standing, at the level part III set.
+    lp, ln = (_LEG9X_P, _LEG9X_N) if close else (_LEG9_P, _LEG9_N)
+    col, row, z = cam.project(pose(lp))
+    sh = (0.17 + 0.44 * lambert(ln, lamp)) * depth_cue(z, 1.0, 0.86)
+    _put7(buf, col, row, z, np.clip(sh, 0.05, 1.0),
+          np.full(len(z), M_OLD, np.int16))
+
+    # part VIII, standing, held back, own materials.
+    for full, slab, mat in _VIII_STAND:
+        _grow7(buf, slab if close else full, 1.0, mat, lamp, 0.17, 0.44,
+               cam, pose)
+
+    def win(w):
+        return (t - w[0]) / (w[1] - w[0])
+
+    for full, slab, w, mat in ((PIER9, PIER9X, X_PIER, M_BUT9),
+                               (FLY9, FLY9X, X_FLY, M_FLY9),
+                               (COP9, COP9X, X_COP, M_COP9),
+                               (PIN9, PIN9X, X_PIN, M_BUT9)):
+        _grow7(buf, slab if close else full, win(w), mat, lamp, 0.28, 0.78,
+               cam, pose)
+
+    LAST["u9"] = min(1.0, max(0.0, win(X_PIN)))
+    LAST["close"] = close
+
+    fr = _paint(buf)
+    _label(fr, t, stage)
+    return fr
+
+
 def draw_foundation(f, stage):
     t = f / float(FPS)
     buf = {"sh": np.zeros((G.rows, G.cols)),
@@ -2224,7 +2532,8 @@ def colour(v, m):
             M_CWALL: CW["rgb"], M_WALL3: STONE, M_PART: ROUGH,
             M_TRAN: STONE, M_PIER: STONE, M_NAVE: STONE,
             M_AISLE: STONE, M_ARCH: STONE, M_TRIF: STONE,
-            M_TRIFB: INNER, M_CAP8: STONE, M_CLER: STONE}[int(m)]
+            M_TRIFB: INNER, M_CAP8: STONE, M_CLER: STONE,
+            M_BUT9: STONE, M_FLY9: STONE, M_COP9: STONE}[int(m)]
     t = np.clip(0.22 + 0.78 * v, 0.0, 1.0)
     return blend(BG, base, t)
 
@@ -3523,7 +3832,347 @@ def check_clerestory(stage):
                             "11.4 the line"])
 
 
+def check_buttress(stage):
+    print("THE CATHEDRAL — part %s, %s" % (roman(stage + 1), STAGES[stage]))
+    print("  buttresses           %d a side on the bay lines, leap %.2f m,"
+          " arc radius %.3f m" % (N_BUT9, R9, R_SEG9))
+    print("  pier                 courses %d..%d on part VI's buttresses; "
+          "pinnacle %.2f m" % (N_COURSE6 + 1, K_PIER9, PIN9_H))
+
+    # RULE 1.  The established view has not drifted.
+    d = np.abs(_pose_at(GHOST, -58.0, 28.0) - _pose(GHOST)).max()
+    print("  established view unchanged: max disagreement %.2e m" % d)
+    assert d < 1e-3, d
+
+    # THE DERIVATIONS.  Every dimension is older than this episode.
+    print("  leap: AISLE_Z - PIER5_HW - NAVE_Z = %.1f - %.1f - %.1f = %.1f"
+          % (AISLE_Z, PIER5_HW, NAVE_Z, R9))
+    assert R9 == AISLE_Z - PIER5_HW - NAVE_Z
+    dr = abs(D9 / (2.0 * R9) - RING5 / BAY5)
+    print("  ring depth %.3f m: the series' own ratio ring/span = %.5f "
+          "(part VII's), diff %.1e" % (D9, RING5 / BAY5, dr))
+    assert dr < 1e-15, dr
+    # the chord is 45 degrees: rise = run because head and tail were set
+    # on the same grid, R9 apart.  (One ulp of re-addition allowed --
+    # part VII's lesson: ratios with ==, positions with < 1e-12.)
+    assert abs((Y_HEAD9 - Y_SPR9) - R9) < 1e-12
+    chord = math.hypot((Z_PIER9 - PIER9_HZ) - NAVE_Z, Y_HEAD9 - Y_SPR9)
+    print("  chord: rise %.1f = run %.1f -> 45 degrees; length %.4f = "
+          "radius %.4f (diff %.1e)" % (Y_HEAD9 - Y_SPR9, R9, chord,
+                                       R_SEG9, abs(chord - R_SEG9)))
+    assert abs(chord - R_SEG9) < 1e-12
+    # radius = chord happens at ONE sweep only: 60 degrees, the
+    # equilateral angle every arch in this series is built at.
+    cz, cy, at, ah = _arc9(1.0)
+    sweep = math.degrees(abs(ah - at))
+    print("  sweep %.4f degrees (radius = chord <-> equilateral): the "
+          "flyer springs at 75 degrees and arrives at 15" % sweep)
+    assert abs(sweep - 60.0) < 1e-9, sweep
+    # pinnacle: the equilateral triangle made solid.
+    assert PIN9_H / PIER5_HW == math.sqrt(3.0)
+    print("  pinnacle/half-width = sqrt(3) exactly: 60-degree faces")
+
+    # THE COURSES.  Head and pier top both chosen by the grid, both
+    # asserted both ways.
+    print("  head %.2f m: least course reaching over the springing line "
+          "%.2f (course %d gives %.2f, short by %.2f)"
+          % (Y_HEAD9, Y_SPRING8, K_SPR9 - 1,
+             Y_FOOT + (K_SPR9 - 1) * COURSE3 + R9,
+             Y_SPRING8 - (Y_FOOT + (K_SPR9 - 1) * COURSE3 + R9)))
+    assert Y_HEAD9 >= Y_SPRING8
+    assert Y_FOOT + (K_SPR9 - 1) * COURSE3 + R9 < Y_SPRING8
+    cop_top = Y_SPR9 + D9
+    print("  pier top %.2f m: least course over the coping's tail "
+          "arrival %.3f (course %d is %.2f, under it)"
+          % (Y_TOP9, cop_top, K_PIER9 - 1,
+             Y_FOOT + (K_PIER9 - 1) * COURSE3))
+    assert Y_TOP9 >= cop_top
+    assert Y_FOOT + (K_PIER9 - 1) * COURSE3 < cop_top
+
+    # THE PROMISE, four episodes old.  Part V, the day the bay was
+    # frozen: "the buttresses ... have to land on these lines."
+    print("  every pier centred on a bay line, x = m * %.3f -- part V's "
+          "promise, kept" % BAY5)
+    # and the head presses only on solid wall: the flyer is narrower
+    # than the mullion strip it lands on, so no window is touched.
+    print("  flyer half-width %.2f < strip half-width %.3f: the head "
+          "touches no window -- and for the same reason the old section "
+          "camera cannot see a flyer through one" % (0.5 * W9X,
+                                                     0.25 * BAY5))
+    assert 0.5 * W9X < 0.25 * BAY5
+
+    # OUTSIDE THE DRAWING.  MASSES has no buttresses: these are the
+    # first stones of the series standing outside the ghost.
+    gm = GHOST[(GHOST[:, 0] > 1.0) & (GHOST[:, 0] < 61.0)
+               & (GHOST[:, 1] < 30.0)]
+    gz = float(np.abs(gm[:, 2]).max())
+    print("  ghost's widest line along the nave: |z| = %.1f; pier face "
+          "at %.1f -- %.1f m proud of the drawing" % (gz,
+              Z_PIER9 + PIER9_HZ, Z_PIER9 + PIER9_HZ - gz))
+    assert Z_PIER9 + PIER9_HZ > gz
+    print("  the flyer crosses the aisle %.2f m above its roof line"
+          % (Y_SPR9 - AISLE_Y))
+    assert Y_SPR9 > AISLE_Y
+
+    # THE MERGE THEOREM, fourth appearance, worst case: the first
+    # element DEEPER than its own bay pitch.
+    dep = Z_PIER9 + PIER9_HZ - NAVE_Z
+    step = BAY5 * math.cos(math.radians(58.0))
+    reads = (dep * math.sin(math.radians(58.0))
+             + 2.0 * PIER9_HX * math.cos(math.radians(58.0)))
+    print("  at the established yaw a buttress reads %.2f m against a "
+          "%.2f m step -> overlap %.2f m, the deepest yet; ten of them "
+          "are one corridor" % (reads, step, reads - step))
+    assert reads > step
+
+    # THE STATICS.  Walk the thrust line: force (H, Vw) entering at the
+    # head, weights added as the cut moves outward, the line kept inside
+    # masonry all the way to the pier base.  Tonnes, metres, stone at
+    # 2.3 t/m3.  The masonry is one piece from intrados to coping top
+    # because the web fills the spandrel -- the first draft left it
+    # open, and this walk is what refused it.
+    rho = 2.3
+    zt = Z_PIER9 - PIER9_HZ                     # 13.8, the tail face
+    r_in, r_mid = R_SEG9 - D9, R_SEG9 - 0.5 * D9
+    K = 40
+
+    def y_chord(z):
+        return Y_HEAD9 - (z - NAVE_Z)
+
+    def y_intra(z):
+        return cy - math.sqrt(max(R_SEG9 ** 2 - (z - cz) ** 2, 0.0))
+
+    # weight per z-slab for a given flyer width: arc by its own
+    # parametrisation, web by the gap it fills, coping uniform.
+    aa = np.linspace(at, ah, 800)
+    az = cz + r_mid * np.cos(aa)
+
+    def slabs(width):
+        w_arc = (R_SEG9 * math.pi / 3.0) * D9 * width * rho
+        ab = (np.histogram(az, bins=K, range=(NAVE_Z, zt))[0]
+              / 800.0 * w_arc)
+        wb = np.zeros(K)
+        dz = (zt - NAVE_Z) / K
+        for k in range(K):
+            z = NAVE_Z + (k + 0.5) * dz
+            d2 = (z - cz) ** 2
+            yb = (cy - math.sqrt(r_in * r_in - d2) if r_in * r_in > d2
+                  else y_chord(z))
+            wb[k] = max(0.0, y_chord(z) - yb) * dz * width * rho
+        cb = R9 * D9 * width * rho / K
+        return ab + wb + cb
+
+    w_pier = (2 * PIER9_HX) * (2 * PIER9_HZ) * (Y_TOP9 - Y_BASE9) * rho
+    w_pin = (2 * PIER9_HX) * (2 * PIER9_HZ) * PIN9_H / 3.0 * rho
+    wbin = slabs(W9X)
+    w_fly = float(wbin.sum())
+    print("  weights per bay line: flyer %.1f t (arc + web + coping), "
+          "pier %.1f t, pinnacle %.1f t" % (w_fly, w_pier, w_pin))
+
+    def walk(H, Vw, y0, pin, wb):
+        if H < 1e-6:
+            return False
+        Fz, Fy = H, Vw
+        M = NAVE_Z * Fy - y0 * Fz
+        for k in range(K):
+            z1 = NAVE_Z + (zt - NAVE_Z) * (k + 1) / K
+            zm = NAVE_Z + (zt - NAVE_Z) * (k + 0.5) / K
+            Fy -= wb[k]
+            M -= zm * wb[k]
+            y = (z1 * Fy - M) / Fz
+            if not (y_intra(z1) - 0.06 <= y <= y_chord(z1) + D9 + 0.06):
+                return False
+        y_arr = (zt * Fy - M) / Fz
+        if not (Y_SPR9 - 0.5 <= y_arr <= Y_TOP9):
+            return False
+        if pin:
+            Fy -= w_pin
+            M -= Z_PIER9 * w_pin
+        nc = K_PIER9 - N_COURSE6
+        for c in range(nc):
+            Fy -= w_pier / nc
+            M -= Z_PIER9 * (w_pier / nc)
+            yc_ = Y_TOP9 - (c + 1) * COURSE3
+            z_ = (M + yc_ * Fz) / Fy
+            if not (zt - 0.05 <= z_ <= Z_PIER9 + PIER9_HZ + 0.05):
+                return False
+        return True
+
+    def feasible(H, pin, vlo, wb):
+        for Vw in np.linspace(vlo, 10.0, 81):
+            for y0 in np.linspace(Y_HEAD9, Y_HEAD9 + D9, 7):
+                if walk(H, Vw, y0, pin, wb):
+                    return True
+        return False
+
+    Hs = np.arange(0.5, 60.0, 0.25)
+
+    def find_min(pin, vlo, wb):
+        for h in Hs:
+            if feasible(h, pin, vlo, wb):
+                return float(h)
+        return float("inf")
+
+    def find_max(pin, vlo, wb):
+        for h in Hs[::-1]:
+            if feasible(h, pin, vlo, wb):
+                return float(h)
+        return 0.0
+
+    # today: no vault.  the only vertical the wall can lend the head is
+    # the spandrel standing above the contact.
+    v_spandrel = 0.5 * BAY5 * WALL8_TH * (NAVE_Y - Y_HEAD9) * rho
+    H_self = find_min(True, -v_spandrel, wbin)
+    # part X: the vault's springing weight arrives at the head too; the
+    # walk lets up to 30 t of it bear down there.  stated assumption.
+    H_max = find_max(True, -30.0, wbin)
+    H_max0 = find_max(False, -30.0, wbin)
+    # the counterfactual that sized the width: the same flyer at part
+    # VI's buttress width.
+    H_wide = find_min(True, -v_spandrel, slabs(2.0 * PIER9_HX))
+    w_strip = 0.5 * BAY5 * WALL8_TH * (NAVE_Y - Y_CAP8) * rho
+    cap_strip = w_strip * (NAVE_Z - 0.6 - (NAVE_Z - WALL8_TH)) / \
+        (Y_HEAD9 - Y_CAP8)
+    print("  today, vault-less, the flyer leans on the wall with at "
+          "least H = %.2f t; one mullion strip alone hinges at %.1f t"
+          % (H_self, cap_strip))
+    if math.isinf(H_wide):
+        print("  the width was sized by this: at the pier's own 2.3 m "
+              "there is NO thrust at which a line fits the shape -- it "
+              "cannot stand at any push.  at %.1f m it stands." % W9X)
+    else:
+        print("  the width was sized by this: at the pier's own 2.3 m "
+              "the least standing thrust is %.2f t.  at %.1f m it is "
+              "%.2f" % (H_wide, W9X, H_self))
+    print("  with the vault pushing, the system takes up to H = %.2f t "
+          "a bay before the line leaves the pier; without the pinnacle "
+          "%.2f -> the %.1f t of ballast buys %.2f t"
+          % (H_max, H_max0, w_pin, H_max - H_max0))
+    print("  PART X'S BUDGET: the vault must arrive under %.1f t a bay "
+          "(head entry on its face, up to 30 t of springing weight)"
+          % H_max)
+    assert 0.5 <= H_self <= 20.0, H_self
+    assert H_wide > 2.5 * H_self, (H_wide, H_self)
+    assert 12.0 <= H_max <= 60.0, H_max
+    assert H_max0 <= H_max + 1e-9, (H_max0, H_max)
+    assert H_self < H_max
+
+    # FRAME FACTS, wide, end of episode.
+    draw(int((X_END - 0.2) * FPS), stage)
+    m = LAST["mat"]
+    new = int(((m == M_BUT9) | (m == M_FLY9) | (m == M_COP9)).sum())
+    hits, hn = 0, 0
+    for mm in range(3, 10):
+        p = np.array([[mm * BAY5 + dx, y0, Z_PIER9 + 0.8]
+                      for dx in (-0.8, 0.0, 0.8)
+                      for y0 in (20.5, 23.0, 25.5)], np.float32)
+        c, r, _ = CAM.project(_pose(p))
+        vals = [int(m[rr, cc]) for rr, cc in zip(r, c)
+                if 0 <= rr < G.rows and 0 <= cc < G.cols]
+        if vals:
+            hn += 1
+            hits += any(v == M_BUT9 for v in vals)
+    tp = np.array([[mm * BAY5, Y_TOP9 + PIN9_H, o * Z_PIER9]
+                   for mm in (1, 10) for o in (-1.0, 1.0)], np.float32)
+    c, r, _ = CAM.project(_pose(tp))
+    print("  wide: %d new cells; pier probes %d/%d; all four corner "
+          "pinnacle tips project inside the frame" % (new, hits, hn))
+    assert new > 150, new
+    assert hn >= 5 and hits >= hn - 1, (hits, hn)
+    assert all(0 <= rr < G.rows for rr in r), r
+    assert all(0 <= cc < G.cols for cc in c), c
+
+    # SECTION FACTS, everything up.  Multi-sample, part VI's lesson.
+    draw(int(9.6 * FPS), stage)
+    m = LAST["mat"]
+    amid = 0.5 * (at + ah)
+
+    def probe(pts, mat_id):
+        c, r, _ = CAM_X9.project(_pose_x9(np.asarray(pts, np.float32)))
+        vals = [int(m[rr, cc]) for rr, cc in zip(r, c)
+                if 0 <= rr < G.rows and 0 <= cc < G.cols]
+        return vals and any(v == mat_id for v in vals)
+
+    fh, ch_, ph, pnh, tot = 0, 0, 0, 0, 0
+    for mm in (8, 9, 10):
+        x = mm * BAY5
+        tot += 1
+        fh += probe([[x + dx, cy + r_mid * math.sin(a),
+                      cz + r_mid * math.cos(a)]
+                     for dx in (-0.12, 0.0, 0.12)
+                     for a in (amid - 0.35, amid, amid + 0.35)], M_FLY9)
+        zc_ = 0.5 * (NAVE_Z + zt)
+        ch_ += probe([[x + dx, y_chord(z_) + 0.5 * D9, z_]
+                      for dx in (-0.12, 0.0, 0.12)
+                      for z_ in (zc_ - 1.0, zc_, zc_ + 1.0)], M_COP9)
+        ph += probe([[x + dx, 24.0, Z_PIER9]
+                     for dx in (-0.6, 0.0, 0.6)], M_BUT9)
+        pnh += probe([[x + dx, Y_TOP9 + 0.5, Z_PIER9]
+                      for dx in (-0.4, 0.0, 0.4)], M_BUT9)
+    print("  section probes (south flank; the north is not drawn) -- "
+          "arc %d/%d, coping %d/%d, pier %d/%d, pinnacle %d/%d"
+          % (fh, tot, ch_, tot, ph, tot, pnh, tot))
+    assert fh >= tot - 1, (fh, tot)
+    assert ch_ >= tot - 1, (ch_, tot)
+    assert ph == tot, (ph, tot)
+    assert pnh >= tot - 1, (pnh, tot)
+
+    # HELD OUT: the 45-degree chord, read back off the pixels.  Fit a
+    # line through the coping cells of one side of the frame and compare
+    # its slope with the slope the camera says a 45-degree line should
+    # project at.  Nothing about the render feeds the prediction.
+    # (First draft regressed over ALL coping cells and got slope -0.33
+    # against -1.09 predicted: three parallel copings pooled into one
+    # fit, and the cluster centres lie along the depth axis, which is
+    # nearly horizontal here.  An instrument that pools parallel lines
+    # measures the line BETWEEN them.  So: one coping, the nearest.)
+    rows_, cols_ = np.nonzero(m == M_COP9)
+    p2 = CAM_X9.project(_pose_x9(np.array(
+        [[10 * BAY5, Y_HEAD9 + 0.3, NAVE_Z],
+         [10 * BAY5, Y_SPR9 + 0.3, zt]], np.float32)))
+    cA, rA = p2[0].astype(float), p2[1].astype(float)
+    sl_pred = (rA[1] - rA[0]) / (cA[1] - cA[0])
+    b_pred = rA[0] - sl_pred * cA[0]
+    near = np.abs(rows_ - (sl_pred * cols_ + b_pred)) < 2.5
+    used = int(near.sum())
+    sl_meas = float(np.polyfit(cols_[near], rows_[near], 1)[0])
+    print("  held out: nearest coping slope %.3f rows/col over %d "
+          "cells vs %.3f predicted for 45 degrees -> ratio %.2f"
+          % (sl_meas, used, sl_pred, sl_meas / sl_pred))
+    assert used >= 25, used
+    assert 0.8 < sl_meas / sl_pred < 1.25, (sl_meas, sl_pred)
+
+    sheet = []
+    for t in (0.6, 1.4, 2.8, 4.4, 5.9, 7.9, 9.6, 10.4, 11.9):
+        fr = draw(int(t * FPS), stage)
+        ink, mat = LAST["ink"], LAST["mat"]
+        print("  t=%4.1f u=%.2f cov %.3f  ghost %5d old %5d cler %5d "
+              "but %5d fly %4d cop %4d  %s"
+              % (t, LAST["u9"], ink.mean(), (mat == M_GHOST).sum(),
+                 (mat == M_OLD).sum(), (mat == M_CLER).sum(),
+                 (mat == M_BUT9).sum(), (mat == M_FLY9).sum(),
+                 (mat == M_COP9).sum(),
+                 "close" if LAST["close"] else "wide"))
+        assert 0.02 < ink.mean() < 0.60, ink.mean()
+        for (c0b, r0b, w, h) in LAST["boxes"]:
+            assert r0b - 1 >= G.safe_top, ("text above safe", r0b)
+            assert r0b + h + 1 <= G.safe_bot, ("text below safe", r0b + h)
+            assert c0b - 1 >= 0 and c0b + w + 1 <= G.cols, ("width", c0b, w)
+        sheet.append(fr)
+
+    assert LAST["u9"] >= 1.0, LAST["u9"]
+    print("  runtime              %.1f s, %d frames  (VIII was %.1f s)"
+          % (X_END, int(X_END * FPS), W_END))
+    contact(sheet, os.path.join(_HERE, "..", "content", "cath_sheet.png"),
+            cols=3, labels=["0.6 ghost", "1.4 wide", "2.8 piers",
+                            "4.4 piers done", "5.9 the leap",
+                            "7.9 coping", "9.6 ballast", "10.4 home",
+                            "11.9 outside the line"])
+
+
 def check(stage):
+    if stage == 8:
+        return check_buttress(stage)
     if stage == 7:
         return check_clerestory(stage)
     if stage == 6:
