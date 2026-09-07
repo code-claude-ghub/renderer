@@ -71,6 +71,16 @@ LEAD = (0.475, 0.506, 0.565)   # the weather skin.  cold grey, and the
                                # colour the building's silhouette keeps
                                # for the rest of the series
 M_TIMB11, M_LEAD11 = 24, 25
+FACEST = (0.925, 0.858, 0.700) # part XII: the facade's ashlar -- fresh
+                               # from the bank, a shade lighter than the
+                               # weathered runs behind it
+ROSEST = (0.945, 0.898, 0.772) # the rose ring: the palest stone in the
+                               # building, dressed finer than anything
+                               # else because part XIII will be judged
+                               # against its rim
+M_WF12, M_BAY12, M_ROSE12 = 26, 27, 28   # part XII: the face / the
+                               # bay-0 backfill (the drawing gets built)
+                               # / the oculus ring part XIII will fill
 INNER = (0.694, 0.633, 0.506)  # stone seen through an opening: the
                                # passage's own shadow, not a new material
 
@@ -1751,7 +1761,14 @@ def _yraft11(z):
 def plates11():
     """Two wall plates the length of the nave, seated flush into the
     wall top (the top course is the seat).  West to east, both walls
-    at once."""
+    at once.
+
+    CORRECTED BY PART XII: 'the top course is the seat' was true of
+    ten bays.  The clerestory run starts at x = BAY5 (part VII's raw
+    end), so the westernmost 5.636 m of both plates -- and truss 0
+    standing on them -- had no seat at all until part XII's backfill.
+    Part XI's ledger charged eleven walls; ten existed.  See
+    check_westfront for the cantilever this sentence was hiding."""
     units = []
     n = int(round(62.0 / 1.3))
     for i in range(n):
@@ -1921,6 +1938,488 @@ def lead11():
         units.append(stone((m + 0.5) * 1.3, 46.0 - 0.5 * dy, 0.0,
                            0.66, hy, 0.22, step=0.25))
     return assemble(units), KP
+
+
+# ------------------------------------------------------------ part XII
+# THE WEST FRONT -- the building gets a face, and the series gets its
+# second confession in two episodes.
+#
+# THE DISCOVERY.  Part XI's plates run the full 62 m ("seated flush
+# into the wall top -- the top course is the seat") and its ledger
+# charged the roof to eleven bays of wall.  But the clerestory run
+# starts at x = BAY5: part VII left bay 0 raw ("no west support until
+# part XII") and parts V, VIII, IX and X all honoured the gap -- no
+# pier on line 0, no triforium, no clerestory, no flyer, no vault.
+# Part XI did not.  Its plates, truss 0, the commons over bay 0 and a
+# bay of lead all stand on a 5.636 m run of plate with NOTHING under
+# it: a 0.30 m oak beam working as a cantilever at ~35 MPa -- well
+# past any allowable stress and uncomfortably close to green oak's
+# breaking strength.  Same failure class XI found in X: two claims,
+# each checked alone, never put in one inequality.  The seat probe in
+# check_westfront returns the receipt: zero masonry points under the
+# west run, hundreds under every other bay.
+#
+# THE FIX IS THE EPISODE.  First the backfill -- bay 0 gets the four
+# storeys the drawing always promised it (engaged piers on line 0,
+# the arcade's eleventh arch, triforium, clerestory), and the plate's
+# seat exists before anything decorative happens.  Then the face:
+# 30 m wide, 46 m to the parapet, 4 m thick, three portals, and the
+# ring of an oculus whose glass is part XIII's business.  Then the
+# vault's eleventh bay -- planed from birth to part XI's cap, the
+# first web laid that never stood through the roof.  Then the west
+# boards come down: the temporary carpentry is replaced by the thing
+# it was standing in for.
+#
+# WHAT IS DERIVED AND WHAT IS CHOSEN.
+#   frozen   the slab x in [-4, 0], y in [0, 46], z in [-15, 15]
+#            (MASSES, part I).  46.0 is ALSO the roof apex: the
+#            parapet and the ridge agree because part I drew both
+#            with one number.  The tower lines z = +-5 are MASSES'
+#            tower inner edges, frozen eleven episodes before the
+#            towers go up.
+#   derived  the rose: the largest circle under the west transverse
+#            arch sits centred ON the springing line with radius
+#            (RT10 - D10T) - QT10 = 6.10 m; the tower lines allow
+#            5.00.  The towers bind.  The ring is built to the
+#            binding constraint exactly: outer radius 5.000.
+#   derived  the longitudinal thrust.  Interior bays cancel each
+#            other's push along the nave axis; the end bay does not.
+#            Walked along x (part X's instrument, rotated 90 deg),
+#            the west half-bay needs H_x ~ 19 t of westward thrust,
+#            arriving at the springing line -- and the descent line
+#            inside the face bottoms out under a metre into 4 m of
+#            stone.  The face is a buttress with three doors in it.
+#   chosen   portal spans (BAY5 centre, BAY5/2 sides), springing
+#            8.0 m, four recessed orders of 0.35 m splay, shell
+#            thickness 0.7.  Named as choices, like part XI's
+#            scantlings.
+X_F0, X_F1 = X_WEST, X_NAVE        # -4 .. 0 -- the frozen slab
+ZTOW12 = 5.0                       # the tower lines: MASSES puts the
+                                   # tower inner faces at |z| = 5
+R_ROSE12 = ZTOW12                  # ring outer radius = the line the
+                                   # towers will stand on.  exactly.
+RD12 = D10T                        # ring depth 0.700: the transverse
+                                   # arch's own voussoir depth -- the
+                                   # rose ring is that arch bent into
+                                   # a circle
+RI_ROSE12 = R_ROSE12 - RD12        # 4.300 -- the clear light
+R_ARCH12 = (RT10 - D10T) - QT10    # 6.100 -- what the arch alone
+                                   # would allow (never built; printed)
+YC_ROSE12 = Y_SPR10                # 33.04 -- the largest circle under
+                                   # a two-centred arch is centred ON
+                                   # the springing line (see check)
+W_PORTC12 = BAY5                   # central portal clear span.  CHOSEN
+W_PORTS12 = 0.5 * BAY5             # side portal clear span.  CHOSEN
+Z_PORTS12 = 0.5 * (ZTOW12 + AISLE_Z)   # 10.0 -- side doors on the
+                                   # tower field centrelines
+Y_SPRP12 = 8.0                     # portal springing height.  CHOSEN
+N_ORD12 = 4                        # recessed orders through the west
+                                   # face
+SPL12 = 0.35                       # splay per order.  CHOSEN
+SH_W12 = 0.70                      # shell thickness (SKIN_TH again)
+K_TOP12 = 58                       # last full course: Y_FOOT + 58 *
+                                   # COURSE3 = 45.62
+Y_TOPC12 = Y_FOOT + K_TOP12 * COURSE3
+COPE12 = 46.0 - Y_TOPC12           # 0.38 -- the coping is dressed to
+                                   # part I's line, not to the grid
+Y_ROSE_SILL12 = YC_ROSE12 - R_ROSE12       # 28.04 -- wall pauses here
+Y_ROSE_TOP12 = YC_ROSE12 + R_ROSE12        # 38.04
+
+
+def _halfw_arch12(dy, s):
+    """Clear half-width of a two-centred arch of span s at height dy
+    above its springing (the chord of the intrados)."""
+    if dy <= 0.0:
+        return 0.5 * s
+    if dy * dy >= s * s:
+        return 0.0
+    return math.sqrt(s * s - dy * dy) - 0.5 * s
+
+
+def _holes12(y, west):
+    """The cut intervals (z0, z1) a facade course at height y must
+    honour: three portals (outer splayed span on the west shell,
+    clear span on the east) and the rose at its ring radius.  Stones
+    are dressed AT these lines -- part VI's jamb lesson, applied to
+    two verticals and a circle."""
+    cuts = []
+    grow = SPL12 * N_ORD12 if west else 0.0
+    for zc, w in ((0.0, W_PORTC12), (-Z_PORTS12, W_PORTS12),
+                  (Z_PORTS12, W_PORTS12)):
+        s = w + 2.0 * grow
+        h = (0.5 * s if y <= Y_SPRP12
+             else _halfw_arch12(y - Y_SPRP12, s))
+        if h > 0.0:
+            cuts.append((zc - h, zc + h))
+    d2 = R_ROSE12 ** 2 - (y - YC_ROSE12) ** 2
+    if d2 > 0.0:
+        h = math.sqrt(d2)
+        cuts.append((-h, h))
+    return cuts
+
+
+def _face_row12(units, y, hy, xc, hx, west, mat_note=None):
+    """One course of one shell, cut at the holes."""
+    cuts = sorted(_holes12(y, west))
+    segs, z0 = [], -AISLE_Z
+    for (a, b) in cuts:
+        if a > z0:
+            segs.append((z0, a))
+        z0 = max(z0, b)
+    if z0 < AISLE_Z:
+        segs.append((z0, AISLE_Z))
+    for (a, b) in segs:
+        n = max(1, int(round((b - a) / 1.35)))
+        w = (b - a) / n
+        for i in range(n):
+            units.append(stone(xc, y, a + (i + 0.5) * w,
+                               hx, hy, 0.47 * w))
+
+
+def face12(k0, k1, coping=False):
+    """Facade courses k0..k1 (on the crypt's grid, like every wall
+    since part II): west shell, east shell, tower-line strips and the
+    corner buttresses, cut at the portals and the rose.  Course
+    outer, position inner -- part IX's stall lesson."""
+    units = []
+    hh = COURSE3 * 0.43
+    for c in range(k0, k1):
+        y = Y_FOOT + (c + 0.5) * COURSE3
+        _face_row12(units, y, hh, X_F0 + 0.5 * SH_W12, 0.5 * SH_W12,
+                    True)
+        _face_row12(units, y, hh, X_F1 - 0.5 * SH_W12, 0.5 * SH_W12,
+                    False)
+        # tower-line strips and corner buttresses: 0.6 m proud of the
+        # west face, pier-wide, announcing part XIV's inner edges
+        for zc in (-ZTOW12, ZTOW12, -(AISLE_Z - 0.6), AISLE_Z - 0.6):
+            units.append(stone(X_F0 - 0.30, y, zc,
+                               0.30, hh, 0.5 * PIER5_HW))
+    if coping:
+        # dressed to part I's line: the one course that is not a
+        # course, 0.38 m to make the parapet EXACTLY the number the
+        # ridge was built to
+        n = int(round(2.0 * AISLE_Z / 1.1))
+        for i in range(n):
+            z = -AISLE_Z + (i + 0.5) / n * 2.0 * AISLE_Z
+            units.append(stone(0.5 * (X_F0 + X_F1),
+                               0.5 * (Y_TOPC12 + 46.0), z,
+                               0.5 * (X_F1 - X_F0) + 0.15,
+                               0.5 * COPE12, 0.47 * 2.0 * AISLE_Z / n))
+    return assemble(units), k1 - k0
+
+
+def _archz12(za, zb, y0, xc, hx, hz, hy, n):
+    """_arch7 turned through 90 degrees: a two-centred arch spanning
+    z instead of x, voussoirs from both springings inward, keystone
+    last."""
+    s = zb - za
+    units = []
+    for i in range(n):
+        th = (i + 0.5) / n * (math.pi / 3.0)
+        for left in (True, False):
+            z = zb - s * math.cos(th) if left else za + s * math.cos(th)
+            units.append(stone(xc, y0 + s * math.sin(th), z, hx, hy, hz))
+    units.append(stone(xc, y0 + 0.5 * math.sqrt(3.0) * s, 0.5 * (za + zb),
+                       hx, hy, hz))
+    return units
+
+
+def pjambs12():
+    """The portal jambs: for each door, the four orders' jamb columns
+    on the west face plus the straight reveal walls running the rest
+    of the depth.  Bottom up, all three doors at once."""
+    units = []
+    nc = int(round((Y_SPRP12 - Y_FOOT) / COURSE3))
+    for c in range(nc):
+        y = Y_FOOT + (c + 0.5) * COURSE3
+        for zc, w in ((0.0, W_PORTC12), (-Z_PORTS12, W_PORTS12),
+                      (Z_PORTS12, W_PORTS12)):
+            for j in range(N_ORD12):
+                x = X_F0 + (j + 0.5) * SPL12
+                h = 0.5 * w + SPL12 * (N_ORD12 - j)
+                for o in (-1.0, 1.0):
+                    units.append(stone(x, y, zc + o * (h - 0.5 * SPL12),
+                                       0.5 * SPL12, COURSE3 * 0.43,
+                                       0.5 * SPL12))
+            # the straight reveal behind the orders, clear span
+            xr = 0.5 * (X_F0 + N_ORD12 * SPL12 + X_F1)
+            hr = 0.5 * (X_F1 - X_F0 - N_ORD12 * SPL12)
+            for o in (-1.0, 1.0):
+                units.append(stone(xr, y, zc + o * (0.5 * w + 0.10),
+                                   hr, COURSE3 * 0.43, 0.10))
+    return assemble(units), nc
+
+
+def parch12():
+    """The portal heads: four stepped orders per door on the west
+    face and the deep reveal arch behind them, all equilateral --
+    part V's arch, the family every arch in this building except the
+    diagonals belongs to.  Doors rise together, orders outer-first
+    (the outermost ring is the first a visitor's eye meets and the
+    last a mason strikes centering from)."""
+    units = []
+    for j in range(N_ORD12):
+        x = X_F0 + (j + 0.5) * SPL12
+        for zc, w in ((0.0, W_PORTC12), (-Z_PORTS12, W_PORTS12),
+                      (Z_PORTS12, W_PORTS12)):
+            s = 0.5 * w + SPL12 * (N_ORD12 - j)
+            units += _archz12(zc - s, zc + s, Y_SPRP12, x,
+                              0.5 * SPL12, 0.28, 0.16,
+                              8 if w > 4.0 else 5)
+    xr = 0.5 * (X_F0 + N_ORD12 * SPL12 + X_F1)
+    hr = 0.5 * (X_F1 - X_F0 - N_ORD12 * SPL12)
+    for zc, w in ((0.0, W_PORTC12), (-Z_PORTS12, W_PORTS12),
+                  (Z_PORTS12, W_PORTS12)):
+        units += _archz12(zc - 0.5 * w - 0.10, zc + 0.5 * w + 0.10,
+                          Y_SPRP12, xr, hr, 0.10, 0.16,
+                          9 if w > 4.0 else 6)
+    return assemble(units), N_ORD12
+
+
+def rose12():
+    """The ring: the transverse arch's voussoir depth bent into a
+    full circle, outer radius EXACTLY the tower line.  Laid from six
+    o'clock both ways at once, keystone at twelve -- a circle is the
+    one arch that is all haunch, and it is laid in the order any arch
+    is.  Full-depth voussoirs: the ring is a 4 m barrel, the tube the
+    light will use."""
+    units = []
+    r_mid = R_ROSE12 - 0.5 * RD12
+    n = int(round(2.0 * math.pi * r_mid / 0.62))
+    if n % 2 == 1:
+        n += 1
+    for i in range(n // 2):
+        th = (i + 0.5) / (n // 2) * math.pi
+        for o in (-1.0, 1.0):
+            z = o * r_mid * math.sin(th)
+            y = YC_ROSE12 - r_mid * math.cos(th)
+            units.append(stone(0.5 * (X_F0 + X_F1), y, z,
+                               0.5 * (X_F1 - X_F0), 0.52 * RD12,
+                               0.52 * RD12, step=0.35))
+    return assemble(units), n
+
+
+def wfpiers12():
+    """Line 0's piers at last: part V left k = 0 out on purpose --
+    'engaged in the west front' -- and this is the front.  Same
+    course loop as nave_piers, jitter and all, hard against the east
+    shell."""
+    units = []
+    for c in range(N_COURSE5):
+        hw = PIER5_HW * (1.22 if (c < 2 or c == N_COURSE5 - 1) else 1.0)
+        y = Y_FOOT + (c + 0.5) * COURSE3
+        for z in (-NAVE_Z, NAVE_Z):
+            j = RNG.uniform(-0.025, 0.025, 2)
+            units.append(stone(0.0 + j[0], y, z + j[1],
+                               hw, COURSE3 * 0.43, hw))
+    return assemble(units), N_COURSE5
+
+
+def wfarc12():
+    """The arcade's eleventh arch (both rows) and its spandrel: the
+    run parts V and VII built east of it, finished to the face."""
+    units = []
+    for zc in (-NAVE_Z, NAVE_Z):
+        units += _arch7(0.0, BAY5, Y_CAP5, zc, PIER5_HW, 0.30, 0.16, 10)
+    n = int(round(BAY5 / 0.9))
+    w = BAY5 / n
+    for i in range(n):
+        x = BAY5 - (i + 0.5) * w
+        dy = _intr(x, 0.0, BAY5)
+        y0 = Y_CAP5 + (dy + RING5 if dy > 0.05 else 0.0)
+        if Y_SPAN_TOP - y0 < 0.08:
+            continue
+        for zc in (-NAVE_Z, NAVE_Z):
+            units.append(stone(x, 0.5 * (y0 + Y_SPAN_TOP), zc,
+                               0.47 * w, 0.5 * (Y_SPAN_TOP - y0),
+                               PIER5_HW))
+    return assemble(units), n
+
+
+def wftrif12():
+    """Bay 0's triforium: sill, back skin, four colonnette lines,
+    four screen arches a side, screen fill -- part VII's storey,
+    closed out to the face at the same scale it was built at."""
+    units = []
+    n = max(1, int(round(BAY5 / 1.9)))
+    w = BAY5 / n
+    for i in range(n):
+        x = BAY5 - (i + 0.5) * w
+        for zc in (-NAVE_Z, NAVE_Z):
+            units.append(stone(x, Y_SPAN_TOP + 0.5 * COURSE3, zc,
+                               0.47 * w, COURSE3 * 0.43, PIER5_HW))
+    nc = K_TOP7 - 23
+    ns = max(1, int(round(BAY5 / 2.0)))
+    ws = BAY5 / ns
+    for c in range(nc):
+        y = Y_SILL7 + (c + 0.5) * COURSE3
+        for i in range(ns):
+            x = BAY5 - ((i + 0.5 + 0.5 * (c % 2)) % ns) * ws
+            for o in (-1.0, 1.0):
+                units.append(stone(x, y, o * Z_SKIN,
+                                   0.47 * ws, COURSE3 * 0.43,
+                                   0.5 * SKIN_TH))
+    b = 0.20
+    for m in range(3, -1, -1):
+        x = m * SPAN_T
+        for o in (-1.0, 1.0):
+            zc = o * Z_SCREEN
+            units.append(stone(x, Y_SILL7 + 0.5 * b, zc,
+                               0.24, 0.5 * b, 0.5 * SCREEN_TH))
+            units.append(stone(x, 0.5 * (Y_SILL7 + Y_SHAFT_TOP), zc,
+                               0.16, 0.5 * (SHAFT_T - 2 * b), 0.16))
+            units.append(stone(x, Y_SHAFT_TOP - 0.5 * b, zc,
+                               0.24, 0.5 * b, 0.5 * SCREEN_TH))
+    for m in range(3, -1, -1):
+        xa = m * SPAN_T
+        for o in (-1.0, 1.0):
+            units += _arch7(xa, xa + SPAN_T, Y_SHAFT_TOP, o * Z_SCREEN,
+                            0.5 * SCREEN_TH, 0.10, 0.075, 4)
+    nf = int(round(BAY5 / 0.55))
+    wf = BAY5 / nf
+    for i in range(nf):
+        x = BAY5 - (i + 0.5) * wf
+        m = min(3, max(0, int(x // SPAN_T)))
+        dy = _intr(x, m * SPAN_T, (m + 1) * SPAN_T)
+        y0 = Y_SHAFT_TOP + (dy + RING_T if dy > 0.02 else 0.0)
+        if Y_TOP7 - y0 < 0.08:
+            continue
+        for o in (-1.0, 1.0):
+            units.append(stone(x, 0.5 * (y0 + Y_TOP7), o * Z_SCREEN,
+                               0.47 * wf, 0.5 * (Y_TOP7 - y0),
+                               0.5 * SCREEN_TH))
+    return assemble(units), 4
+
+
+def wfcler12():
+    """Bay 0's clerestory: the cap course, the two half-strips the
+    raw end never got, window 0 between the quarter-bay lines, its
+    head and spandrel -- and at course 45 the plates finally have
+    their eleventh seat.  This element IS the fix."""
+    units = []
+    n = max(1, int(round(BAY5 / 1.9)))
+    w = BAY5 / n
+    for i in range(n):
+        x = BAY5 - (i + 0.5) * w
+        for zc in (-NAVE_Z, NAVE_Z):
+            units.append(stone(x, Y_TOP7 + 0.5 * COURSE3, zc,
+                               0.47 * w, COURSE3 * 0.43, PIER5_HW))
+    hh = COURSE3 / 2.0
+    xa0, xb0 = _jambs8(0)
+    strips = [(0.0, xa0), (xb0, BAY5)]
+    for c in range(K_CAP8, K_TOP8):
+        y = Y_FOOT + (2 * c + 1) * hh
+        for (a, b) in reversed(strips):
+            ns = max(1, int(round((b - a) / 1.35)))
+            ws = (b - a) / ns
+            for i in range(ns + 1):
+                x0 = a + (i - 0.5 * ((c - K_CAP8) % 2)) * ws
+                x1 = min(b, x0 + ws)
+                x0 = max(a, x0)
+                if x1 - x0 < 0.10:
+                    continue
+                for o in (-1.0, 1.0):
+                    units.append(stone(0.5 * (x0 + x1), y, o * Z_WALL8,
+                                       0.47 * (x1 - x0), hh * 0.86,
+                                       0.5 * WALL8_TH))
+    for o in (-1.0, 1.0):
+        units += _arch7(xa0, xb0, Y_SPRING8, o * Z_WALL8,
+                        0.5 * WALL8_TH, 0.21, 0.08, 7)
+    ns = int(round((xb0 - xa0) / 0.52))
+    ws = (xb0 - xa0) / ns
+    for i in range(ns):
+        x = xb0 - (i + 0.5) * ws
+        y0 = Y_SPRING8 + _intr(x, xa0, xb0) + RING8
+        if Y_TOP8 - y0 < 0.08:
+            continue
+        for o in (-1.0, 1.0):
+            units.append(stone(x, 0.5 * (y0 + Y_TOP8), o * Z_WALL8,
+                               0.47 * ws, 0.5 * (Y_TOP8 - y0),
+                               0.5 * WALL8_TH))
+    return assemble(units), K_TOP8 - K_CAP8
+
+
+def vault12():
+    """The vault's eleventh bay, planed FROM BIRTH: the first web in
+    this building whose ridges were never level, laid to part XI's
+    cap with no act one needed.  West transverse arch flush against
+    the face (the facade is its abutment by construction), diagonals,
+    planed wall ribs, the boss, then the web courses on _y11.  Ribs
+    before web, always."""
+    units = []
+    # the transverse arch on line 0, half-bedded into the east shell
+    phimax = math.atan2(RHO10, QT10)
+    nt = int(round(RT10 * phimax / 0.62))
+    r_mid = RT10 - 0.5 * D10T
+    for i in range(nt):
+        phi = (i + 0.5) / nt * phimax
+        for o in (-1.0, 1.0):
+            units.append(stone(0.0, Y_SPR10 + r_mid * math.sin(phi),
+                               o * (r_mid * math.cos(phi) - QT10),
+                               0.48 * W9X, 0.52 * D10T, 0.52 * D10T))
+    # diagonals of bay 0
+    nd = int(round(math.pi * RHO10 / 0.66))
+    if nd % 2 == 0:
+        nd += 1
+    A = math.atan2(2.0 * S10, BAY5)
+    r_md = RHO10 - 0.5 * D10D
+    for l in range(nd // 2):
+        for sg in (-1.0, 1.0):
+            for e in (l, nd - 1 - l):
+                th = (e + 0.5) / nd * math.pi
+                dd = r_md * math.cos(th)
+                units.append(stone(0.5 * BAY5 + dd * BAY5 / (2.0 * RHO10),
+                                   Y_SPR10 + r_md * math.sin(th),
+                                   sg * dd * S10 / RHO10,
+                                   0.31, 0.52 * D10D, 0.45 * W9X,
+                                   ang=-sg * A))
+    # planed wall ribs (part XI's profile, first time built new)
+    psimax = math.atan2(RISE_W11, QW11)
+    nw = max(4, int(round(RW11 * psimax / 0.66)))
+    r_mw = RW11 - 0.5 * D10W
+    for i in range(nw):
+        psi = (i + 0.5) / nw * psimax
+        for o in (-1.0, 1.0):
+            for h in (-1.0, 1.0):
+                units.append(stone(0.5 * BAY5
+                                   + h * (r_mw * math.cos(psi) - QW11),
+                                   Y_SPR10 + r_mw * math.sin(psi),
+                                   o * (S10 - 0.5 * D10W),
+                                   0.33, 0.55 * D10W, 0.55 * D10W))
+    # the boss
+    units.append(stone(0.5 * BAY5, Y_SPR10 + RHO10 - 0.5 * D10D, 0.0,
+                       0.50, 0.45, 0.50))
+    ribs = assemble(units)
+    # the web, on the PLANED surface -- its own element and material,
+    # laid after every rib is closed
+    units = []
+    KW = 16
+    for l in range(KW):
+        t = 1.0 - (l + 0.5) / KW
+        tn = max(0.02, t - 1.0 / KW)
+        half = 0.90 * t * SB10
+        ns = max(2, int(round(2.0 * half / 0.72)))
+        for i in range(ns):
+            dxi = -half + (i + 0.5) / ns * 2.0 * half
+            y = _y11(SB10 + dxi, t * S10)
+            yn = _y11(SB10 + dxi * tn / t, tn * S10)
+            hy = 0.55 * max(TW10, abs(yn - y))
+            for o in (-1.0, 1.0):
+                units.append(stone(SB10 + dxi, y + 0.5 * TW10,
+                                   o * t * S10,
+                                   0.55 * 2.0 * half / ns, hy, 0.30))
+        zh = 0.90 * t * S10
+        ns = max(2, int(round(2.0 * zh / 0.72)))
+        for i in range(ns):
+            z = -zh + (i + 0.5) / ns * 2.0 * zh
+            for h in (-1.0, 1.0):
+                xi = SB10 + h * t * SB10
+                y = _y11(xi, z)
+                yn = _y11(SB10 + h * tn * SB10, z * tn / t)
+                hy = 0.55 * max(TW10, abs(yn - y))
+                units.append(stone(xi, y + 0.5 * TW10, z,
+                                   0.30, hy, 0.55 * 2.0 * zh / ns))
+    return ribs, assemble(units), KW
 
 
 # ---------------------------------------------------------------- stages
@@ -2493,6 +2992,80 @@ _x11pad[:, 1] = _X11_PTS[:, 1].min() - 5.0     # caption reserve: a
 CAM_X11 = Camera(G).fit([_pose_x9(np.vstack([_X11_PTS, _x11pad]))],
                         margin=1.05)
 
+# --- part XII
+K_A12 = int(round((Y_ROSE_SILL12 - Y_FOOT) / COURSE3))         # 34
+K_B12 = 51                          # courses to y 40.44, over the ring
+(WFP12, N_WFP12) = wfpiers12()
+(WFA12, N_WFA12) = wfarc12()
+(WFT12, N_WFT12) = wftrif12()
+(WFC12, N_WFC12) = wfcler12()
+(FACEA12, N_FA12) = face12(0, K_A12)
+(FACEB12, N_FB12) = face12(K_A12, K_B12)
+(FACEC12, N_FC12) = face12(K_B12, K_TOP12, coping=True)
+(PJ12, N_PJ12) = pjambs12()
+(PA12, N_PA12) = parch12()
+(RING12, N_RING12) = rose12()
+(VR12, VW12, N_VW12) = vault12()
+
+# the west boards come down; the east gable stays (it waits for the
+# crossing tower).  Split by position, drawn with part XI's reversed
+# clock: last plank up, first plank down.
+_gbw = GABLE11[0][:, 0] < 30.0
+GBW12 = (GABLE11[0][_gbw], GABLE11[1][_gbw], GABLE11[2][_gbw])
+GBE12 = (GABLE11[0][~_gbw], GABLE11[1][~_gbw], GABLE11[2][~_gbw])
+
+# Part X's vault -- and part XI's act-one rebuild of it -- joins the
+# legacy pile: the burial probes closed last episode.  Its two
+# materials pass to the ONE bay that was always missing, because this
+# episode's checks have to find a rib and a web cell that are new.
+# Part XI's carpentry and lead keep their own materials one more
+# episode: the discovery is about what the roof stands on, and the
+# probes have to find the roof to prove it is still there while the
+# wall arrives underneath it.
+_LEG12_P = np.vstack([_LEG11_P, TARCH10[0], DIAG10[0], BOSS10[0],
+                      WEB11_KEEP[0], REWEB11[0],
+                      WRIB11[0]]).astype(np.float32)
+_LEG12_N = np.vstack([_LEG11_N, TARCH10[1], DIAG10[1], BOSS10[1],
+                      WEB11_KEEP[1], REWEB11[1],
+                      WRIB11[1]]).astype(np.float32)
+
+_R11_STAND = ((PLATE11, M_TIMB11), (RAFT11, M_TIMB11), (TIE11, M_TIMB11),
+              (POST11, M_TIMB11), (COMM11, M_TIMB11),
+              (RIDGE11, M_TIMB11), (LATH11, M_TIMB11),
+              (LEADS11, M_LEAD11))
+
+# THE ELEVATION -- the third drawing, after part VII's section and
+# part IV's plan.  Forced, not chosen: the episode's subject is a
+# composition ON A PLANE whose normal points west, and the fixed view
+# reads that plane at a grazing angle -- 30 m of face crossing about
+# 25 columns, a 10 m rose crossing eight.  Visible but unresolvable,
+# part VII's phrase, and check_westfront derives the number.  Angles:
+# dead frontal (-90, the axis part IX's section already used, without
+# part VII's borrowed lean -- an elevation has no lean by definition)
+# at part VII's own 8 degrees of pitch.  One new decision: the zero.
+E_YAW12, E_PITCH12 = 90.0, T_PITCH7   # +90: the probe said -90 puts
+                                   # the camera INSIDE the choir looking
+                                   # west -- part VI's lesson, again: ask
+                                   # the frame which side the camera is on
+
+
+def _pose_w12(p):
+    return _pose_at(p, E_YAW12, E_PITCH12)
+
+
+_W12_PTS = np.vstack([FACEA12[0], FACEB12[0], FACEC12[0], RING12[0],
+                      PA12[0]]).astype(np.float32)
+_w12pad = _W12_PTS.copy()
+_w12pad[:, 1] = _W12_PTS[:, 1].min() - 11.0    # caption reserve: this
+                                   # frame is ground to parapet, so it
+                                   # takes part IX's ground-to-roof pad.
+                                   # The ghost's towers leave the top of
+                                   # the picture the way the ground left
+                                   # part X's: nothing this episode
+                                   # happens up there.
+CAM_W12 = Camera(G).fit([_pose_w12(np.vstack([_W12_PTS, _w12pad]))],
+                        margin=1.05)
+
 
 # ---------------------------------------------------------------- timeline
 T_GHOST, T_HOLD, T_DIG, T_LAY, T_END = 1.5, 2.4, 3.6, 9.9, 12.4
@@ -2646,8 +3219,40 @@ R_LEAD = (12.1, 14.1)
 R_BACK = 14.6
 R_END = 16.0
 
+# part XII.  The fix first (part VIII's lesson: keeping a promise is a
+# build step, so schedule it first) -- and it happens in the ELEVATION,
+# because the wide frame was asked and returned ten cells: bay 0 is
+# five columns of a 62 m flank at the established yaw.  From dead west
+# the unfinished front is something the series has never shown and
+# will never show again: the open nave, straight down the axis, piers
+# marching east -- and the episode spends its first half building the
+# four storeys that close bay 0 (the plate gets its seat) while that
+# view slowly stops existing.  Then the face: shells and jambs, three
+# archivolt sets, wall to the rose sill; the ring, six o'clock both
+# ways, keystone at noon; the vault's eleventh bay rises FULLY VISIBLE
+# over the paused wall crest; the west boards come down against open
+# sky; the wall wraps the ring and buries the vault it just built;
+# the coping is dressed to part I's line.  Home: a face.
+S_GHOST12 = 0.9
+S_CUT12 = 1.5
+S_PIER12 = (1.6, 2.4)
+S_ARC12 = (2.4, 3.0)
+S_TRIF12 = (3.0, 3.9)
+S_CLER12 = (3.9, 4.8)              # course 45 arrives: the seat exists
+S_JAMB12 = (4.9, 6.0)
+S_LOW12 = (4.9, 8.6)
+S_PORT12 = (6.0, 7.1)
+S_RING12 = (8.8, 10.2)
+S_VLT12 = (10.2, 11.0)             # ribs over the open crest...
+S_WEB12 = (11.0, 11.9)             # ...then the web, as always
+S_BRD12 = (11.9, 12.9)             # the boards, against open sky
+S_MID12 = (12.9, 14.5)             # the wall wraps ring and vault
+S_TOP12 = (14.5, 15.5)
+S_BACK12 = 15.8
+S_END12 = 16.9
+
 T_ENDS = [T_END, C_END, H_END, Q_END, P_END, A_END, V_END, W_END, X_END,
-          Z_END, R_END]
+          Z_END, R_END, S_END12]
 LAST = {}
 
 
@@ -2687,7 +3292,7 @@ def draw(f, stage):
     return (draw_foundation, draw_crypt, draw_choir, draw_transept,
             draw_nave, draw_aisles, draw_triforium,
             draw_clerestory, draw_buttress, draw_vault,
-            draw_roof)[stage](f, stage)
+            draw_roof, draw_westfront)[stage](f, stage)
 
 
 def _label(fr, t, stage, t0=0.8):
@@ -3340,6 +3945,75 @@ def draw_roof(f, stage):
     return fr
 
 
+def draw_westfront(f, stage):
+    """Part XII.  Open wide on the raw west end for the last time;
+    the backfill closes it (the plate gets its seat) and the frame
+    cuts to the ELEVATION -- the drawing the building has been
+    waiting to be.  Shells and jambs, three archivolt sets, the wall
+    to the rose sill, the ring, the wall around the ring, the
+    eleventh bay of vault behind it, the west boards down, and the
+    coping dressed to 46.0 exactly.  Home: a face."""
+    t = f / float(FPS)
+    close = S_CUT12 <= t < S_BACK12
+    cam = CAM_W12 if close else CAM
+    pose = _pose_w12 if close else _pose
+    buf = {"sh": np.zeros((G.rows, G.cols)),
+           "mat": np.zeros((G.rows, G.cols), np.int16),
+           "z": np.full((G.rows, G.cols), -1e9)}
+
+    gfade = min(1.0, t / S_GHOST12)
+    n = int(len(GHOST) * gfade) if not close else len(GHOST)
+    if n > 8:
+        col, row, z = cam.project(pose(GHOST[:n]))
+        lift = 1.0 + 0.55 * min(1.0, max(0.0, (t - S_TOP12[1] - 0.2)
+                                         / 1.1))
+        sh = ((0.20 + 0.34 * depth_cue(z, 1.0, 0.30))
+              * (0.72 + 0.28 * gfade) * lift)
+        _put(buf, col, row, z + 4000.0, sh, M_GHOST, False)
+
+    # parts I to XI's masonry, standing, at the level part III set.
+    col, row, z = cam.project(pose(_LEG12_P))
+    sh = (0.17 + 0.44 * lambert(_LEG12_N, LAMP)) * depth_cue(z, 1.0, 0.86)
+    _put7(buf, col, row, z, np.clip(sh, 0.05, 1.0),
+          np.full(len(z), M_OLD, np.int16))
+
+    # part XI's roof, standing, own materials: the thing the
+    # discovery is about, overhead the whole episode.
+    for part, mat in _R11_STAND:
+        _grow7(buf, part, 1.0, mat, LAMP, 0.17, 0.44, cam, pose)
+
+    def win(w):
+        return (t - w[0]) / (w[1] - w[0])
+
+    # the west boards: standing until their clock reverses.
+    u_brd = min(1.0, max(0.0, win(S_BRD12)))
+    _grow7(buf, GBW12, 1.0 - 1.05 * u_brd, M_TIMB11, LAMP, 0.17, 0.44,
+           cam, pose)
+    _grow7(buf, GBE12, 1.0, M_TIMB11, LAMP, 0.17, 0.44, cam, pose)
+
+    # the fix, then the face.
+    for part, w, mat in ((WFP12, S_PIER12, M_BAY12),
+                         (WFA12, S_ARC12, M_BAY12),
+                         (WFT12, S_TRIF12, M_BAY12),
+                         (WFC12, S_CLER12, M_BAY12),
+                         (FACEA12, S_LOW12, M_WF12),
+                         (PJ12, S_JAMB12, M_WF12),
+                         (PA12, S_PORT12, M_WF12),
+                         (RING12, S_RING12, M_ROSE12),
+                         (FACEB12, S_MID12, M_WF12),
+                         (VR12, S_VLT12, M_RIB10),
+                         (VW12, S_WEB12, M_WEB10),
+                         (FACEC12, S_TOP12, M_WF12)):
+        _grow7(buf, part, win(w), mat, LAMP, 0.26, 0.72, cam, pose)
+
+    LAST["u12"] = min(1.0, max(0.0, win(S_TOP12)))
+    LAST["close"] = close
+
+    fr = _paint(buf)
+    _label(fr, t, stage)
+    return fr
+
+
 def draw_foundation(f, stage):
     t = f / float(FPS)
     buf = {"sh": np.zeros((G.rows, G.cols)),
@@ -3408,7 +4082,8 @@ def colour(v, m):
             M_TRIFB: INNER, M_CAP8: STONE, M_CLER: STONE,
             M_BUT9: STONE, M_FLY9: STONE, M_COP9: STONE,
             M_RIB10: STONE, M_WEB10: STONE,
-            M_TIMB11: OAK, M_LEAD11: LEAD}[int(m)]
+            M_TIMB11: OAK, M_LEAD11: LEAD,
+            M_WF12: FACEST, M_BAY12: STONE, M_ROSE12: ROSEST}[int(m)]
     t = np.clip(0.22 + 0.78 * v, 0.0, 1.0)
     return blend(BG, base, t)
 
@@ -5635,7 +6310,13 @@ def check_roof(stage):
           % (w_timber, w_lead, w_roof, N_BAY5, A_deck))
     assert 90.0 < w_roof < 160.0, w_roof
     w_bay_side = w_roof / N_BAY5 / 2.0
-    print("  the wall top receives %.2f t a bay a flank" % w_bay_side)
+    # CORRECTED BY PART XII: this line used to imply eleven bays of
+    # wall each receive their share.  Ten walls existed when part XI
+    # shipped -- the clerestory stops at x = BAY5 -- so bay 0's share
+    # reached no wall at all.  The number is right; the sentence was
+    # not.  See check_westfront for what actually carried it.
+    print("  the wall top receives %.2f t a bay a flank -- see part "
+          "XII for the bay with no wall" % w_bay_side)
 
     # THE THRUST FAMILY.  A rafter pair with a raised tie is one
     # equation short of determinate: the closure splits between the
@@ -6035,7 +6716,364 @@ def check_roof(stage):
                             "15.8 grey forever"])
 
 
+def check_westfront(stage):
+    print("THE CATHEDRAL — part %s, %s" % (roman(stage + 1), STAGES[stage]))
+    print("  the face: %.0f x %.0f x %.0f m, three doors, one ring; "
+          "and the eleventh bay of everything"
+          % (2 * AISLE_Z, 46.0, X_F1 - X_F0))
+
+    # RULE 1.  The established view has not drifted.
+    d = np.abs(_pose_at(GHOST, -58.0, 28.0) - _pose(GHOST)).max()
+    print("  established view unchanged: max disagreement %.2e m" % d)
+    assert d < 1e-3, d
+
+    # THE DISCOVERY.  Part XI's plates run 0..62 ('the top course is
+    # the seat') and its ledger charged eleven bays of wall.  The
+    # clerestory run starts at BAY5.  Probe the MODEL for masonry
+    # under the plate line, bay 0 vs bay 1 -- points, not pixels, so
+    # occlusion cannot argue (part XI's negative-probe lesson).
+    _mas = np.vstack([s[0] for s in
+                      (PIERS5, WALL6, ARCH7, SPAN7, SILL7, SKIN7, COL7,
+                       SARC7, FILL7, CAP8, STRIP8, WARC8, SPAN8, PIER9,
+                       FLY9, COP9, PIN9, TARCH10, DIAG10, BOSS10,
+                       WEB10)])
+
+    def _seat(x0, x1, pts):
+        return int(((pts[:, 0] > x0) & (pts[:, 0] < x1)
+                    & (np.abs(np.abs(pts[:, 2]) - Z_PLATE11) < 0.8)
+                    & (pts[:, 1] > 34.0) & (pts[:, 1] < NAVE_Y)).sum())
+
+    s0 = _seat(0.5, BAY5 - 1.0, _mas)
+    s1 = _seat(BAY5 + 0.5, 2 * BAY5 - 1.0, _mas)
+    print("  THE SEAT PROBE: masonry under the plate line, y 34..36 -- "
+          "bay 1: %d points.  bay 0: %d.  part XI's plate docstring "
+          "said 'the top course is the seat'; for the westernmost "
+          "%.3f m there was no course" % (s1, s0, BAY5))
+    assert s0 == 0, s0
+    assert s1 > 300, s1
+
+    # what that meant, in oak: the west run worked as a cantilever.
+    # Rebuild part XI's weight the way check_roof does, then load the
+    # unsupported run with its tributary share.
+    # (part XI's ledger, rebuilt verbatim -- part X's precedent:
+    # recompute the number you are correcting, never quote yourself.)
+    rho_oak, rho_lead, rho = 0.80, 11.34, 2.3
+    L_raft = Z_PLATE11 / math.cos(THETA11)
+    L_deck = NAVE_Z / math.cos(THETA11)
+    w_truss = (2 * L_raft + 2 * ZT11 + (46.0 - Y_TIE11)) \
+        * SC11 ** 2 * rho_oak
+    w_comm = (2 * L_raft + 2 * ZT11) * SCC11 ** 2 * rho_oak
+    A_deck = 2 * L_deck * 62.0
+    w_boards = A_deck * 0.025 * rho_oak
+    w_lead = A_deck * 0.0024 * rho_lead
+    w_timber = (N_TRUSS11 * w_truss + N_COMM11 * w_comm
+                + 3 * 62.0 * SC11 ** 2 * rho_oak + w_boards)
+    w_roof = w_timber + w_lead
+    w_pm = w_roof / 2.0 / 62.0                  # t per metre per flank
+    M_cant = w_pm * 9.81 * BAY5 ** 2 / 2.0      # kNm at the root
+    S_mod = SC11 ** 3 / 6.0
+    sigma = M_cant / S_mod / 1000.0             # MPa
+    print("  the ledger charged eleven walls; ten existed.  the west "
+          "run carried ~%.2f t/m as a %.2f m oak cantilever: root "
+          "moment %.0f kNm, bending stress %.0f MPa -- around %d%% of "
+          "green oak's breaking strength and several times any "
+          "allowable.  it held for one episode because breaking is "
+          "not the same as allowed" % (w_pm, SC11, M_cant, sigma,
+                                       int(round(100 * sigma / 57.0))))
+    assert 25.0 < sigma < 45.0, sigma
+    assert abs(w_roof - 123.4) < 3.0, w_roof    # XI's own ledger
+
+    # THE FIX.  Same probe, after the backfill exists.
+    sf = _seat(0.5, BAY5 - 1.0, WFC12[0])
+    print("  after the backfill: %d points of clerestory under the "
+          "same window.  course 45 is the seat, eleven bays of it "
+          "now" % sf)
+    assert sf > 150, sf
+
+    # THE ROSE.  Largest circle under a two-centred arch: a circle
+    # centred on the axis tangent to both intrados arcs satisfies
+    # dist(centre, arc centre) = R_i - r; the distance is minimised
+    # -- and r maximised -- when the centre drops TO the springing
+    # line, where it is exactly QT10.  So r_max = R_i - q, centred ON
+    # the springing.  Then the tower lines take most of it away.
+    assert R_ARCH12 == (RT10 - D10T) - QT10
+    assert YC_ROSE12 == Y_SPR10
+    print("  the rose: the arch allows r = (%.3f - %.3f) - %.3f = "
+          "%.3f m, centred on the springing line (that is a theorem, "
+          "see comment).  the tower lines at |z| = %.1f allow %.3f.  "
+          "the towers bind -- eleven episodes before they exist"
+          % (RT10, D10T, QT10, R_ARCH12, ZTOW12, ZTOW12))
+    assert ZTOW12 < R_ARCH12, (ZTOW12, R_ARCH12)
+    assert R_ROSE12 == ZTOW12
+    print("  ring outer radius %.3f = the tower line exactly; depth "
+          "%.3f = the transverse arch's own voussoir (the ring is "
+          "that arch bent into a circle); clear light %.3f m for "
+          "part XIII" % (R_ROSE12, RD12, RI_ROSE12))
+    # the circle clears the vault it opens into
+    dd = math.hypot(QT10, YC_ROSE12 - Y_SPR10)
+    assert dd <= (RT10 - D10T) - R_ROSE12 + 1e-9, dd
+    print("  and the built ring sits %.2f m clear inside the arch "
+          "profile" % ((RT10 - D10T) - R_ROSE12 - dd))
+
+    # THE LONGITUDINAL WALK.  Interior bays cancel each other's push
+    # along the axis; bay 0 has no western neighbour.  Part X's
+    # instrument rotated 90 degrees: corridor = the planed wall-rib
+    # profile along x, weight = the west half-bay binned in x.  Like
+    # part XI's truss, this bounds an indeterminate 3D shell: thread
+    # each axis with the other switched off.
+    K = 40
+    dxw = SB10 / K
+    wb = np.zeros(K)
+    nx, nz = 240, 60
+    for i in range(nx):
+        xi = (i + 0.5) / nx * SB10
+        for j in range(nz):
+            z = (j + 0.5) / nz * S10
+            y0_ = _y11(xi, z)
+            yx = (_y11(xi + 0.01, z) - y0_) / 0.01
+            yz = (_y11(xi, z + 0.01) - y0_) / 0.01
+            dA = (math.sqrt(1.0 + yx * yx + yz * yz)
+                  * (SB10 / nx) * (S10 / nz))
+            wb[min(K - 1, int((SB10 - xi) / dxw))] += 2.0 * dA * TW10 * rho
+    psimw = math.atan2(RISE_W11, QW11)
+    w_wr = 2.0 * RW11 * psimw * (1.10 * D10W) ** 2 * rho
+    npt = 400
+    for i in range(npt):
+        psi = (i + 0.5) / npt * psimw
+        dx = RW11 * math.cos(psi) - QW11
+        wb[min(K - 1, int(min(SB10 - 1e-6, dx) / dxw))] += w_wr / npt
+    w_dg = math.pi * RHO10 * D10D * (0.90 * W9X) * rho
+    for i in range(npt):
+        th = (i + 0.5) / npt * (math.pi / 2.0)
+        dx = SB10 * math.cos(th)
+        wb[min(K - 1, int(min(SB10 - 1e-6, dx) / dxw))] += w_dg / npt
+
+    r_iw = RW11 - D10W
+
+    def _riby(dxm, rr):
+        c = (abs(dxm) + QW11) / rr
+        return Y_SPR10 + (rr * math.sqrt(1.0 - c * c) if c < 1.0 else 0.0)
+
+    def xwalk(H):
+        Fx, Fy = H, 0.0
+        Mm = -(Y_SPR10 + RISE_W11 + 0.5 * TW10) * H
+        for k in range(K):
+            d1 = (k + 1) * dxw
+            dm = (k + 0.5) * dxw
+            Fy -= wb[k]
+            Mm -= dm * wb[k]
+            y = (d1 * Fy - Mm) / Fx
+            if not (_riby(d1, r_iw) - 0.06 <= y
+                    <= _riby(d1, RW11) + TW10 + 0.66):
+                return None
+        return (SB10 * Fy - Mm) / Fx, -Fy
+
+    feas = [float(H) for H in np.arange(0.25, 40.0, 0.05)
+            if xwalk(float(H)) is not None]
+    assert feas, "no longitudinal thrust threads the end bay"
+    y_arr, V_arr = xwalk(feas[0])
+    print("  THE PUSH ALONG THE AXIS: the west half-bay (%.1f t) "
+          "threads at any H_x in [%.2f, %.2f] t westward.  at %.2f t "
+          "it arrives at the face at y = %.2f -- the springing line "
+          "is %.2f" % (wb.sum(), feas[0], feas[-1], feas[0], y_arr,
+                       Y_SPR10))
+    assert 14.0 < feas[0] < 23.0, feas[0]
+    assert feas[-1] < 32.0, feas[-1]
+    assert abs(y_arr - Y_SPR10) < 0.6, y_arr
+
+    # and the face absorbs it: descend the line inside a 2 m strip of
+    # the 4 m wall.  V starts at the walk's own arrival share.
+    H, Wc, worst = feas[0], 0.0, 0.0
+    ncr = 200
+    for i in range(ncr):
+        y1 = y_arr * (1.0 - (i + 1) / ncr)
+        Wc += 2.0 * (X_F1 - X_F0) * (y_arr / ncr) * rho
+        worst = min(worst, -H * (y_arr - y1) / (V_arr + Wc))
+    print("  inside the face the line bottoms out %.2f m into %.1f m "
+          "of wall.  the face is the eleventh buttress -- with three "
+          "doors in it" % (-worst, X_F1 - X_F0))
+    assert -worst < 0.5 * (X_F1 - X_F0), worst
+
+    # the doors sit where the thrust is not: the descent runs at the
+    # wall lines, the side door's outermost order stops short of it.
+    z_desc = S10 - 0.5 * D10W
+    z_jamb = Z_PORTS12 - 0.5 * W_PORTS12 - SPL12 * N_ORD12
+    print("  the descent line falls at |z| = %.2f; the side door's "
+          "outermost order reaches %.2f -- %.2f m clear.  the doors "
+          "go where the weight does not walk" % (z_desc, z_jamb,
+                                                 z_jamb - z_desc))
+    assert z_jamb > z_desc + 0.2, (z_jamb, z_desc)
+
+    # FROZEN AGREEMENTS.  The parapet and the ridge are the same
+    # number because part I drew both with it.
+    assert 46.0 - SLOPE11 * 0.0 == 46.0
+    print("  the parapet is dressed to 46.0 -- the ridge's own "
+          "number, frozen in MASSES: the roof dies into the face at "
+          "z = 0 exactly.  course 58 reaches %.2f; the coping makes "
+          "up the %.2f m difference off the grid" % (Y_TOPC12, COPE12))
+    assert abs((Y_TOPC12 + COPE12) - 46.0) < 1e-12
+
+    # TONNAGE AND HOLES.
+    A_face = 2 * AISLE_Z * 46.0
+
+    def _arch_area(s):
+        # clear area of an equilateral arch opening above springing
+        n_ = 200
+        return sum(2.0 * _halfw_arch12((i + 0.5) / n_ * s, s)
+                   for i in range(n_)) * s / n_
+
+    A_pc = W_PORTC12 * (Y_SPRP12 - 0.0) + _arch_area(W_PORTC12)
+    A_ps = W_PORTS12 * (Y_SPRP12 - 0.0) + _arch_area(W_PORTS12)
+    A_rose = math.pi * R_ROSE12 ** 2
+    A_holes = A_pc + 2 * A_ps + A_rose
+    V_wall = (A_face - A_holes) * (X_F1 - X_F0)
+    print("  the face is %.0f m2 and %.1f%% of it is hole (rose "
+          "%.1f + doors %.1f m2).  ~%.0f t of ashlar -- the face "
+          "outweighs the roof it rescues %d to 1"
+          % (A_face, 100 * A_holes / A_face, A_rose,
+             A_pc + 2 * A_ps, V_wall * rho,
+             int(round(V_wall * rho / w_roof))))
+    assert 0.10 < A_holes / A_face < 0.25, A_holes / A_face
+
+    # THE ELEVATION IS FORCED.  In the established view the face is
+    # a grazing plane: measure it.
+    crn = np.array([[X_F0, 0.5, -AISLE_Z], [X_F0, 0.5, AISLE_Z],
+                    [X_F0, 46.0, -AISLE_Z]], np.float32)
+    cw, rw_, _ = CAM.project(_pose(crn))
+    span_wide = abs(int(cw[1]) - int(cw[0]))
+    print("  the fixed view gives the 30 m face %d columns -- the "
+          "rose would cross ~%d.  visible but unresolvable, part "
+          "VII's phrase; so the episode takes the third drawing: "
+          "the ELEVATION" % (span_wide, span_wide // 3))
+    assert span_wide < 35, span_wide
+    ce, re_, _ = CAM_W12.project(_pose_w12(crn))
+    span_elev = abs(int(ce[1]) - int(ce[0]))
+    assert span_elev > 2 * span_wide, (span_elev, span_wide)
+    assert all(0 <= c_ < G.cols for c_ in ce), ce
+    assert all(0 <= r_ < G.rows for r_ in re_), re_
+    print("  the elevation gives it %d -- %.1f x the reach of the "
+          "same 30 metres" % (span_elev, span_elev / span_wide))
+
+    # FRAME FACTS along the timeline.
+    draw(int(4.5 * FPS), stage)
+    m_ = LAST["mat"]
+    nb = int((m_ == M_BAY12).sum())
+    print("  t=4.5, the fix on screen: %d cells of backfill down the "
+          "open axis -- the view this episode closes forever" % nb)
+    assert nb > 400, nb
+
+    draw(int(10.9 * FPS), stage)
+    m_ = LAST["mat"]
+    nr = int((m_ == M_RIB10).sum())
+    print("  t=10.9, the eleventh vault's ribs over the paused "
+          "crest: %d cells" % nr)
+    assert nr > 60, nr
+
+    draw(int(11.85 * FPS), stage)
+    t_pre = int((LAST["mat"] == M_TIMB11).sum())
+    draw(int(12.85 * FPS), stage)
+    t_post = int((LAST["mat"] == M_TIMB11).sum())
+    print("  the boards: %d timber cells before the reversed clock, "
+          "%d after -- the west triangle is gone" % (t_pre, t_post))
+    assert t_post < t_pre - 30, (t_pre, t_post)
+
+    # the finished elevation: the face, the ring, and probes.
+    draw(int((S_BACK12 - 0.1) * FPS), stage)
+    m_fn = LAST["mat"]
+    nwf = int((m_fn == M_WF12).sum())
+    nrg = int((m_fn == M_ROSE12).sum())
+    print("  finished elevation: %d cells of face, %d of ring" %
+          (nwf, nrg))
+    assert nwf > 3500, nwf
+    assert nrg > 90, nrg
+
+    def probe(m__, pts, mat_id):
+        c, r, _ = CAM_W12.project(_pose_w12(np.asarray(pts, np.float32)))
+        vals = [int(m__[rr, cc]) for rr, cc in zip(r, c)
+                if 0 <= rr < G.rows and 0 <= cc < G.cols]
+        return vals and any(v == mat_id for v in vals)
+
+    r_mid = R_ROSE12 - 0.5 * RD12
+    rg_h = sum(probe(m_fn, [[X_F0 + 0.1,
+                             YC_ROSE12 - r_mid * math.cos(th) + dy,
+                             r_mid * math.sin(th)]
+                            for dy in (-0.2, 0.0, 0.2)], M_ROSE12)
+               for th in (0.0, 2.1, 4.2))
+    s0_ = 0.5 * W_PORTC12 + SPL12 * N_ORD12
+    pt_h = sum(probe(m_fn, pts, M_WF12) for pts in (
+        [[X_F0 + 0.5 * SPL12, Y_SPRP12 + math.sqrt(3.0) * s0_ + dy, 0.0]
+         for dy in (-0.3, 0.0, 0.3)],
+        [[X_F0 + 0.5 * SPL12, 5.0, z_]
+         for z_ in (s0_ - 0.17, s0_ - 0.35, s0_ - 0.5)],
+        [[X_F0 - 0.3, 20.0 + dy, ZTOW12] for dy in (-0.5, 0.0, 0.5)]))
+    print("  probes -- ring at 12/4/8 o'clock %d/3; keystone, jamb, "
+          "tower strip %d/3" % (rg_h, pt_h))
+    assert rg_h >= 2, rg_h
+    assert pt_h >= 2, pt_h
+
+    # HELD OUT: the ring, read off the pixels.  The model says ring
+    # diameter / face width = 10/30 and the ring centre sits at
+    # (46 - 33.04) / (46 - foot) of the face's height from the top.
+    # Measure both from cells, tolerance = one cell each edge.
+    rows_r, cols_r = np.nonzero(m_fn == M_ROSE12)
+    rows_f, cols_f = np.nonzero((m_fn == M_WF12) | (m_fn == M_ROSE12))
+    dring = cols_r.max() - cols_r.min() + 1
+    dface = cols_f.max() - cols_f.min() + 1
+    ratio = dring / dface
+    want = 2.0 * R_ROSE12 / (2 * AISLE_Z)
+    print("  HELD OUT -- ring %d cols / face %d cols = %.3f; the "
+          "model says %.3f (err %.3f, tolerance from cell size %.3f)"
+          % (dring, dface, ratio, want, abs(ratio - want),
+             3.0 / dface + 3.0 / dring * want))
+    assert abs(ratio - want) < 3.0 / dface + 3.0 / dring * want + 0.02
+    rc = 0.5 * (rows_r.max() + rows_r.min())
+    frac = (rc - rows_f.min()) / (rows_f.max() - rows_f.min())
+    wantf = (46.0 - YC_ROSE12) / 46.0
+    print("  ring centre sits %.3f of the face height from the "
+          "parapet; the model says %.3f" % (frac, wantf))
+    assert abs(frac - wantf) < 0.05, (frac, wantf)
+
+    # THE AXIS VIEW, closing.  The interior the first frames showed
+    # is gone behind the face by the end: say it with numbers.
+    draw(int(2.4 * FPS), stage)
+    old_open = int((LAST["mat"] == M_OLD).sum())
+    old_shut = int((m_fn == M_OLD).sum())
+    print("  the open axis showed %d cells of interior at t=2.4; "
+          "the finished face leaves %d.  the front door closes on "
+          "the inside of the church" % (old_open, old_shut))
+    assert old_shut < 0.75 * old_open, (old_open, old_shut)
+
+    sheet = []
+    for t in (0.6, 2.2, 4.5, 6.6, 9.6, 10.9, 12.4, 14.4, 16.3):
+        fr = draw(int(t * FPS), stage)
+        ink, mat = LAST["ink"], LAST["mat"]
+        print("  t=%4.1f cov %.3f  wf %5d bay %4d ring %4d rib %3d "
+              "timb %4d"
+              % (t, ink.mean(), (mat == M_WF12).sum(),
+                 (mat == M_BAY12).sum(), (mat == M_ROSE12).sum(),
+                 (mat == M_RIB10).sum(), (mat == M_TIMB11).sum()))
+        assert 0.02 < ink.mean() < 0.60, ink.mean()
+        for (c0, r0, w_, h_) in LAST["boxes"]:
+            assert r0 - 1 >= G.safe_top, ("text above safe", r0)
+            assert r0 + h_ + 1 <= G.safe_bot, ("text below safe",
+                                               r0 + h_)
+            assert c0 - 1 >= 0 and c0 + w_ + 1 <= G.cols, ("width",
+                                                           c0, w_)
+        sheet.append(fr)
+    print("  video: %.1f s, %d frames (part XI was %.1f)"
+          % (S_END12, int(S_END12 * FPS), R_END))
+    contact(sheet, os.path.join(_HERE, "..", "content",
+                                "cath_sheet.png"),
+            cols=3, labels=["0.6 raw end", "2.2 the open axis",
+                            "4.5 the seat", "6.6 doors",
+                            "9.6 the ring", "10.9 eleventh vault",
+                            "12.4 boards down", "14.4 wrapped",
+                            "16.3 a face"])
+
+
 def check(stage):
+    if stage == 11:
+        return check_westfront(stage)
     if stage == 10:
         return check_roof(stage)
     if stage == 9:
