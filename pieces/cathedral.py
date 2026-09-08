@@ -94,6 +94,21 @@ CAMEC = (0.263, 0.278, 0.310)  # lead, third appearance: the H-section
                                # cames.  darker than the roof's skin --
                                # a came is lead seen edge-on
 M_TRC13, M_CAME13, M_GLB13, M_GLR13 = 29, 30, 31, 32
+TOWST = (0.933, 0.876, 0.722)  # part XIV: the tower shafts -- ashlar
+                               # off the same bank as the facade, a
+                               # season younger than the walls it
+                               # stands on
+CRBST = (0.874, 0.800, 0.641)  # the corbel table: the thirteen
+                               # courses that carry the belfry over
+                               # the vault, cut deeper so the checks
+                               # can find each step
+BELST = (0.949, 0.910, 0.788)  # the belfry: the palest masonry yet,
+                               # because it is the stone that lives
+                               # in the light
+CAPLC = (0.443, 0.475, 0.533)  # the caps: lead, fourth appearance --
+                               # a shade darker than the roof's
+                               # (steeper skin, less sky in it)
+M_TWR14, M_CRB14, M_BELF14, M_CAPL14 = 33, 34, 35, 36
 INNER = (0.694, 0.633, 0.506)  # stone seen through an opening: the
                                # passage's own shadow, not a new material
 
@@ -2651,6 +2666,322 @@ def glass13():
     return out
 
 
+# ---------------------------------------------------------------- part XIV
+# THE TOWERS.
+#
+# THE AUDIT, at the scale of the plan itself.  Part I's MASSES are
+# massing volumes, and massing volumes interpenetrate: the tower
+# boxes run x in [-4, 8] -- twelve metres deep, eight of them east
+# of the facade -- and their inner faces at |z| = 5 stand 2.4 m
+# INSIDE the clerestory wall.  Nothing ever asserted the boxes were
+# empty, and they are not: the census below counts the high vault's
+# haunches, the roof's lead, laths, rafter feet and both wall
+# plates, two flyers, two pinnacles and the aisle wall standing
+# inside the frozen envelopes.  Part XI's lesson ("write the
+# inequality that spans episodes") applied to the drawing that
+# started the series.
+#
+# Part XIII's plant said the towers "stand on what they already
+# own."  Audited: the z = +-5 line has nothing under it for eight
+# of its twelve metres -- it crosses the nave's air, over the
+# vault.  False as meant.  True as built: the tower stands on the
+# walls it does own -- the facade (XII), the bay-0 clerestory
+# backfill (XII again: the wall that was built so truss 0 could
+# sit), the aisle wall (VI) -- and CARRIES its frozen inner face on
+# a corbel table until, thirteen courses later, the belfry stands
+# at z = 5.000 exactly.  "A structural piece of stone... keyed into
+# and projecting from a wall to carry a bearing weight" (en-wiki
+# Corbel, verified).
+#
+# THE PLATE DISCOVERY.  The raised wall's first course lands at
+# y = 36.000 -- and part XI's wall plates lie at y 35.7..36.0,
+# exactly there, for the first eight metres of their run.  A wall
+# cannot be founded on a timber plate (hundreds of tonnes across a
+# 0.3 m scantling, perpendicular to the grain), so the plate
+# segments come OUT, the eaves strip of lead and lath over them
+# comes out with them, and trusses 0 and 1 re-seat on the rising
+# stone.  Part XII spent an episode giving truss 0 a seat; part
+# XIV swaps a better one under it.  The roof between the towers
+# (|z| < 5) is untouched: nothing above it but sky until part XV.
+#
+# THE INSTRUMENT rotates again: IX walked thrust, X-XII walked
+# weight, XIII bent a beam.  XIV is the first OVERTURNING check --
+# the middle third rule: "no tension is developed in a wall or
+# foundation if the resultant force lies within the middle third
+# of the structure" (Navier's rule, en-academic/Das, verified).
+# XIII's storm verbatim (Beaufort 10, 28.4 m/s, q = 494 Pa) leans
+# on a tower's 12 m face and moves its weight line -- the check
+# derives how far, against the kern half-width b/6 = 1.667 m.
+#
+# WHAT IS DERIVED AND WHAT IS CHOSEN.
+#   frozen   the boxes (-4..8, 0..64, |z| 5..15) and the caps
+#            (pyr, half 6, centred (2, +-10), 64..78).  MASSES.
+#   derived  every course line: the raise base 36.0 = course 45
+#            EXACTLY (45 x 0.74 = 33.30, the crypt's grid meeting
+#            part VIII's wall top -- an accident, printed as one);
+#            the arch springing 28.60 = course 35 = part IX's pier
+#            head line (no accident: IX built on the grid); the
+#            corbel start (first course clearing the roof plane at
+#            z = 5, which is 39.750); the belfry floor 50.06 (the
+#            corbel's last course); the coping 0.62 dressed to
+#            64.0, part I's tower number.
+#   derived  the corbel step: 1.8 m of overhang (S10 - ZTOW12,
+#            the clerestory's inner face to the frozen line) over
+#            13 courses = 0.1385 m a course.
+#   chosen   wall scantlings (west 1.0, east 0.70 = the facade's
+#            shell, belfry outer 1.0), the bell-opening span 1.5,
+#            the arch voussoir depth 0.5.  Named, like XI's.
+#
+# One inheritance with a jog: below the facade parapet the shaft's
+# outer wall continues the AISLE wall's actual band (centred on
+# the line, half-thickness 0.95 -- the wall it stands on), and at
+# 46.0 it steps back to the drawn face z = 15.  The belfry stands
+# on part I's lines all round; the shaft stands on part VI's.
+ZTOW14 = ZTOW12                    # 5.0 -- the frozen inner face
+K_OUT14 = N_COURSE6                # 22 -- the aisle wall stopped here
+K_RAISE14 = 45                     # course 45 bottom = 36.000 exactly
+K_CRB14 = 51                       # first corbel course, bottom 40.44:
+                                   # the first course line above the
+                                   # roof plane at z = 5 (39.750)
+N_CRB14 = 13                       # 13 courses to the belfry floor
+STEP14 = (S10 - ZTOW14) / N_CRB14  # 0.1385 -- 1.8 m of overhang paid
+                                   # in course-sized steps
+K_BEL14 = K_CRB14 + N_CRB14        # 64 -- belfry floor course
+Y_BEL14 = Y_FOOT + K_BEL14 * COURSE3           # 50.06
+K_TOP14 = 82                       # courses ..81 full; top 63.38
+Y_TOPC14 = Y_FOOT + K_TOP14 * COURSE3          # 63.38
+COPE14 = 64.0 - Y_TOPC14           # 0.62 -- dressed to part I's number
+AWH14 = 0.95                       # the aisle wall's half-thickness
+                                   # (part VI's stones, probed)
+TH_W14, TH_E14 = 1.0, SH_W12       # west / east wall.  CHOSEN
+Y_SPRA14 = Y_TOP9                  # 28.60 -- the arch over the aisle
+                                   # springs at part IX's pier head
+                                   # line, which is course 35 exactly
+ZA0_14 = NAVE_Z                    # 8.0 -- clerestory outer face
+ZA1_14 = AISLE_Z - AWH14           # 14.05 -- shaft outer wall, inner
+RA14 = 0.5 * (ZA1_14 - ZA0_14)     # 3.025 -- semicircular: the aisle
+                                   # gets a round arch, like the crypt
+ZCA14 = 0.5 * (ZA0_14 + ZA1_14)    # 11.025
+RDA14 = 0.5                        # voussoir depth.  CHOSEN
+WB14 = 1.5                         # bell-opening clear span.  CHOSEN
+K_SILL14, K_SPRB14 = 67, 73        # sill 52.28, springing 56.72
+Y_SILL14 = Y_FOOT + K_SILL14 * COURSE3
+Y_SPRB14 = Y_FOOT + K_SPRB14 * COURSE3
+CPX14, CPZ14, CPH14 = 2.0, 10.0, 6.0   # the caps: MASSES verbatim
+Y_CAP0_14, Y_CAP1_14 = 64.0, 78.0
+V14 = V13                          # the same storm.  deliberately.
+Q14 = 0.5 * 1.225 * V14 ** 2       # 494 Pa
+RHO14 = 2300.0                     # the density the series has used
+                                   # since part IX -- which is ASTM
+                                   # C568 class II (medium-density,
+                                   # 2160..2560): today's strength row
+                                   # is 4000 psi = 28 MPa, NOT part
+                                   # XIII's high-density row
+FC_LS14 = 28.0                     # MPa, compressive, class II min
+
+
+def _cutrun14(a0, a1, cuts):
+    """One wall run minus its openings, ends dressed AT the jambs --
+    part VI's lesson, fourth outing."""
+    segs, p = [], a0
+    for (c0, c1) in sorted(cuts):
+        if c0 > p:
+            segs.append((p, c0))
+        p = max(p, c1)
+    if p < a1:
+        segs.append((p, a1))
+    return segs
+
+
+def _bell14(y, a0, a1):
+    """Bell-opening cut intervals on a wall run of extent a0..a1 at
+    height y: two lancets per face, centred at the third points."""
+    if y < Y_SILL14:
+        return []
+    cuts = []
+    L = a1 - a0
+    for ac in (a0 + L / 3.0, a0 + 2.0 * L / 3.0):
+        h = (0.5 * WB14 if y <= Y_SPRB14
+             else _halfw_arch12(y - Y_SPRB14, WB14))
+        if h > 0.0:
+            cuts.append((ac - h, ac + h))
+    return cuts
+
+
+def _fill14(units, y, hy, x0, x1, z0, z1, bell=False, arch=False):
+    """Stones filling one wall rectangle at one course, run split
+    along the long axis, both towers at once (south laid, north
+    mirrored)."""
+    def _one(xa, xb, za, zb):
+        if xb - xa <= 0.0 or zb - za <= 0.0:
+            return
+        along_x = (xb - xa) >= (zb - za)
+        n = max(1, int(round(((xb - xa) if along_x else (zb - za))
+                             / 1.35)))
+        for i in range(n):
+            if along_x:
+                w = (xb - xa) / n
+                cx, cz = xa + (i + 0.5) * w, 0.5 * (za + zb)
+                hx, hz = 0.47 * w, 0.5 * (zb - za)
+            else:
+                w = (zb - za) / n
+                cx, cz = 0.5 * (xa + xb), za + (i + 0.5) * w
+                hx, hz = 0.5 * (xb - xa), 0.47 * w
+            j = RNG.uniform(-0.02, 0.02, 2)
+            for s_ in (1.0, -1.0):
+                p, nn = stone(cx + j[0], y, s_ * (cz + j[1]),
+                              hx, hy, hz)
+                if s_ < 0:
+                    nn = nn.copy()
+                    nn[:, 2] *= -1.0
+                units.append((p, nn))
+    if arch:
+        # the east wall meets the arch: cut at the intrados
+        dy = y - Y_SPRA14
+        h = math.sqrt(max(RA14 ** 2 - dy ** 2, 0.0)) if dy < RA14 \
+            else 0.0
+        for (a, b) in _cutrun14(z0, z1, [(ZCA14 - h, ZCA14 + h)]
+                                if h > 0 else []):
+            _one(x0, x1, a, b)
+        return
+    if bell and (x1 - x0) >= (z1 - z0):
+        for (a, b) in _cutrun14(x0, x1, _bell14(y, x0, x1)):
+            _one(a, b, z0, z1)
+        return
+    if bell:
+        for (a, b) in _cutrun14(z0, z1, _bell14(y, z0, z1)):
+            _one(x0, x1, a, b)
+        return
+    _one(x0, x1, z0, z1)
+
+
+def _asm14(units):
+    P = np.vstack([u[0] for u in units]).astype(np.float32)
+    N = np.vstack([u[1] for u in units]).astype(np.float32)
+    d = max(1, len(units) - 1)
+    O = np.concatenate([np.full(len(u[0]), i / float(d))
+                        for i, u in enumerate(units)]).astype(np.float32)
+    return (P, N, O)
+
+
+def shaft14():
+    """Every wall course below the belfry floor, course-outer,
+    position-inner (part IX's stall lesson): the outer wall off the
+    aisle's top, the clerestory raised, the corbel table stepping to
+    the frozen line, the east wall growing around its arch, and --
+    from the facade parapet up -- the west block's own three walls.
+    The corbel is its own part with its own clock and material: the
+    checks have to find every step of it."""
+    units, crb = [], []
+    for c in range(K_OUT14, K_BEL14):
+        y = Y_FOOT + (c + 0.5) * COURSE3
+        hy = COURSE3 * 0.43
+        y0 = Y_FOOT + c * COURSE3
+        _fill14(units, y, hy, 0.0, 8.0, AISLE_Z - AWH14,
+                AISLE_Z + AWH14)
+        if c >= K_RAISE14:
+            _fill14(units, y, hy, 0.0, 8.0, S10, NAVE_Z)
+        if c >= K_CRB14:
+            zf = S10 - STEP14 * (c - K_CRB14 + 1)
+            _fill14(crb, y, hy, 0.0, 8.0, zf, S10)
+        if c >= K_PIER9:
+            _fill14(units, y, hy, 8.0 - TH_E14, 8.0, ZA0_14, ZA1_14,
+                    arch=True)
+        if y0 >= Y_TOPC12 - 1e-9:
+            # over the facade, seated on its last full course (45.62,
+            # beside the coping) -- not floating over part I's 46.0
+            _fill14(units, y, hy, -4.0, -3.0, ZTOW14, 14.0)
+            _fill14(units, y, hy, -4.0, 0.0, 14.0, 15.0)
+            _fill14(units, y, hy, -4.0, 0.0, ZTOW14, ZTOW14 + 0.7)
+    return _asm14(units), _asm14(crb), len(units)
+
+
+def arch14():
+    """The arch over the aisle, one per tower: semicircular, span
+    the clear aisle at tower depth, laid from both springings to the
+    key like every arch since part VII."""
+    units = []
+    n = 14
+    xs = 8.0 - 0.5 * TH_E14
+    for i in range(n // 2):
+        for o in (-1.0, 1.0):
+            th = (i + 0.5) / n * math.pi
+            z = ZCA14 + o * (RA14 + 0.5 * RDA14) * math.cos(th)
+            y = Y_SPRA14 + (RA14 + 0.5 * RDA14) * math.sin(th)
+            for s_ in (1.0, -1.0):
+                p, nn = stone(xs, y, s_ * z, 0.5 * TH_E14,
+                              0.52 * RDA14, 0.52 * RDA14, step=0.30)
+                if s_ < 0:
+                    nn = nn.copy()
+                    nn[:, 2] *= -1.0
+                units.append((p, nn))
+    return _asm14(units), n
+
+
+def belfry14():
+    """The belfry ring on part I's lines exactly, two lancets a
+    face, and the coping dressed to 64.0 -- the same move as XII's
+    parapet: the last 0.62 m is not a course, it is the drawing."""
+    units = []
+    for c in range(K_BEL14, K_TOP14):
+        y = Y_FOOT + (c + 0.5) * COURSE3
+        hy = COURSE3 * 0.43
+        _fill14(units, y, hy, -4.0, 8.0, 14.0, 15.0, bell=True)
+        _fill14(units, y, hy, -4.0, 8.0, ZTOW14, ZTOW14 + 0.7,
+                bell=True)
+        _fill14(units, y, hy, -4.0, -3.0, ZTOW14 + 0.7, 14.0,
+                bell=True)
+        _fill14(units, y, hy, 8.0 - TH_E14, 8.0, ZTOW14 + 0.7, 14.0,
+                bell=True)
+    y = Y_TOPC14 + 0.5 * COPE14
+    _fill14(units, y, 0.5 * COPE14 * 0.9, -4.0, 8.0, 14.0, 15.0)
+    _fill14(units, y, 0.5 * COPE14 * 0.9, -4.0, 8.0, ZTOW14,
+            ZTOW14 + 0.7)
+    _fill14(units, y, 0.5 * COPE14 * 0.9, -4.0, -3.0, ZTOW14 + 0.7,
+            14.0)
+    _fill14(units, y, 0.5 * COPE14 * 0.9, 8.0 - TH_E14, 8.0,
+            ZTOW14 + 0.7, 14.0)
+    return _asm14(units), K_TOP14 - K_BEL14
+
+
+def caps14():
+    """The caps: MASSES' pyramids, skinned in lead like part XI's
+    roof, course rings bottom-up.  The base half-width 6 oversails
+    the tower faces by a metre all round -- the drawing put eaves on
+    them and the eaves get kept."""
+    units = []
+    n_r = 22
+    for k in range(n_r):
+        f0 = k / float(n_r)
+        f1 = (k + 1.0) / float(n_r)
+        y = Y_CAP0_14 + 0.5 * (f0 + f1) * (Y_CAP1_14 - Y_CAP0_14)
+        hy = 0.5 * (f1 - f0) * (Y_CAP1_14 - Y_CAP0_14)
+        h = CPH14 * (1.0 - 0.5 * (f0 + f1))
+        if h < 0.20:
+            continue
+        pts, nrm = [], []
+        m = max(3, int(round(2.0 * h / 0.55)))
+        for i in range(m):
+            a = -h + (i + 0.5) * 2.0 * h / m
+            for (dx, dz, nx, nz) in ((a, -h, 0.0, -1.0),
+                                     (a, h, 0.0, 1.0),
+                                     (-h, a, -1.0, 0.0),
+                                     (h, a, 1.0, 0.0)):
+                for dy in (-hy * 0.5, hy * 0.5):
+                    pts.append((CPX14 + dx, y + dy, dz))
+                    nrm.append((0.40 * nx, 0.82, 0.40 * nz))
+        p = np.asarray(pts, np.float32)
+        nn = np.asarray(nrm, np.float32)
+        for s_ in (1.0, -1.0):
+            q = p.copy()
+            q[:, 2] = s_ * (CPZ14 + p[:, 2])
+            nb = nn.copy()
+            if s_ < 0:
+                nb[:, 2] *= -1.0
+            units.append((q, nb))
+    return _asm14(units), n_r
+
+
 STAGES = [
     "THE FOUNDATION",
     "THE CRYPT",
@@ -3361,6 +3692,72 @@ _i13pad[:, 1] = _R13_PTS[:, 1].min() - 4.5
 CAM_I13 = Camera(G).fit([_pose_i13(np.vstack([_R13_PTS, _i13pad]))],
                         margin=1.06)
 
+# --- part XIV
+(SHAFT14, CRB14, N_SH14) = shaft14()
+(ARCH14, N_VA14) = arch14()
+(BELF14, N_BC14) = belfry14()
+(CAPL14, N_CR14) = caps14()
+
+# THE DEMOLITION.  The raised wall's first course lands at 36.000;
+# part XI's plates lie at 35.7..36.0 for the first eight metres of
+# their run, and a wall is not founded on timber.  The plate
+# segments come out, the eaves strip of lead and lath over them
+# comes out with them (|z| > 6.75, west of the tower's east face),
+# and the rafter feet past the wall's inner face are cut back to
+# bear IN the rising stone.  The roof between the towers keeps
+# every course it has.
+_dm_ld = ((LEADS11[0][:, 0] < 8.0) & (np.abs(LEADS11[0][:, 2]) > 6.75))
+_dm_lt = ((LATH11[0][:, 0] < 8.0) & (np.abs(LATH11[0][:, 2]) > 6.75))
+_dm_pl = PLATE11[0][:, 0] < 8.0
+_dm_rf = ((RAFT11[0][:, 0] < 8.0) & (np.abs(RAFT11[0][:, 2]) > 6.9))
+
+
+def _msk14(part, m):
+    return (part[0][m], part[1][m], part[2][m])
+
+
+DEMO14 = ((_msk14(LEADS11, _dm_ld), M_LEAD11),
+          (_msk14(LATH11, _dm_lt), M_TIMB11),
+          (_msk14(PLATE11, _dm_pl), M_TIMB11),
+          (_msk14(RAFT11, _dm_rf), M_TIMB11))
+
+# hand-off: part XII's face and backfill join the legacy pile (the
+# facade is what the towers stand on now -- it reads as one thing).
+# The ring keeps M_ROSE12 and part XIII's plate and cames keep
+# their own one more: the towers rise over the rose, and the checks
+# must prove the window survives its own scaffolding-free episode
+# untouched.  The east boards stay temporary carpentry, waiting on
+# part XV.
+_LEG14_P = np.vstack([_LEG12_P,
+                      LEADS11[0][~_dm_ld], LATH11[0][~_dm_lt],
+                      PLATE11[0][~_dm_pl], RAFT11[0][~_dm_rf],
+                      TIE11[0], POST11[0], COMM11[0], RIDGE11[0],
+                      VR12[0], VW12[0],
+                      WFP12[0], WFA12[0], WFT12[0], WFC12[0],
+                      FACEA12[0], FACEB12[0], FACEC12[0],
+                      PJ12[0], PA12[0]]).astype(np.float32)
+_LEG14_N = np.vstack([_LEG12_N,
+                      LEADS11[1][~_dm_ld], LATH11[1][~_dm_lt],
+                      PLATE11[1][~_dm_pl], RAFT11[1][~_dm_rf],
+                      TIE11[1], POST11[1], COMM11[1], RIDGE11[1],
+                      VR12[1], VW12[1],
+                      WFP12[1], WFA12[1], WFT12[1], WFC12[1],
+                      FACEA12[1], FACEB12[1], FACEC12[1],
+                      PJ12[1], PA12[1]]).astype(np.float32)
+_W14_STAND = ((RING12, M_ROSE12), (PLATE13, M_TRC13),
+              (CAME13, M_CAME13))
+
+# THE TOWER FIT: the established angles at a closer fit -- part
+# II's move, not part V's.  Fitted to the new work (both towers,
+# aisle top to cap tips) plus a caption pad below; the church runs
+# off the right of frame the way the ground ran off part X's.
+_T14_PTS = np.vstack([SHAFT14[0], CRB14[0], BELF14[0],
+                      CAPL14[0]]).astype(np.float32)
+_t14pad = _T14_PTS.copy()
+_t14pad[:, 1] = _T14_PTS[:, 1].min() - 4.5
+CAM_T14 = Camera(G).fit([_pose(np.vstack([_T14_PTS, _t14pad]))],
+                        margin=1.05)
+
 
 # ---------------------------------------------------------------- timeline
 T_GHOST, T_HOLD, T_DIG, T_LAY, T_END = 1.5, 2.4, 3.6, 9.9, 12.4
@@ -3560,8 +3957,33 @@ Z_SUN13 = (11.4, 14.2)             # the light arrives
 Z_BACK13 = 14.7                    # back outside: nothing changed
 Z_END13 = 16.2
 
+# part XIV.  One cut out, one cut back -- part II's shape.  The
+# arch and corbel windows are DERIVED from the shaft's course
+# clock, so the aisle arch turns exactly when the east wall reaches
+# its springing course and the corbel begins exactly at course 51.
+Z_GHOST14 = 0.9
+Z_CUT14 = 1.4                      # to the tower fit
+Z_DEMO14 = (1.7, 2.7)              # the plates and the eaves strip out
+Z_SHAFT14 = (3.0, 9.4)             # courses 22..63, all walls at once
+
+
+def _tfrac14(c):
+    return (c - K_OUT14) / float(K_BEL14 - K_OUT14)
+
+
+Z_ARCH14 = (Z_SHAFT14[0] + _tfrac14(K_PIER9)
+            * (Z_SHAFT14[1] - Z_SHAFT14[0]),
+            Z_SHAFT14[0] + _tfrac14(40)
+            * (Z_SHAFT14[1] - Z_SHAFT14[0]) - 0.05)
+Z_CRB14 = (Z_SHAFT14[0] + _tfrac14(K_CRB14)
+           * (Z_SHAFT14[1] - Z_SHAFT14[0]), Z_SHAFT14[1])
+Z_BELF14 = (9.6, 12.3)             # the ring with the bell openings
+Z_CAP14 = (12.5, 14.7)             # lead, ring by ring, both at once
+Z_BACK14 = 15.2                    # the established view again
+Z_END14 = 16.8
+
 T_ENDS = [T_END, C_END, H_END, Q_END, P_END, A_END, V_END, W_END, X_END,
-          Z_END, R_END, S_END12, Z_END13]
+          Z_END, R_END, S_END12, Z_END13, Z_END14]
 LAST = {}
 
 
@@ -3601,7 +4023,8 @@ def draw(f, stage):
     return (draw_foundation, draw_crypt, draw_choir, draw_transept,
             draw_nave, draw_aisles, draw_triforium,
             draw_clerestory, draw_buttress, draw_vault,
-            draw_roof, draw_westfront, draw_rose)[stage](f, stage)
+            draw_roof, draw_westfront, draw_rose,
+            draw_towers)[stage](f, stage)
 
 
 def _label(fr, t, stage, t0=0.8):
@@ -3612,11 +4035,15 @@ def _label(fr, t, stage, t0=0.8):
     of neighbouring letters merge -- CHOIR came out QHQOIII.  Split, the
     name gets 6.0 cells a letter and still fits at XIII . THE ROSE WINDOW,
     which is the longest this series will ever have to set.
+
+    The numeral went from cell 6 to cell 8 at part XIV: a V loses its
+    diagonals below 8 cells and reads as T -- XIV set as XIT (looked at,
+    at three sizes, before choosing).  XV needs the V too.
     """
     boxes = []
     if t > t0:
         a = min(1.0, (t - t0) / 0.7)
-        boxes.append(stamp(fr, roman(stage + 1), 6, 49, 127,
+        boxes.append(stamp(fr, roman(stage + 1), 8, 49, 127,
                            blend(BG, GOLD, a * 0.72)))
         boxes.append(stamp(fr, STAGES[stage], 10, 49, 139, blend(BG, GOLD, a)))
     LAST["boxes"] = boxes
@@ -4407,6 +4834,78 @@ def draw_rose(f, stage):
     return fr
 
 
+def draw_towers(f, stage):
+    """Part XIV.  Open in the established view; cut to the tower
+    fit.  The plates and the eaves strip come out first -- a wall is
+    not founded on timber -- then every wall the towers own rises at
+    once, the aisle arch turns, the corbel table steps the frozen
+    line out over the vault, the belfry stands on part I's lines,
+    and the caps take their lead.  Back wide at the end: the
+    building has a west end against the sky for the first time."""
+    t = f / float(FPS)
+    close = Z_CUT14 <= t < Z_BACK14
+    cam = CAM_T14 if close else CAM
+    buf = {"sh": np.zeros((G.rows, G.cols)),
+           "mat": np.zeros((G.rows, G.cols), np.int16),
+           "z": np.full((G.rows, G.cols), -1e9)}
+
+    def win(w):
+        return (t - w[0]) / (w[1] - w[0])
+
+    gfade = min(1.0, t / Z_GHOST14)
+    n = int(len(GHOST) * gfade) if t < Z_CUT14 else len(GHOST)
+    if n > 8:
+        col, row, z = cam.project(_pose(GHOST[:n]))
+        lift = 1.0 + 0.55 * min(1.0, max(0.0, (t - Z_BACK14 - 0.3)
+                                         / 1.1))
+        sh = ((0.20 + 0.34 * depth_cue(z, 1.0, 0.30))
+              * (0.72 + 0.28 * gfade) * lift)
+        _put(buf, col, row, z + 4000.0, sh, M_GHOST, False)
+
+    col, row, z = cam.project(_pose(_LEG14_P))
+    sh = (0.17 + 0.44 * lambert(_LEG14_N, LAMP)) * depth_cue(z, 1.0,
+                                                             0.86)
+    _put7(buf, col, row, z, np.clip(sh, 0.04, 1.0),
+          np.full(len(z), M_OLD, np.int16))
+    for part, mat in _W14_STAND:
+        _grow7(buf, part, 1.0, mat, LAMP, 0.17, 0.60, cam, _pose)
+    _grow7(buf, GBE12, 1.0, M_TIMB11, LAMP, 0.17, 0.44, cam, _pose)
+
+    # the window, finished last episode: near-black from out here,
+    # exactly as part XIII measured it
+    for part, mat in GLZ13:
+        P_, N_, O_ = part
+        c_, r_, z_ = cam.project(_pose(P_))
+        _put7(buf, c_, r_, z_, np.full(len(z_), 0.145),
+              np.full(len(z_), mat, np.int16))
+
+    # the demolition: drawn whole until the beat, then the reversed
+    # clock takes the strip down -- part XI's idiom
+    u_dm = win(Z_DEMO14)
+    if u_dm < 1.0:
+        for part, mat in DEMO14:
+            _grow7(buf, part, 1.0 - 1.05 * max(0.0, u_dm), mat,
+                   LAMP, 0.17, 0.44, cam, _pose)
+
+    # the new work
+    _grow7(buf, SHAFT14, win(Z_SHAFT14), M_TWR14, LAMP, 0.26, 0.66,
+           cam, _pose)
+    _grow7(buf, ARCH14, win(Z_ARCH14), M_TWR14, LAMP, 0.28, 0.70,
+           cam, _pose)
+    _grow7(buf, CRB14, win(Z_CRB14), M_CRB14, LAMP, 0.28, 0.70,
+           cam, _pose)
+    _grow7(buf, BELF14, win(Z_BELF14), M_BELF14, LAMP, 0.26, 0.68,
+           cam, _pose)
+    _grow7(buf, CAPL14, win(Z_CAP14), M_CAPL14, LAMP, 0.24, 0.55,
+           cam, _pose)
+
+    LAST["u14"] = min(1.0, max(0.0, win(Z_SHAFT14)))
+
+    fr = _paint(buf)
+    _label(fr, t, stage)
+    return fr
+
+
 def draw_foundation(f, stage):
     t = f / float(FPS)
     buf = {"sh": np.zeros((G.rows, G.cols)),
@@ -4478,7 +4977,9 @@ def colour(v, m):
             M_TIMB11: OAK, M_LEAD11: LEAD,
             M_WF12: FACEST, M_BAY12: STONE, M_ROSE12: ROSEST,
             M_TRC13: TRCST, M_CAME13: CAMEC,
-            M_GLB13: GLASSB, M_GLR13: GLASSR}[int(m)]
+            M_GLB13: GLASSB, M_GLR13: GLASSR,
+            M_TWR14: TOWST, M_CRB14: CRBST,
+            M_BELF14: BELST, M_CAPL14: CAPLC}[int(m)]
     t = np.clip(0.22 + 0.78 * v, 0.0, 1.0)
     return blend(BG, base, t)
 
@@ -7772,7 +8273,362 @@ def check_rose(stage):
                             "15.9 nothing changed"])
 
 
+def check_towers(stage):
+    print("THE CATHEDRAL -- part %s, %s" % (roman(stage + 1),
+                                            STAGES[stage]))
+    # rule 1: the established view has not drifted
+    two = np.array([[0.0, 0.0, 0.0], [62.0, 46.0, 15.0]], np.float32)
+    assert np.allclose(_pose(two), _pose_at(two, -58.0, 28.0)), \
+        "established view drifted"
+
+    # THE CENSUS: part I's boxes were never empty.  Massing volumes
+    # interpenetrate; nothing ever wrote the inequality.
+    print("  THE CENSUS -- shipped work inside the frozen tower "
+          "envelopes (x -4..8, y 0..64, |z| 5..15):")
+    tot14 = 0
+    for nm, arr in (("aisle wall (VI)", WALL6[0]),
+                    ("buttress piers (IX)", PIER9[0]),
+                    ("flyers (IX)", FLY9[0]),
+                    ("high vault (X..XII)",
+                     np.vstack([TARCH10[0], DIAG10[0], VR12[0],
+                                VW12[0]])),
+                    ("roof lead (XI)", LEADS11[0]),
+                    ("laths + rafters (XI)",
+                     np.vstack([LATH11[0], RAFT11[0]])),
+                    ("wall plates (XI)", PLATE11[0]),
+                    ("clerestory backfill (XII)", WFC12[0]),
+                    ("the facade (XII)",
+                     np.vstack([FACEA12[0], FACEB12[0],
+                                FACEC12[0]]))):
+        m = ((arr[:, 0] >= -4.0) & (arr[:, 0] < 8.0)
+             & (arr[:, 1] < 64.0) & (np.abs(arr[:, 2]) >= 5.0)
+             & (np.abs(arr[:, 2]) <= 15.0))
+        n = int(m.sum())
+        tot14 += n
+        print("    %-26s %6d points" % (nm, n))
+    vin = ((np.vstack([VR12[0], VW12[0], TARCH10[0],
+                       DIAG10[0]])[:, 0] < 8.0))
+    vv = np.vstack([VR12[0], VW12[0], TARCH10[0], DIAG10[0]])
+    vm = ((vv[:, 0] >= -4.0) & (vv[:, 0] < 8.0) & (vv[:, 1] < 64.0)
+          & (np.abs(vv[:, 2]) >= 5.0) & (np.abs(vv[:, 2]) <= 15.0))
+    assert vm.sum() > 2500, int(vm.sum())
+    assert tot14 > 50000, tot14
+    print("    %d points total.  the boxes have contained the vault "
+          "since part X and the roof since part XI -- the corbel is "
+          "the answer to the first, the demolition to the second"
+          % tot14)
+
+    # THE PLATE DISCOVERY and the demolition
+    pl_y0, pl_y1 = float(PLATE11[0][:, 1].min()), \
+        float(PLATE11[0][:, 1].max())
+    print("  the raised wall's first course lands at %.3f; the "
+          "plates lie at %.2f..%.2f -- exactly there" %
+          (Y_FOOT + K_RAISE14 * COURSE3, pl_y0, pl_y1))
+    assert pl_y0 < Y_FOOT + K_RAISE14 * COURSE3 < pl_y1 + 0.35
+    n_ld, n_lt = int(_dm_ld.sum()), int(_dm_lt.sum())
+    n_pl, n_rf = int(_dm_pl.sum()), int(_dm_rf.sum())
+    print("  DEMOLITION: lead %d, lath %d, plate %d, rafter-foot %d "
+          "points come out; the roof between the towers keeps "
+          "every course" % (n_ld, n_lt, n_pl, n_rf))
+    assert 1500 < n_ld < 2600, n_ld
+    assert 150 < n_lt < 400, n_lt
+    assert 90 < n_pl < 220, n_pl
+    assert 10 < n_rf < 70, n_rf
+    # the containment inequality, written this time: nothing kept
+    # stands inside the raised wall's volume
+    for nm, arr, keep in (("lead", LEADS11[0], ~_dm_ld),
+                          ("lath", LATH11[0], ~_dm_lt),
+                          ("plate", PLATE11[0], ~_dm_pl)):
+        a = arr[keep]
+        bad = ((a[:, 0] > 0.0) & (a[:, 0] < 8.0)
+               & (np.abs(a[:, 2]) > S10 + 0.05)
+               & (np.abs(a[:, 2]) < NAVE_Z)
+               & (a[:, 1] > Y_FOOT + K_RAISE14 * COURSE3))
+        assert bad.sum() == 0, (nm, int(bad.sum()))
+    print("  kept lead, lath and plate: zero points inside the "
+          "rising walls.  trusses 0 and 1 re-seat on the stone -- "
+          "part XII gave truss 0 a seat, part XIV swaps a better "
+          "one under it")
+
+    # the grid: derived lines, and one accident
+    assert abs(Y_FOOT + K_RAISE14 * COURSE3 - 36.0) < 1e-9
+    print("  the raise base: course 45 bottom = 36.000 EXACTLY "
+          "(45 x 0.74 = 33.30 meets part VIII's wall top -- an "
+          "accident, and the second one this grid has produced)")
+    assert abs(Y_SPRA14 - (Y_FOOT + 35 * COURSE3)) < 1e-9
+    print("  the arch springs at 28.60 = course 35 = part IX's "
+          "pier head line (not an accident: IX built on the grid)")
+    assert abs(N_CRB14 * STEP14 - (S10 - ZTOW14)) < 1e-9
+    assert abs((S10 - N_CRB14 * STEP14) - ZTOW14) < 1e-9
+    for k in range(N_CRB14):
+        zf = S10 - STEP14 * (k + 1)
+        yb = Y_FOOT + (K_CRB14 + k) * COURSE3
+        assert yb > 46.0 - SLOPE11 * zf + 0.25, (k, yb)
+    print("  the corbel: 13 courses x %.4f m = 1.800 m; every "
+          "course clears the roof plane at its own face; the "
+          "belfry floor is the corbel's last bed, %.2f" %
+          (STEP14, Y_BEL14))
+    assert abs(Y_TOPC14 + COPE14 - 64.0) < 1e-9
+    print("  the coping: %.2f m dressed to 64.0 -- part I's tower "
+          "number, kept the way XII kept 46.0" % COPE14)
+    bz = np.abs(BELF14[0][:, 2])
+    assert 4.94 < bz.min() < 5.06, float(bz.min())
+    print("  the belfry inner face stands at |z| = %.3f: the line "
+          "that sized the rose, finally load-bearing" %
+          float(bz.min()))
+
+    # the rose survives its neighbours
+    newp = np.vstack([SHAFT14[0], CRB14[0], BELF14[0], ARCH14[0]])
+    inrose = ((newp[:, 0] > -4.2) & (newp[:, 0] < 0.2)
+              & (np.hypot(newp[:, 1] - YC_ROSE12, newp[:, 2])
+                 < RI_ROSE12))
+    assert inrose.sum() == 0, int(inrose.sum())
+    print("  not one new stone crosses the rose's light (%d points "
+          "checked against the 4.30 m aperture)" % len(newp))
+
+    # bell openings are empty ON THE MODEL (frame probes are
+    # presence-only -- part XI's lesson)
+    BP = BELF14[0]
+    y0o, y1o = Y_SILL14 + 0.15, Y_SPRB14 - 0.15
+    for (runlo, runhi, axis) in ((-4.0, 8.0, 0), (ZTOW14 + 0.7,
+                                                  14.0, 2)):
+        L = runhi - runlo
+        for ac in (runlo + L / 3.0, runlo + 2.0 * L / 3.0):
+            a = np.abs(BP[:, axis] - ac) if axis == 0 else \
+                np.abs(np.abs(BP[:, 2]) - ac)
+            m = ((a < 0.5 * WB14 - 0.2) & (BP[:, 1] > y0o)
+                 & (BP[:, 1] < y1o))
+            assert m.sum() == 0, (axis, ac, int(m.sum()))
+    print("  every bell opening is clear stone-free from sill to "
+          "springing, jambs dressed at the line (part VI's lesson, "
+          "fourth outing)")
+
+    # ---------------- the ledger, and the instrument
+    CO = COURSE3
+    v_out = (K_BEL14 - K_OUT14) * CO * 8.0 * (2.0 * AWH14)
+    v_raise = (K_BEL14 - K_RAISE14) * CO * 8.0 * (NAVE_Z - S10)
+    v_crb = CO * 8.0 * STEP14 * N_CRB14 * (N_CRB14 + 1) / 2.0
+    v_east = 0.0
+    for c in range(K_PIER9, K_BEL14):
+        y = Y_FOOT + (c + 0.5) * CO
+        dy = y - Y_SPRA14
+        h = math.sqrt(max(RA14 ** 2 - dy ** 2, 0.0)) if dy < RA14 \
+            else 0.0
+        v_east += CO * TH_E14 * ((ZA1_14 - ZA0_14) - 2.0 * h)
+    v_wf = 0.0
+    for c in range(K_OUT14, K_BEL14):
+        if Y_FOOT + c * CO >= Y_TOPC12 - 1e-9:
+            v_wf += CO * (1.0 * (14.0 - ZTOW14) + 4.0 * 1.0
+                          + 4.0 * 0.7)
+    v_arch = 14 * 8.0 * (0.5 * TH_E14) * (0.52 * RDA14) ** 2
+    v_belf = 0.0
+    for c in range(K_BEL14, K_TOP14):
+        y = Y_FOOT + (c + 0.5) * CO
+        for (r0, r1, th) in ((-4.0, 8.0, 1.0), (-4.0, 8.0, 0.7)):
+            keep = sum(b - a for (a, b) in
+                       _cutrun14(r0, r1, _bell14(y, r0, r1)))
+            v_belf += CO * th * keep
+        for (r0, r1, th) in ((ZTOW14 + 0.7, 14.0, 1.0),
+                             (ZTOW14 + 0.7, 14.0, 0.7)):
+            keep = sum(b - a for (a, b) in
+                       _cutrun14(r0, r1, _bell14(y, r0, r1)))
+            v_belf += CO * th * keep
+    v_belf += COPE14 * (12.0 * 1.7 + 8.3 * 1.7)
+    A_capl = 4.0 * 0.5 * 12.0 * math.hypot(Y_CAP1_14 - Y_CAP0_14,
+                                           CPH14)
+    w_capl = A_capl * 0.0024 * 11.34
+    v_new = (v_out + v_raise + v_crb + v_east + v_wf + v_arch
+             + v_belf)
+    W_new = v_new * RHO14 / 1000.0
+    v_fac = 2.0 * SH_W12 * (46.0 - Y_FOOT) * 10.0
+    v_cler = WALL8_TH * (36.0 - Y_FOOT) * 8.0
+    v_aisl = 2.0 * AWH14 * (Y_BASE9 - Y_FOOT) * 8.0
+    W_own = (v_fac + v_cler + v_aisl) * RHO14 / 1000.0
+    W_tow = W_new + W_own + w_capl
+    print("  LEDGER (one tower): outer %.0f + raise %.0f + corbel "
+          "%.0f + east %.0f + west block %.0f + arch %.0f + belfry "
+          "%.0f m3 = %.0f m3 of new stone, %.0f t"
+          % (v_out, v_raise, v_crb, v_east, v_wf, v_arch, v_belf,
+             v_new, W_new))
+    print("  it stands on %.0f t it already owned (facade share "
+          "%.0f, clerestory %.0f, aisle wall %.0f m3) + %.1f t of "
+          "cap lead: %.0f t on the footprint"
+          % (W_own, v_fac, v_cler, v_aisl, w_capl, W_tow))
+    print("  two towers: %.0f t.  the whole west front weighed "
+          "10,900 -- the towers double the west end" % (2 * W_tow))
+    assert 4000 < W_tow < 7000, W_tow
+
+    # THE INSTRUMENT: overturning.  XIII's storm verbatim.
+    assert abs(Q14 - Q13) < 1e-9
+    F_disc = Q13 * math.pi * RI_ROSE12 ** 2      # XIII's number,
+    # recomputed with XIII's own formula (never hardcode a cliff)
+    A_face = 12.0 * 64.0 + 0.5 * 12.0 * (Y_CAP1_14 - Y_CAP0_14)
+    F_w = Q14 * A_face
+    lever = (12.0 * 64.0 * 32.0 + 84.0 * (64.0 + 14.0 / 3.0)) \
+        / A_face
+    M_w = F_w * lever
+    e14 = M_w / (W_tow * 1000.0 * 9.81)
+    kern = 10.0 / 6.0
+    print("  WIND: the storm that leaned %.1f t on the rose leans "
+          "%.1f t on a tower's %d m2 face, at %.1f m up"
+          % (F_disc / 9810.0, F_w / 9810.0, A_face, lever))
+    print("  the resultant moves e = M/W = %.3f m in a 10 m shoe.  "
+          "the middle third allows b/6 = %.3f: the storm uses "
+          "%.0f%% of the kern"
+          % (e14, kern, 100.0 * e14 / kern))
+    print("  ('no tension is developed in a wall or foundation if "
+          "the resultant force lies within the middle third' -- "
+          "the rule the whole series has been walking, named at "
+          "last)")
+    assert 0.10 < e14 < 0.60, e14
+    assert e14 < 0.35 * kern, (e14, kern)
+
+    # stress at the belfry floor (the tube) and at the ground
+    bx, bz_ = 12.0, 10.0
+    ix, iz = bx - 1.0 - 0.7, bz_ - 1.0 - 0.7
+    A_s = bx * bz_ - ix * iz
+    zc_o, zc_i = 10.0, 5.7 + 0.5 * iz
+    zc = (bx * bz_ * zc_o - ix * iz * zc_i) / A_s
+    I14 = (bx * bz_ ** 3 / 12.0 + bx * bz_ * (zc_o - zc) ** 2
+           - (ix * iz ** 3 / 12.0 + ix * iz * (zc_i - zc) ** 2))
+    S14 = I14 / max(15.0 - zc, zc - 5.0)
+    W_ab = (v_belf * RHO14 / 1000.0) + w_capl
+    A_f2 = 12.0 * (64.0 - Y_BEL14) + 84.0
+    F2 = Q14 * A_f2
+    lv2 = (12.0 * (64.0 - Y_BEL14) * 0.5 * (64.0 - Y_BEL14)
+           + 84.0 * (64.0 - Y_BEL14 + 14.0 / 3.0)) / A_f2
+    s0 = W_ab * 1000.0 * 9.81 / A_s / 1e6
+    sb = F2 * lv2 / S14 / 1e6
+    A_g = 2.0 * SH_W12 * 10.0 + WALL8_TH * 8.0 + 2.0 * AWH14 * 8.0
+    sg = W_tow * 1000.0 * 9.81 / A_g / 1e6
+    print("  the belfry tube (A %.1f m2, S %.1f m3) works at %.3f "
+          "+- %.3f MPa; the ground bears %.0f t on %.1f m2 = %.2f "
+          "MPa" % (A_s, S14, s0, sb, W_tow, A_g, sg))
+    print("  against ASTM C568 class II (the series' 2300 kg/m3 is "
+          "medium-density: 2160..2560) compressive minimum 28 MPa: "
+          "tube %.1f%%, ground %.1f%%.  part XIII quoted the "
+          "high-density row; this is the row our stone is in"
+          % (100.0 * (s0 + sb) / FC_LS14, 100.0 * sg / FC_LS14))
+    assert (s0 + sb) / FC_LS14 < 0.03
+    assert sg / FC_LS14 < 0.08
+
+    # ---------------- the frame
+    draw(int(8.0 * FPS), stage)
+    n_tw = int((LAST["mat"] == M_TWR14).sum())
+    print("  t=8.0 close: %d cells of shaft" % n_tw)
+    assert n_tw > 800, n_tw
+    draw(int(9.5 * FPS), stage)
+    n_cb = int((LAST["mat"] == M_CRB14).sum())
+    print("  t=9.5: %d cells of corbel table" % n_cb)
+    assert n_cb > 30, n_cb
+    draw(int(14.5 * FPS), stage)
+    n_bf = int((LAST["mat"] == M_BELF14).sum())
+    n_cp = int((LAST["mat"] == M_CAPL14).sum())
+    print("  t=14.5: belfry %d cells, cap lead %d cells"
+          % (n_bf, n_cp))
+    assert n_bf > 300 and n_cp > 250, (n_bf, n_cp)
+
+    # presence probes at model-given points (never absence)
+    def _pp(pts, mats, cam):
+        hit = 0
+        for p in pts:
+            c_, r_, _ = cam.project(_pose(np.asarray([p],
+                                                     np.float32)))
+            c0, r0 = int(round(c_[0])), int(round(r_[0]))
+            got = False
+            for dc in (-1, 0, 1):
+                for dr in (-1, 0, 1):
+                    if (0 <= r0 + dr < G.rows
+                            and 0 <= c0 + dc < G.cols
+                            and LAST["mat"][r0 + dr, c0 + dc]
+                            in mats):
+                        got = True
+            hit += got
+        return hit
+    ymid = 0.5 * (Y_SILL14 + Y_SPRB14)
+    wall_h = _pp([(-2.0, ymid, 15.0), (2.0, ymid, 15.0),
+                  (6.0, ymid, 15.0)], (M_BELF14,), CAM_T14)
+    cap_h = _pp([(2.0, 68.0, 14.2), (2.0, 71.0, 13.2),
+                 (2.0, 74.0, 12.2)], (M_CAPL14,), CAM_T14)
+    print("  probes -- belfry wall between openings %d/3, cap "
+          "faces %d/3" % (wall_h, cap_h))
+    assert wall_h >= 2, wall_h
+    assert cap_h >= 2, cap_h
+    draw(int(9.5 * FPS), stage)
+    crb_h = _pp([(2.0, Y_FOOT + 53.5 * CO, -(S10 - 3 * STEP14)),
+                 (5.0, Y_FOOT + 57.5 * CO, -(S10 - 7 * STEP14)),
+                 (3.0, Y_FOOT + 61.5 * CO, -(S10 - 11 * STEP14))],
+                (M_CRB14,), CAM_T14)
+    print("  probes -- three corbel steps on the north tower's "
+          "sunward face %d/3" % crb_h)
+    assert crb_h >= 2, crb_h
+
+    # held-out: the built silhouette against the drawing.  the
+    # parapet's highest pixel row and the cap's, measured, against
+    # the projected model lines -- the overlay rule, read off the
+    # frame.  The parapet is read BEFORE the caps go on: their
+    # eaves oversail it by a metre and the first version of this
+    # instrument measured the eaves' shadow instead (occlusion is
+    # not absence -- part XI's lesson, caught by its own assert)
+    draw(int((Z_CAP14[0] - 0.1) * FPS), stage)
+    r_bf = np.where((LAST["mat"] == M_BELF14).any(axis=1))[0]
+    draw(int(14.9 * FPS), stage)
+    r_cp = np.where((LAST["mat"] == M_CAPL14).any(axis=1))[0]
+    _, rr_, _ = CAM_T14.project(_pose(np.array(
+        [[-4.0, 64.0, -15.0], [8.0, 64.0, -15.0]], np.float32)))
+    r_par = rr_.min()
+    apex_y = Y_CAP1_14 - 0.20 / (CPH14 / (Y_CAP1_14 - Y_CAP0_14))
+    _, ra_, _ = CAM_T14.project(_pose(np.array(
+        [[CPX14, apex_y, -CPZ14], [CPX14, apex_y, CPZ14]],
+        np.float32)))
+    print("  held-out: parapet top measured row %d vs drawn %.1f; "
+          "cap apex measured row %d vs drawn %.1f"
+          % (r_bf.min(), r_par, r_cp.min(), ra_.min()))
+    assert abs(r_bf.min() - r_par) <= 3.0, (r_bf.min(), r_par)
+    assert abs(r_cp.min() - ra_.min()) <= 3.0, (r_cp.min(),
+                                                ra_.min())
+
+    # the closing wide view: the drawing gets its west end
+    draw(int((Z_END14 - 0.3) * FPS), stage)
+    n_new = int(np.isin(LAST["mat"], (M_TWR14, M_CRB14, M_BELF14,
+                                      M_CAPL14)).sum())
+    n_gl = int(np.isin(LAST["mat"], (M_GLB13, M_GLR13)).sum())
+    print("  the established view, closing: %d cells of tower.  "
+          "glass cells %d (part XIII's 'nothing changed' claim, "
+          "still true)" % (n_new, n_gl))
+    assert n_new > 700, n_new
+    assert n_gl < 300, n_gl
+
+    sheet = []
+    for t in (0.6, 2.2, 4.2, 6.0, 8.6, 10.4, 12.0, 14.5, 16.5):
+        fr = draw(int(t * FPS), stage)
+        ink, mat = LAST["ink"], LAST["mat"]
+        print("  t=%5.2f cov %.3f  twr %4d crb %4d belf %4d cap %4d"
+              % (t, ink.mean(), (mat == M_TWR14).sum(),
+                 (mat == M_CRB14).sum(), (mat == M_BELF14).sum(),
+                 (mat == M_CAPL14).sum()))
+        assert 0.02 < ink.mean() < 0.60, ink.mean()
+        for (c0, r0, w_, h_) in LAST["boxes"]:
+            assert r0 - 1 >= G.safe_top, ("text above safe", r0)
+            assert r0 + h_ + 1 <= G.safe_bot, ("text below safe",
+                                               r0 + h_)
+            assert c0 - 1 >= 0 and c0 + w_ + 1 <= G.cols, ("width",
+                                                           c0, w_)
+        sheet.append(fr)
+    print("  video: %.1f s, %d frames (part XIII was %.1f)"
+          % (Z_END14, int(Z_END14 * FPS), Z_END13))
+    contact(sheet, os.path.join(_HERE, "..", "content",
+                                "cath_sheet.png"),
+            cols=3, labels=["0.6 the drawing", "2.2 the plates out",
+                            "4.2 the walls it owns", "6.0 the arch",
+                            "8.6 the corbel", "10.4 the belfry",
+                            "12.0 the openings", "14.5 the caps",
+                            "16.5 the west end"])
+
+
 def check(stage):
+    if stage == 13:
+        return check_towers(stage)
     if stage == 12:
         return check_rose(stage)
     if stage == 11:
