@@ -109,6 +109,15 @@ CAPLC = (0.443, 0.475, 0.533)  # the caps: lead, fourth appearance --
                                # a shade darker than the roof's
                                # (steeper skin, less sky in it)
 M_TWR14, M_CRB14, M_BELF14, M_CAPL14 = 33, 34, 35, 36
+XNGST = (0.914, 0.856, 0.706)  # the crossing: arches, abutments and
+                               # spandrel -- the storey part IV's bill
+                               # never weighed
+LANST = (0.957, 0.922, 0.804)  # the lantern: a tower built to be
+                               # looked through
+SPIST = (0.965, 0.937, 0.842)  # the spire: the palest stone in the
+                               # building, because nothing will ever
+                               # stand in its light
+M_XNG15, M_LAN15, M_SPI15 = 37, 38, 39
 INNER = (0.694, 0.633, 0.506)  # stone seen through an opening: the
                                # passage's own shadow, not a new material
 
@@ -2982,6 +2991,288 @@ def caps14():
     return _asm14(units), n_r
 
 
+# ---------------------------------------------------------------- part XV
+# THE SPIRE.  The last stage of the programme part I published.
+#
+# PART IV'S BILL COMES DUE.  Eleven episodes ago check_transept
+# weighed the crossing tower and spire off MASSES -- 1.6 m walls,
+# a 0.35 m stone shell -- and divided them over the four pier tops:
+# 6,163 t at 1.68 MPa, "about 3% of limestone's 50 MPa."  Audited:
+# the bill forgot the STOREY THAT HOLDS THE TOWER UP.  Between the
+# pier tops (22.68) and the drawn base (36.0) stand four arches,
+# their abutments and their spandrels -- roughly 2,500 t the bill
+# never weighed -- and it overbilled the lantern, which has lancets
+# where the bill had wall.  And 50 MPa is the high-density row:
+# part XIV corrected the series' 2300 kg/m3 stone to ASTM C568
+# class II, minimum 28.  The recompute is in check_spire; the
+# answer still stands, which is the point of an audit.
+#
+# THE PIERS STOPPED AT THEIR OWN SPRINGING.  crossing_piers() rose
+# to arange(2.7, 22.0, 0.74) -- 27 courses, top bed 22.68 -- and an
+# equilateral arch (the form part V froze: rise = sqrt(3)/2 x span)
+# sprung from that bed over the 15.0 m clear span crowns at 35.67,
+# 0.33 m under part I's frozen 36.0.  Less than one course of room,
+# drawn before the arch was.  The grid's third accident.
+#
+# THE CENSUS REACHES THE CROSSING: the vault's east frame (part X's
+# hill) crests THROUGH the lantern's west wall plane, the roof's
+# lead verge runs 0.41 m past it, and truss 11 straddles it.  The
+# lead comes out (lead inside a wall is nonsense), the timber is
+# dressed back to the face (part XIV's rafter-foot move), and the
+# stone is kept: the wall is built around the vault's east arch and
+# becomes its abutment.  The east gable boards come down the course
+# the windows begin -- the wall they were waiting for arrives.
+#
+# WHAT IS DERIVED AND WHAT IS CHOSEN.
+#   frozen   the crossing box (62..80, 36..58, |z| 9) and the spire
+#            (pyr, tip 71, 0, 86).  MASSES.
+#   derived  the springing 22.68 (the piers' own top bed); the
+#            crown 35.67 (the form and the span); the lantern base
+#            course 45 = 36.000 (the SAME accident as part XIV's
+#            raise -- one grid line, two ends of the building); the
+#            lancet sill course 59 = 46.36, the first bed above
+#            every ridge the lantern meets -- one built, two still
+#            owed, all three drawn at 46.0; the coping 0.54 dressed
+#            to 58.0; the capstone closing at 86.000 exactly.
+#   chosen   the wall 1.6 and the shell 0.35 (part IV's bill,
+#            verbatim -- the bill is the spec), the voussoir depth
+#            1.0, the lancet span 1.8.
+K_SPR15 = 27                       # the piers' top bed: course 27
+Y_SPR15 = Y_TFOOT + K_SPR15 * COURSE3          # 22.68
+SPAN15 = (X_CHOIR - X_TRAN) - 2.0 * PIER_HW    # 15.0 -- both ways
+R15 = SPAN15                       # equilateral: each arc's radius
+                                   # IS the span (part V's form)
+RISE15 = 0.5 * math.sqrt(3.0) * SPAN15         # 12.9904
+Y_CRN15 = Y_SPR15 + RISE15         # 35.6704 -- ducks 36.0 by 0.33
+TH15, SSH15 = 1.6, 0.35            # wall / spire shell: THE BILL
+RD15 = 1.0                         # voussoir ring depth.  CHOSEN
+K_LAN15 = 45                       # lantern base course = 36.000
+K_TOPL15 = 74                      # courses ..73 full; top 57.46
+Y_TOPL15 = Y_FOOT + K_TOPL15 * COURSE3         # 57.46
+COPE15 = 58.0 - Y_TOPL15           # 0.54 -- dressed to the drawing
+K_SILL15 = 59                      # sill 46.36: first bed above the
+                                   # ridge line 46.0 (all three
+                                   # roofs are drawn to it)
+Y_SILL15 = Y_FOOT + K_SILL15 * COURSE3
+K_SPRW15 = 70                      # lancet springing course, 54.50
+Y_SPRW15 = Y_FOOT + K_SPRW15 * COURSE3
+WL15 = 1.8                         # lancet clear span.  CHOSEN
+XC15 = 0.5 * (X_TRAN + X_CHOIR)    # 71.0 -- the crossing's centre
+Y_SP0_15, Y_SP1_15 = 58.0, 86.0    # the spire.  MASSES verbatim
+CPH15 = 9.0                        # the spire's base half.  MASSES
+
+
+def _hop15(dy):
+    """Clear half-opening of a crossing arch at dy above the
+    springing: under BOTH arcs of the equilateral pair."""
+    if dy >= RISE15:
+        return 0.0
+    return math.sqrt(R15 * R15 - dy * dy) - 0.5 * SPAN15
+
+
+def _hext15(dy):
+    """Half-width of the EXTRADOS at dy: the fill is cut here, so
+    the voussoir ring is counted once -- by the ledger and by the
+    light."""
+    if dy >= math.sqrt((R15 + RD15) ** 2 - (0.5 * SPAN15) ** 2):
+        return 0.0
+    return math.sqrt((R15 + RD15) ** 2 - dy * dy) - 0.5 * SPAN15
+
+
+def _lan15(y, a0, a1):
+    """Lancet cuts on a lantern face run: two, at the third points
+    (the belfry's move, one storey higher)."""
+    if y < Y_SILL15:
+        return []
+    cuts = []
+    L = a1 - a0
+    for ac in (a0 + L / 3.0, a0 + 2.0 * L / 3.0):
+        h = (0.5 * WL15 if y <= Y_SPRW15
+             else _halfw_arch12(y - Y_SPRW15, WL15))
+        if h > 0.0:
+            cuts.append((ac - h, ac + h))
+    return cuts
+
+
+def _fill15(units, y, hy, x0, x1, z0, z1, cuts=None, ax=0):
+    """Stones along one wall rectangle, run split along the long
+    axis; cuts are open intervals along axis ax, jambs dressed AT
+    the line (part VI's lesson, fifth outing)."""
+    def one(xa, xb, za, zb):
+        if xb - xa <= 0.01 or zb - za <= 0.01:
+            return
+        along_x = (xb - xa) >= (zb - za)
+        n = max(1, int(round(((xb - xa) if along_x
+                              else (zb - za)) / 1.35)))
+        for i in range(n):
+            if along_x:
+                w = (xb - xa) / n
+                cx, cz = xa + (i + 0.5) * w, 0.5 * (za + zb)
+                hx, hz = 0.47 * w, 0.5 * (zb - za)
+            else:
+                w = (zb - za) / n
+                cx, cz = 0.5 * (xa + xb), za + (i + 0.5) * w
+                hx, hz = 0.5 * (xb - xa), 0.47 * w
+            j = RNG.uniform(-0.02, 0.02, 2)
+            units.append(stone(cx + j[0], y, cz + j[1], hx, hy, hz))
+    if cuts:
+        if ax == 0:
+            for (a, b) in _cutrun14(x0, x1, cuts):
+                one(a, b, z0, z1)
+        else:
+            for (a, b) in _cutrun14(z0, z1, cuts):
+                one(x0, x1, a, b)
+    else:
+        one(x0, x1, z0, z1)
+
+
+def spandrel15():
+    """The storey the bill forgot: the four piers continue from
+    their springing beds to the drawn base (the abutment blocks),
+    and the wall bands between them rise course by course, each cut
+    at its arch's EXTRADOS -- near the springing the arch fills the
+    whole span and the courses only exist over the haunches."""
+    units = []
+    for c in range(K_SPR15, K_LAN15):
+        y = Y_TFOOT + (c + 0.5) * COURSE3
+        hy = COURSE3 * 0.43
+        dy = y - Y_SPR15
+        h = _hext15(dy)
+        # the four abutment blocks: the piers, still not done
+        for x in (X_TRAN, X_CHOIR):
+            for z in (-CROSS_Z, CROSS_Z):
+                j = RNG.uniform(-0.03, 0.03, 2)
+                units.append(stone(x + j[0], y, z + j[1],
+                                   PIER_HW, hy, PIER_HW))
+        cuts = [(-h, h)] if h > 0.0 else []
+        for (x0, x1) in ((X_TRAN, X_TRAN + TH15),
+                         (X_CHOIR - TH15, X_CHOIR)):
+            _fill15(units, y, hy, x0, x1, -0.5 * SPAN15,
+                    0.5 * SPAN15,
+                    cuts=[(c0, c1) for (c0, c1) in cuts], ax=1)
+        for (z0, z1) in ((-CROSS_Z, -CROSS_Z + TH15),
+                         (CROSS_Z - TH15, CROSS_Z)):
+            _fill15(units, y, hy, X_TRAN + PIER_HW,
+                    X_CHOIR - PIER_HW, z0, z1,
+                    cuts=[(XC15 + c0, XC15 + c1)
+                          for (c0, c1) in cuts], ax=0)
+    return _asm14(units), K_LAN15 - K_SPR15
+
+
+def arches15():
+    """Four rings, one per side of the crossing, all rising
+    together: voussoirs laid from both springings toward the crown
+    (part VII's idiom), each ring's springing bed seated ON its
+    pier, the keystone closing both arcs last (part X's boss
+    move).  Equilateral: each arc is centred on the OPPOSITE
+    springing."""
+    units = []
+    n_side = 12
+    rm = R15 + 0.5 * RD15
+    dv = (math.pi / 3.0) * rm / n_side       # voussoir arc length
+    planes = ((0.5 * (X_TRAN + X_TRAN + TH15), None),
+              (0.5 * (X_CHOIR - TH15 + X_CHOIR), None),
+              (None, -CROSS_Z + 0.5 * TH15),
+              (None, CROSS_Z - 0.5 * TH15))
+    def put(s, dy):
+        for (px, pz) in planes:
+            if px is not None:
+                p, nn = stone(px, Y_SPR15 + dy, s, 0.5 * TH15,
+                              0.52 * dv, 0.52 * dv, step=0.30)
+            else:
+                p, nn = stone(XC15 + s, Y_SPR15 + dy, pz,
+                              0.52 * dv, 0.52 * dv, 0.5 * TH15,
+                              step=0.30)
+            units.append((p, nn))
+    for i in range(n_side):
+        th = math.pi - (i + 0.5) / n_side * (math.pi / 3.0)
+        for o in (-1.0, 1.0):
+            put(o * (0.5 * SPAN15 + rm * math.cos(th)),
+                rm * math.sin(th))
+    put(0.0, RISE15 + 0.35)                  # the key
+    return _asm14(units), n_side * 2 + 1
+
+
+def lantern15():
+    """The lantern: a tower built to be looked through.  Four walls
+    on the drawn faces, two lancets each, sill at the first bed
+    above every ridge the lantern meets; the first two courses cut
+    around the arch crowns that rise into them; the coping dressed
+    to 58.0."""
+    units = []
+    for c in range(K_LAN15, K_TOPL15):
+        y = Y_FOOT + (c + 0.5) * COURSE3
+        hy = COURSE3 * 0.43
+        dy = y - Y_SPR15
+        h = _hext15(dy)
+        arc = [(-h, h)] if h > 0.0 else []
+        for (x0, x1) in ((X_TRAN, X_TRAN + TH15),
+                         (X_CHOIR - TH15, X_CHOIR)):
+            _fill15(units, y, hy, x0, x1, -CROSS_Z, CROSS_Z,
+                    cuts=_lan15(y, -CROSS_Z, CROSS_Z) + arc, ax=1)
+        for (z0, z1) in ((-CROSS_Z, -CROSS_Z + TH15),
+                         (CROSS_Z - TH15, CROSS_Z)):
+            _fill15(units, y, hy, X_TRAN + TH15, X_CHOIR - TH15,
+                    z0, z1,
+                    cuts=_lan15(y, X_TRAN + TH15, X_CHOIR - TH15)
+                    + [(XC15 + a, XC15 + b) for (a, b) in arc],
+                    ax=0)
+    y = Y_TOPL15 + 0.5 * COPE15
+    hy = 0.5 * COPE15 * 0.9
+    _fill15(units, y, hy, X_TRAN, X_TRAN + TH15, -CROSS_Z, CROSS_Z)
+    _fill15(units, y, hy, X_CHOIR - TH15, X_CHOIR, -CROSS_Z,
+            CROSS_Z)
+    _fill15(units, y, hy, X_TRAN + TH15, X_CHOIR - TH15,
+            -CROSS_Z, -CROSS_Z + TH15)
+    _fill15(units, y, hy, X_TRAN + TH15, X_CHOIR - TH15,
+            CROSS_Z - TH15, CROSS_Z)
+    return _asm14(units), K_TOPL15 - K_LAN15
+
+
+def spire15():
+    """The spire: a hollow stone pyramid, 0.35 m of shell (the
+    bill's number -- Salisbury's runs eight inches for most of its
+    height), coursed rings shrinking to the capstone at 86.000.
+    Stone spires are coursed and the stair-steps are period, not
+    raster."""
+    units = []
+    y = Y_SP0_15
+    n_r = 0
+    while True:
+        yc = y + 0.5 * COURSE3
+        hh = CPH15 * (Y_SP1_15 - yc) / (Y_SP1_15 - Y_SP0_15)
+        if yc >= Y_SP1_15 or hh < 0.30:
+            break
+        hy = COURSE3 * 0.43
+        for (cx, cz, hx, hz) in (
+                (XC15, hh - 0.5 * SSH15, hh, 0.5 * SSH15),
+                (XC15, -(hh - 0.5 * SSH15), hh, 0.5 * SSH15),
+                (XC15 + hh - 0.5 * SSH15, 0.0, 0.5 * SSH15,
+                 max(hh - SSH15, 0.1)),
+                (XC15 - (hh - 0.5 * SSH15), 0.0, 0.5 * SSH15,
+                 max(hh - SSH15, 0.1))):
+            n = max(1, int(round(2.0 * max(hx, hz) / 1.1)))
+            for i in range(n):
+                if hx >= hz:
+                    w = 2.0 * hx / n
+                    ccx = cx - hx + (i + 0.5) * w
+                    p, nn = stone(ccx, yc, cz, 0.47 * w, hy, hz,
+                                  step=0.20)
+                else:
+                    w = 2.0 * hz / n
+                    ccz = cz - hz + (i + 0.5) * w
+                    p, nn = stone(cx, yc, ccz, hx, hy, 0.47 * w,
+                                  step=0.20)
+                units.append((p, nn))
+        n_r += 1
+        y += COURSE3
+    # the capstone: one dressed stone closing the drawing at 86.000
+    hcap = 0.5 * (Y_SP1_15 - y)
+    p, nn = stone(XC15, y + hcap, 0.0, 0.32, hcap, 0.32, step=0.22)
+    units.append((p, nn))
+    return _asm14(units), n_r
+
+
 STAGES = [
     "THE FOUNDATION",
     "THE CRYPT",
@@ -3758,6 +4049,79 @@ _t14pad[:, 1] = _T14_PTS[:, 1].min() - 4.5
 CAM_T14 = Camera(G).fit([_pose(np.vstack([_T14_PTS, _t14pad]))],
                         margin=1.05)
 
+# ---------------------------------------------------- part XV assembly
+(SPA15, N_SPC15) = spandrel15()
+(ARC15, N_VA15) = arches15()
+(LAN15, N_LC15) = lantern15()
+(SPI15, N_SR15) = spire15()
+
+# THE TRIM.  The roof's lead verge runs 0.41 m past the lantern's
+# west wall face (lead inside a wall is nonsense -- it comes out,
+# trimmed AT the face, which is what lead is FOR), and truss 11's
+# members east of the face are dressed back to bear in the rising
+# stone (part XIV's rafter-foot move).  The vault's east frame is
+# NOT touched: the wall is built around it and becomes its
+# abutment -- stone may live inside stone.
+_dm15_ld = (~_dm_ld) & (LEADS11[0][:, 0] > X_TRAN)
+_dm15_rf = (~_dm_rf) & (RAFT11[0][:, 0] > X_TRAN)
+_dm15_ti = TIE11[0][:, 0] > X_TRAN
+_dm15_po = POST11[0][:, 0] > X_TRAN
+_dm15_rg = RIDGE11[0][:, 0] > X_TRAN
+
+DEMO15 = ((_msk14(LEADS11, _dm15_ld), M_LEAD11),
+          (_msk14(RAFT11, _dm15_rf), M_TIMB11),
+          (_msk14(TIE11, _dm15_ti), M_TIMB11),
+          (_msk14(POST11, _dm15_po), M_TIMB11),
+          (_msk14(RIDGE11, _dm15_rg), M_TIMB11))
+
+# hand-off: the rose ring and part XIII's plate and cames join the
+# legacy pile -- the window is 60 m from the new work and nothing
+# can touch it.  The GLASS never merges: it is not stone, and from
+# outside it stays the near-black part XIII measured.  Part XIV's
+# four keep their own one more: the spire probes need the tower
+# tops, and the caps must stay distinguishable from the new
+# lantern.
+_LEG15_P = np.vstack([_LEG12_P,
+                      LEADS11[0][(~_dm_ld) & (~_dm15_ld)],
+                      LATH11[0][~_dm_lt],
+                      PLATE11[0][~_dm_pl],
+                      RAFT11[0][(~_dm_rf) & (~_dm15_rf)],
+                      TIE11[0][~_dm15_ti], POST11[0][~_dm15_po],
+                      COMM11[0], RIDGE11[0][~_dm15_rg],
+                      VR12[0], VW12[0],
+                      WFP12[0], WFA12[0], WFT12[0], WFC12[0],
+                      FACEA12[0], FACEB12[0], FACEC12[0],
+                      PJ12[0], PA12[0],
+                      RING12[0], PLATE13[0],
+                      CAME13[0]]).astype(np.float32)
+_LEG15_N = np.vstack([_LEG12_N,
+                      LEADS11[1][(~_dm_ld) & (~_dm15_ld)],
+                      LATH11[1][~_dm_lt],
+                      PLATE11[1][~_dm_pl],
+                      RAFT11[1][(~_dm_rf) & (~_dm15_rf)],
+                      TIE11[1][~_dm15_ti], POST11[1][~_dm15_po],
+                      COMM11[1], RIDGE11[1][~_dm15_rg],
+                      VR12[1], VW12[1],
+                      WFP12[1], WFA12[1], WFT12[1], WFC12[1],
+                      FACEA12[1], FACEB12[1], FACEC12[1],
+                      PJ12[1], PA12[1],
+                      RING12[1], PLATE13[1],
+                      CAME13[1]]).astype(np.float32)
+_W15_STAND = ((SHAFT14, M_TWR14), (ARCH14, M_TWR14),
+              (CRB14, M_CRB14), (BELF14, M_BELF14),
+              (CAPL14, M_CAPL14))
+
+# THE CROSSING FIT: the established angles at a closer fit -- part
+# II's move, made for the last time.  Fitted to the new work (pier
+# tops to capstone) plus a caption pad below; the nave runs off the
+# left of frame the way the church ran off part XIV's right.
+_X15_PTS = np.vstack([SPA15[0], ARC15[0], LAN15[0],
+                      SPI15[0]]).astype(np.float32)
+_x15pad = _X15_PTS.copy()
+_x15pad[:, 1] = _X15_PTS[:, 1].min() - 4.5
+CAM_X15 = Camera(G).fit([_pose(np.vstack([_X15_PTS, _x15pad]))],
+                        margin=1.05)
+
 
 # ---------------------------------------------------------------- timeline
 T_GHOST, T_HOLD, T_DIG, T_LAY, T_END = 1.5, 2.4, 3.6, 9.9, 12.4
@@ -3982,8 +4346,30 @@ Z_CAP14 = (12.5, 14.7)             # lead, ring by ring, both at once
 Z_BACK14 = 15.2                    # the established view again
 Z_END14 = 16.8
 
+# part XV.  One cut out, one cut back, and no promise after it.
+# The trim first (the verge and the truss members dressed to the
+# wall line), the arches (a tower on four open sides needs its four
+# bridges), the storey the bill forgot, the lantern -- the boards
+# come down at the course the windows begin, DERIVED from the
+# lantern's own clock -- the spire in shrinking rings, the capstone
+# at 86.000.  Then home to the established view, where the ghost
+# lifts one last time: it still owes the east end, and it says so.
+Z_GHOST15 = 0.9
+Z_CUT15 = 1.4                      # to the crossing fit
+Z_TRIM15 = (1.7, 2.6)              # the verge out, the timber back
+Z_ARC15 = (2.8, 4.7)               # four rings, keys last
+Z_SPA15 = (4.7, 6.3)               # courses 27..44
+Z_LAN15 = (6.3, 9.8)               # courses 45..73 and the coping
+_ubrd15 = (K_SILL15 - K_LAN15) / float(K_TOPL15 - K_LAN15)
+Z_BRD15 = (Z_LAN15[0] + _ubrd15 * (Z_LAN15[1] - Z_LAN15[0]),
+           Z_LAN15[0] + _ubrd15 * (Z_LAN15[1] - Z_LAN15[0]) + 0.7)
+Z_SPI15 = (10.0, 13.6)             # the rings, and the capstone is
+                                   # the clock's own last stone
+Z_BACK15 = 14.3                    # the established view, finally
+Z_END15 = 17.0
+
 T_ENDS = [T_END, C_END, H_END, Q_END, P_END, A_END, V_END, W_END, X_END,
-          Z_END, R_END, S_END12, Z_END13, Z_END14]
+          Z_END, R_END, S_END12, Z_END13, Z_END14, Z_END15]
 LAST = {}
 
 
@@ -4024,7 +4410,7 @@ def draw(f, stage):
             draw_nave, draw_aisles, draw_triforium,
             draw_clerestory, draw_buttress, draw_vault,
             draw_roof, draw_westfront, draw_rose,
-            draw_towers)[stage](f, stage)
+            draw_towers, draw_spire)[stage](f, stage)
 
 
 def _label(fr, t, stage, t0=0.8):
@@ -4906,6 +5292,82 @@ def draw_towers(f, stage):
     return fr
 
 
+def draw_spire(f, stage):
+    """Part XV.  Open in the established view -- the building as
+    fourteen episodes left it -- then cut to the crossing fit.  The
+    verge and the truss are dressed to the wall line, the four
+    arches bridge the four open sides, the forgotten storey rises,
+    the lantern takes its lancets (the boards come down the course
+    the windows begin), the spire closes ring by ring, and the
+    capstone lands on the drawing's last point.  Home wide: the
+    ghost lifts one final time, and it still has the east end in
+    its keeping."""
+    t = f / float(FPS)
+    close = Z_CUT15 <= t < Z_BACK15
+    cam = CAM_X15 if close else CAM
+    buf = {"sh": np.zeros((G.rows, G.cols)),
+           "mat": np.zeros((G.rows, G.cols), np.int16),
+           "z": np.full((G.rows, G.cols), -1e9)}
+
+    def win(w):
+        return (t - w[0]) / (w[1] - w[0])
+
+    gfade = min(1.0, t / Z_GHOST15)
+    n = int(len(GHOST) * gfade) if t < Z_CUT15 else len(GHOST)
+    if n > 8:
+        col, row, z = cam.project(_pose(GHOST[:n]))
+        lift = 1.0 + 0.55 * min(1.0, max(0.0, (t - Z_BACK15 - 0.3)
+                                         / 1.1))
+        sh = ((0.20 + 0.34 * depth_cue(z, 1.0, 0.30))
+              * (0.72 + 0.28 * gfade) * lift)
+        _put(buf, col, row, z + 4000.0, sh, M_GHOST, False)
+
+    col, row, z = cam.project(_pose(_LEG15_P))
+    sh = (0.17 + 0.44 * lambert(_LEG15_N, LAMP)) * depth_cue(z, 1.0,
+                                                             0.86)
+    _put7(buf, col, row, z, np.clip(sh, 0.04, 1.0),
+          np.full(len(z), M_OLD, np.int16))
+    for part, mat in _W15_STAND:
+        _grow7(buf, part, 1.0, mat, LAMP, 0.17, 0.60, cam, _pose)
+
+    # the window: near-black from out here, forever
+    for part, mat in GLZ13:
+        P_, N_, O_ = part
+        c_, r_, z_ = cam.project(_pose(P_))
+        _put7(buf, c_, r_, z_, np.full(len(z_), 0.145),
+              np.full(len(z_), mat, np.int16))
+
+    # the east boards: standing until the wall that replaces them
+    # passes the sill course -- then the reversed clock
+    u_brd = win(Z_BRD15)
+    if u_brd < 1.0:
+        _grow7(buf, GBE12, 1.0 - 1.05 * max(0.0, u_brd), M_TIMB11,
+               LAMP, 0.17, 0.44, cam, _pose)
+
+    # the trim: the verge and the truss members, reversed clock
+    u_dm = win(Z_TRIM15)
+    if u_dm < 1.0:
+        for part, mat in DEMO15:
+            _grow7(buf, part, 1.0 - 1.05 * max(0.0, u_dm), mat,
+                   LAMP, 0.17, 0.44, cam, _pose)
+
+    # the new work
+    _grow7(buf, ARC15, win(Z_ARC15), M_XNG15, LAMP, 0.28, 0.70,
+           cam, _pose)
+    _grow7(buf, SPA15, win(Z_SPA15), M_XNG15, LAMP, 0.26, 0.66,
+           cam, _pose)
+    _grow7(buf, LAN15, win(Z_LAN15), M_LAN15, LAMP, 0.26, 0.68,
+           cam, _pose)
+    _grow7(buf, SPI15, win(Z_SPI15), M_SPI15, LAMP, 0.26, 0.62,
+           cam, _pose)
+
+    LAST["u15"] = min(1.0, max(0.0, win(Z_LAN15)))
+
+    fr = _paint(buf)
+    _label(fr, t, stage)
+    return fr
+
+
 def draw_foundation(f, stage):
     t = f / float(FPS)
     buf = {"sh": np.zeros((G.rows, G.cols)),
@@ -4979,7 +5441,8 @@ def colour(v, m):
             M_TRC13: TRCST, M_CAME13: CAMEC,
             M_GLB13: GLASSB, M_GLR13: GLASSR,
             M_TWR14: TOWST, M_CRB14: CRBST,
-            M_BELF14: BELST, M_CAPL14: CAPLC}[int(m)]
+            M_BELF14: BELST, M_CAPL14: CAPLC,
+            M_XNG15: XNGST, M_LAN15: LANST, M_SPI15: SPIST}[int(m)]
     t = np.clip(0.22 + 0.78 * v, 0.0, 1.0)
     return blend(BG, base, t)
 
@@ -8626,7 +9089,450 @@ def check_towers(stage):
                             "16.5 the west end"])
 
 
+def _mass_top(name, kind, args, P):
+    """Points of the standing model inside one massing volume, and
+    the highest built point in it."""
+    x, y, z = P[:, 0], P[:, 1], P[:, 2]
+    if kind == "box":
+        x0, x1, y0, y1, z0, z1 = args
+        m = ((x >= x0 - 1e-6) & (x <= x1 + 1e-6) & (y >= y0 - 1e-6)
+             & (y <= y1 + 1e-6) & (z >= z0 - 1e-6) & (z <= z1 + 1e-6))
+        top = y1
+    elif kind == "pyr":
+        cx, cz, half, y0, y1 = args
+        f = np.clip((y - y0) / (y1 - y0), 0.0, 1.0)
+        m = ((y >= y0 - 1e-6) & (y <= y1 + 1e-6)
+             & (np.abs(x - cx) <= half * (1.0 - f) + 0.35)
+             & (np.abs(z - cz) <= half * (1.0 - f) + 0.35))
+        top = y1
+    elif kind in ("roof", "roofz"):
+        x0, x1, z0, z1, yb, yr = args
+        if kind == "roof":
+            zm = 0.5 * (z0 + z1)
+            plane = yr - (yr - yb) * np.abs(z - zm) / (0.5 * (z1 - z0))
+        else:
+            xm = 0.5 * (x0 + x1)
+            plane = yr - (yr - yb) * np.abs(x - xm) / (0.5 * (x1 - x0))
+        m = ((x >= x0 - 1e-6) & (x <= x1 + 1e-6) & (z >= z0 - 1e-6)
+             & (z <= z1 + 1e-6) & (y >= yb - 1e-6) & (y <= plane + 0.30))
+        top = yr
+    else:                                     # apse: half cylinder
+        cx, cy, r, y0, y1 = args
+        m = ((x >= cx - 1e-6) & (np.hypot(x - cx, z) <= r + 1e-6)
+             & (y >= y0 - 1e-6) & (y <= y1 + 1e-6))
+        top = y1
+    n = int(m.sum())
+    built = float(y[m].max()) if n else 0.0
+    return n, built, top
+
+
+def check_spire(stage):
+    print("THE CATHEDRAL -- part %s, %s" % (roman(stage + 1),
+                                            STAGES[stage]))
+    # rule 1: the established view has not drifted
+    two = np.array([[0.0, 0.0, 0.0], [62.0, 46.0, 15.0]], np.float32)
+    assert np.allclose(_pose(two), _pose_at(two, -58.0, 28.0)), \
+        "established view drifted"
+    assert abs(Y_TFOOT - Y_FOOT) < 1e-12
+    print("  one course grid serves both foot lines (2.70), so the "
+          "crossing and the crypt count the same beds")
+
+    # THE GRID, and the third accident
+    ptop = float(PIERS4[0][:, 1].max())
+    print("  the piers stopped at %.2f eleven episodes ago; course "
+          "27's bed is %.2f -- they finished AT their springing "
+          "without being told" % (ptop, Y_SPR15))
+    assert abs(ptop - Y_SPR15) < 0.10, (ptop, Y_SPR15)
+    clr = NAVE_Y - Y_CRN15
+    print("  an equilateral arch (part V's form) over the 15.0 m "
+          "clear span crowns at %.4f -- %.3f m under part I's "
+          "36.0, LESS THAN ONE COURSE of room, drawn before the "
+          "arch was.  the grid's third accident" % (Y_CRN15, clr))
+    assert 0.0 < clr < COURSE3, clr
+    assert abs(Y_FOOT + K_LAN15 * COURSE3 - 36.0) < 1e-9
+    print("  the lantern base: course 45 bottom = 36.000 EXACTLY "
+          "-- the same accident part XIV printed, one grid line, "
+          "two ends of the building")
+    for (rname, ridge) in (("roof_nave (built XI)", 46.0),
+                           ("roof_tran (owed)", 46.0),
+                           ("roof_choir (owed)", 46.0)):
+        assert Y_SILL15 > ridge, (rname, Y_SILL15)
+    print("  the sill: course 59 = %.2f, the first bed above every "
+          "ridge the lantern meets -- one built, two still owed, "
+          "all three drawn at 46.0.  the inequality that spans "
+          "episodes, written for episodes that will never come" %
+          Y_SILL15)
+    assert abs(Y_TOPL15 + COPE15 - 58.0) < 1e-9
+    cap_top = float(SPI15[0][:, 1].max())
+    print("  the coping: %.2f dressed to 58.0; the capstone closes "
+          "at %.3f of a drawn 86.000" % (COPE15, cap_top))
+    assert abs(cap_top - 86.0) < 0.12, cap_top
+
+    # THE CENSUS AT THE CROSSING (before the build): what stands in
+    # the envelope, and what is done about each
+    n_vlt = int(((np.vstack([TARCH10[0], DIAG10[0]])[:, 0] > X_TRAN)
+                 & (np.vstack([TARCH10[0], DIAG10[0]])[:, 1]
+                    > Y_SPR15)).sum())
+    n_vrg = int(_dm15_ld.sum())
+    n_tmb = int(_dm15_rf.sum() + _dm15_ti.sum() + _dm15_po.sum()
+                + _dm15_rg.sum())
+    print("  THE CENSUS at the crossing: the vault's east frame "
+          "crests through the wall plane (%d points -- KEPT, the "
+          "wall becomes its abutment); the lead verge runs past "
+          "the face (%d points -- OUT, trimmed at the wall, which "
+          "is what lead is for); truss 11 straddles it (%d timber "
+          "points -- dressed back to bear in the stone)"
+          % (n_vlt, n_vrg, n_tmb))
+    assert 150 < n_vlt < 900, n_vlt
+    assert 500 < n_vrg < 1100, n_vrg
+    assert 40 < n_tmb < 160, n_tmb
+    # the openings are open ON THE MODEL: no spandrel stone inside
+    # any arch's clear opening
+    SP = SPA15[0]
+    for (ax, c0, c1) in ((2, X_TRAN, X_TRAN + TH15),
+                         (2, X_CHOIR - TH15, X_CHOIR),
+                         (0, -CROSS_Z, -CROSS_Z + TH15),
+                         (0, CROSS_Z - TH15, CROSS_Z)):
+        if ax == 2:
+            inw = (SP[:, 0] > c0 - 0.05) & (SP[:, 0] < c1 + 0.05)
+            s = SP[:, 2]
+        else:
+            inw = (SP[:, 2] > c0 - 0.05) & (SP[:, 2] < c1 + 0.05)
+            s = SP[:, 0] - XC15
+        dy = SP[:, 1] - Y_SPR15
+        hop = np.sqrt(np.clip(R15 * R15 - dy * dy, 0.0, None)) \
+            - 0.5 * SPAN15
+        bad = inw & (dy > 0) & (dy < RISE15) \
+            & (np.abs(s) < hop - 0.25) & (SP[:, 1] < NAVE_Y)
+        assert bad.sum() == 0, (ax, c0, int(bad.sum()))
+    print("  all four crossing openings are stone-free to their "
+          "intrados on the model; the fill is cut at the EXTRADOS, "
+          "so the rings are counted once")
+    # lancets stone-free on the model
+    LP = LAN15[0]
+    y0o, y1o = Y_SILL15 + 0.15, Y_SPRW15 - 0.15
+    for (a0, a1, axis) in ((-CROSS_Z, CROSS_Z, 2),
+                           (X_TRAN + TH15, X_CHOIR - TH15, 0)):
+        L = a1 - a0
+        for ac in (a0 + L / 3.0, a0 + 2.0 * L / 3.0):
+            a = np.abs(LP[:, axis] - ac)
+            m = ((a < 0.5 * WL15 - 0.2) & (LP[:, 1] > y0o)
+                 & (LP[:, 1] < y1o))
+            assert m.sum() == 0, (axis, ac, int(m.sum()))
+    print("  every lancet is stone-free from sill to springing, "
+          "jambs dressed at the line")
+
+    # ---------------- PART IV'S BILL, RECOMPUTED VERBATIM
+    TWALL, SWALL, RHO, G0 = 1.6, 0.35, 2300.0, 9.81
+    side, h_t = X_CHOIR - X_TRAN, 58.0 - NAVE_Y
+    v_tower = (side ** 2 - (side - 2 * TWALL) ** 2) * h_t
+    half, y0, y1 = 9.0, 58.0, 86.0
+    slant = math.hypot(y1 - y0, half)
+    v_spire = 4 * 0.5 * (2 * half) * slant * SWALL
+    load = (v_tower + v_spire) * RHO * G0
+    area = 4 * (2 * PIER_HW) ** 2
+    sigma = load / area / 1e6
+    W_bill = (v_tower + v_spire) * RHO / 1000.0
+    print("  THE BILL (part IV, recomputed with part IV's own "
+          "formula): tower %.0f + spire %.0f m3 = %.0f t on %.0f "
+          "m2 of pier -> %.2f MPa.  part IV called it 'about 3%% "
+          "of limestone's 50 MPa' -- the high-density row, "
+          "corrected by XIV: our 2300 kg/m3 stone is class II, "
+          "minimum 28" % (v_tower, v_spire, W_bill, area, sigma))
+    assert abs(sigma - 1.68) < 0.01, sigma
+
+    # THE ACTUAL BUILD, analytic
+    CO = COURSE3
+    v_abut = 4.0 * (2 * PIER_HW) ** 2 * (NAVE_Y - Y_SPR15)
+    v_span = 0.0
+    for c in range(K_SPR15, K_LAN15):
+        yv = Y_TFOOT + (c + 0.5) * CO
+        h = _hext15(yv - Y_SPR15)
+        keep_x = sum(b - a for (a, b) in
+                     _cutrun14(-0.5 * SPAN15, 0.5 * SPAN15,
+                               [(-h, h)] if h > 0 else []))
+        keep_z = sum(b - a for (a, b) in
+                     _cutrun14(X_TRAN + PIER_HW, X_CHOIR - PIER_HW,
+                               [(XC15 - h, XC15 + h)]
+                               if h > 0 else []))
+        v_span += CO * TH15 * 2.0 * (keep_x + keep_z)
+    rm = R15 + 0.5 * RD15
+    v_ring = 4.0 * (2.0 * (math.pi / 3.0) * rm) * RD15 * TH15
+    v_lan = 0.0
+    for c in range(K_LAN15, K_TOPL15):
+        yv = Y_FOOT + (c + 0.5) * CO
+        h = _hext15(yv - Y_SPR15)
+        arc = [(-h, h)] if h > 0 else []
+        kx = sum(b - a for (a, b) in
+                 _cutrun14(-CROSS_Z, CROSS_Z,
+                           _lan15(yv, -CROSS_Z, CROSS_Z) + arc))
+        kz = sum(b - a for (a, b) in
+                 _cutrun14(X_TRAN + TH15, X_CHOIR - TH15,
+                           _lan15(yv, X_TRAN + TH15,
+                                  X_CHOIR - TH15)
+                           + [(XC15 + a_, XC15 + b_)
+                              for (a_, b_) in arc]))
+        v_lan += CO * TH15 * (2.0 * kx + 2.0 * kz)
+    v_lan += COPE15 * TH15 * (2.0 * 2.0 * CROSS_Z
+                              + 2.0 * (side - 2.0 * TH15))
+    v_spi = 0.0
+    yv = Y_SP0_15
+    while True:
+        yc = yv + 0.5 * CO
+        hh = CPH15 * (Y_SP1_15 - yc) / (Y_SP1_15 - Y_SP0_15)
+        if yc >= Y_SP1_15 or hh < 0.30:
+            break
+        v_spi += CO * SSH15 * (4.0 * 2.0 * hh - 4.0 * SSH15)
+        yv += CO
+    v_new = v_abut + v_span + v_ring + v_lan + v_spi
+    W_act = v_new * RHO / 1000.0
+    sig_act = W_act * 1000.0 * G0 / area / 1e6
+    print("  THE ACTUAL: abutments %.0f + spandrel %.0f + rings "
+          "%.0f + lantern %.0f + spire %.0f m3 = %.0f m3, %.0f t"
+          % (v_abut, v_span, v_ring, v_lan, v_spi, v_new, W_act))
+    print("  the bill forgot the storey that holds the tower up "
+          "(%.0f t of arches and abutments) and overbilled the "
+          "lantern (%.0f vs %.0f m3 -- the bill had wall where "
+          "the windows are).  the piers pay %.0f t over the bill"
+          % ((v_abut + v_span + v_ring) * RHO / 1000.0, v_lan,
+             v_tower, W_act - W_bill))
+    print("  bearing: %.2f MPa = %.1f%% of class II's 28.  "
+          "('the stresses are an order of magnitude below the "
+          "crushing values... in the pillars of the central nave "
+          "in Beauvais the mean stress was only of 1.3 N/mm2' -- "
+          "Huerta 2001, the equilibrium school Heyman built.  "
+          "the thickest thing in the building carries the "
+          "biggest stress in it, and it is still small)"
+          % (sig_act, 100.0 * sig_act / 28.0))
+    assert 1.9 < sig_act < 2.6, sig_act
+    assert sig_act / 28.0 < 0.09
+    print("  salisbury's crossing took on 6,500 t it was never "
+          "sized for and its piers bend where you can see them; "
+          "ours takes %.0f t on piers three metres square that "
+          "part IV sized FOR this bill, eleven episodes early"
+          % W_act)
+
+    # ---------------- THE 39 CELLS
+    # part XI's final frame, redrawn, and part XI's own count: the
+    # vault's east ribs showing sideways through the open crossing
+    draw(int((R_END - 0.2) * FPS), 10)
+    m10 = LAST["mat"]
+    hill = (m10 == M_RIB10) | (m10 == M_WEB10)
+    rr_, cc_ = np.nonzero(hill)
+    east = cc_ >= 45
+    cells = list(zip(rr_[east], cc_[east]))
+    print("  the leak, recomputed on part XI's own final frame: "
+          "%d cells of vault showing through the open crossing"
+          % len(cells))
+    assert 20 < len(cells) < 60, len(cells)
+    draw(int((Z_END15 - 0.3) * FPS), stage)
+    mE = LAST["mat"]
+    closed = sum(1 for (r, c) in cells
+                 if mE[r, c] in (M_XNG15, M_LAN15, M_SPI15,
+                                 M_GHOST))
+    print("  at the end, %d/%d of those exact cells read the new "
+          "tower (or the drawing over it).  the sky the crossing "
+          "leaked since part X is closed, by name" %
+          (closed, len(cells)))
+    assert closed >= 0.8 * len(cells), (closed, len(cells))
+
+    # the rose is 60 m away and stays finished
+    newp = np.vstack([SPA15[0], ARC15[0], LAN15[0], SPI15[0]])
+    print("  the nearest new stone to the rose stands at x = %.1f "
+          "-- %.0f m from the light it cannot touch"
+          % (float(newp[:, 0].min()),
+             float(newp[:, 0].min()) - 0.0))
+    assert newp[:, 0].min() > 60.0
+    n_gl = int(np.isin(mE, (M_GLB13, M_GLR13)).sum())
+    assert n_gl < 300, n_gl
+
+    # ---------------- frame facts and probes
+    draw(int(4.5 * FPS), stage)
+    n_ar = int((LAST["mat"] == M_XNG15).sum())
+    print("  t=4.5 close: %d cells of arch and abutment" % n_ar)
+    assert n_ar > 250, n_ar
+    draw(int(9.5 * FPS), stage)
+    n_ln = int((LAST["mat"] == M_LAN15).sum())
+    print("  t=9.5: %d cells of lantern" % n_ln)
+    assert n_ln > 600, n_ln
+    draw(int(13.8 * FPS), stage)
+    n_sp = int((LAST["mat"] == M_SPI15).sum())
+    print("  t=13.8: %d cells of spire" % n_sp)
+    assert n_sp > 400, n_sp
+
+    def _pp(pts, mats, cam):
+        hit = 0
+        for p in pts:
+            c_, r_, _ = cam.project(_pose(np.asarray([p],
+                                                     np.float32)))
+            c0, r0 = int(round(c_[0])), int(round(r_[0]))
+            got = False
+            for dc in (-1, 0, 1):
+                for dr in (-1, 0, 1):
+                    if (0 <= r0 + dr < G.rows
+                            and 0 <= c0 + dc < G.cols
+                            and LAST["mat"][r0 + dr, c0 + dc]
+                            in mats):
+                        got = True
+            hit += got
+        return hit
+    spi_h = _pp([(XC15, 62.0, -9.0 * (86.0 - 62.0) / 28.0),
+                 (XC15, 70.0, -9.0 * (86.0 - 70.0) / 28.0),
+                 (XC15, 78.0, -9.0 * (86.0 - 78.0) / 28.0)],
+                (M_SPI15,), CAM_X15)
+    cap_h = _pp([(XC15, 85.6, 0.0)], (M_SPI15,), CAM_X15)
+    print("  probes -- three spire courses on the sunward face "
+          "%d/3, the capstone %d/1" % (spi_h, cap_h))
+    assert spi_h >= 2, spi_h
+    assert cap_h == 1, cap_h
+    # the south and west faces: the two the camera can see (part
+    # VI's lesson -- ask the frame which side the camera is on)
+    ymidw = 0.5 * (Y_SILL15 + Y_SPRW15)
+    lan_h = _pp([(XC15, ymidw, CROSS_Z), (65.5, ymidw, CROSS_Z),
+                 (X_TRAN, ymidw, 0.0)],
+                (M_LAN15,), CAM_X15)
+    print("  probes -- lantern wall between the lancets, south "
+          "and west faces %d/3" % lan_h)
+    assert lan_h >= 2, lan_h
+
+    # held-out: the apex.  In the close fit after the capstone, and
+    # in the final wide frame: the building's highest inked row
+    # must be the drawing's tip, measured off the pixels
+    draw(int(13.9 * FPS), stage)
+    r_sp = np.where((LAST["mat"] == M_SPI15).any(axis=1))[0]
+    _, ra_, _ = CAM_X15.project(_pose(np.array(
+        [[XC15, 85.8, 0.0]], np.float32)))
+    print("  held-out (close): spire top measured row %d vs drawn "
+          "%.1f" % (r_sp.min(), ra_.min()))
+    assert abs(r_sp.min() - ra_.min()) <= 3.0, (r_sp.min(), ra_)
+    # and a fact the model did not advertise: at 28 degrees of
+    # pitch, 86 m at the east end projects BELOW 78 m at the west
+    # end.  The spire is the tallest thing in the building and not
+    # the tallest thing in the picture -- the frame's top pixel
+    # still belongs to part XIV's north cap, exactly where the
+    # drawing puts it.
+    draw(int((Z_END15 - 0.3) * FPS), stage)
+    built = (LAST["mat"] > 0) & (LAST["mat"] != M_GHOST)
+    r_top = int(np.where(built.any(axis=1))[0].min())
+    r_spw = int(np.where((LAST["mat"] == M_SPI15)
+                         .any(axis=1))[0].min())
+    _, rw_, _ = CAM.project(_pose(np.array(
+        [[XC15, 86.0, 0.0], [CPX14, 78.0, -CPZ14]], np.float32)))
+    print("  held-out (wide): spire top pixel row %d vs drawn "
+          "%.1f; the frame's top pixel row %d vs the north cap's "
+          "drawn %.1f -- the spire is the tallest thing in the "
+          "building and NOT the tallest thing in the picture: "
+          "28 degrees of pitch puts the west caps %d rows above "
+          "it, and the drawing knew"
+          % (r_spw, rw_[0], r_top, rw_[1], r_spw - r_top))
+    assert abs(r_spw - rw_[0]) <= 3.0, (r_spw, rw_[0])
+    assert abs(r_top - rw_[1]) <= 5.0, (r_top, rw_[1])
+    assert r_top < r_spw, (r_top, r_spw)
+
+    # ---------------- THE FINAL CENSUS: all eighteen drawings
+    # the standing model: the legacy pile already reaches back to
+    # part I's footings, so nothing is counted twice
+    ALLP = np.vstack([_LEG15_P, SHAFT14[0], CRB14[0], ARCH14[0],
+                      BELF14[0], CAPL14[0],
+                      SPA15[0], ARC15[0], LAN15[0], SPI15[0]]
+                     + [part[0] for part, _ in GLZ13]
+                     ).astype(np.float32)
+    print("  THE FINAL CENSUS -- every mass in part I's drawing, "
+          "against everything ever built (the numbers are raw: "
+          "massing volumes interpenetrate, so the crossing's "
+          "abutments count inside the transept's box too):")
+    for name, kind, args in MASSES:
+        n, built_y, top = _mass_top(name, kind, args, ALLP)
+        print("    %-12s %6d pts   built to %5.1f of %5.1f"
+              % (name, n, built_y, top))
+
+    # THE REMAINDER, each line measured where the box alone cannot
+    # see it (the box says the transept reaches 36.0 -- that is the
+    # crossing's abutments standing inside it, not the arms)
+    ax, ay, az = ALLP[:, 0], ALLP[:, 1], ALLP[:, 2]
+    arm = ay[(ax > X_TRAN) & (ax < X_CHOIR)
+             & (np.abs(az) > AISLE_Z) & (np.abs(az) < 26.5)]
+    chr_ = ay[(ax > X_CHOIR + PIER_HW + 0.6) & (ax < X_APSE)
+              & (np.abs(az) < NAVE_Z)]
+    aps = ay[(ax > X_APSE) & (np.hypot(ax - X_APSE, az)
+                              < AISLE_Z + 0.5)]
+    rtr = ((ax > X_TRAN) & (ax < X_CHOIR) & (np.abs(az) > 9.5)
+           & (np.abs(az) < 26.0) & (ay > NAVE_Y) & (ay < 46.5))
+    rch = ((ax > 81.0) & (ax < X_APSE) & (np.abs(az) < NAVE_Z)
+           & (ay > NAVE_Y) & (ay < 46.5))
+    print("  THE REMAINDER -- what the programme leaves in the "
+          "ghost's keeping:")
+    print("    the transept arms   built to %5.1f of 36.0" %
+          float(arm.max()))
+    print("    the choir's inner storeys (east of the crossing "
+          "piers): built to %5.1f of 36.0" % float(chr_.max()))
+    print("    the apse            built to %5.1f of 36.0" %
+          float(aps.max()))
+    print("    roof_tran           %d points of roof beyond the "
+          "crossing block" % int(rtr.sum()))
+    print("    roof_choir          %d points of roof east of the "
+          "crossing" % int(rch.sum()))
+    print("    ...and two belfries that wait for their bells")
+    assert float(arm.max()) < 19.2, float(arm.max())
+    assert float(chr_.max()) < 19.2, float(chr_.max())
+    assert float(aps.max()) < 19.2, float(aps.max())
+    assert int(rtr.sum()) == 0, int(rtr.sum())
+    assert int(rch.sum()) == 0, int(rch.sum())
+    # and the caps are kept to within the cell size: a pyramid's
+    # tip is a point, and no lead ring narrower than 0.2 m exists
+    # at this resolution (part XIV's held-out read the apex row
+    # exact regardless)
+    capt = ay[(np.abs(ax - CPX14) < 6.5)
+              & (np.abs(np.abs(az) - CPZ14) < 6.5) & (ay > 64.0)]
+    print("  the caps stand to %.1f of a drawn tip at 78.0 -- the "
+          "last 0.8 m is a point no ring can carry" %
+          float(capt.max()))
+    assert float(capt.max()) > 77.0
+    print("  13 of 18 drawings are kept to their lines; the ghost "
+          "keeps 5: the transept arms, the choir's storeys, the "
+          "apse's crown, and two roofs.  the programme part I "
+          "published had fifteen stages; this was the fifteenth")
+
+    # the closing wide
+    n_new = int(np.isin(mE, (M_XNG15, M_LAN15, M_SPI15)).sum())
+    print("  the established view, closing: %d cells of crossing "
+          "tower and spire" % n_new)
+    assert n_new > 500, n_new
+
+    sheet = []
+    for t in (0.6, 2.1, 3.8, 5.5, 7.0, 8.8, 11.5, 13.7, 16.4):
+        fr = draw(int(t * FPS), stage)
+        ink, mat = LAST["ink"], LAST["mat"]
+        print("  t=%5.2f cov %.3f  xng %4d lan %4d spi %4d"
+              % (t, ink.mean(), (mat == M_XNG15).sum(),
+                 (mat == M_LAN15).sum(), (mat == M_SPI15).sum()))
+        # the crossing fit looks WEST along the whole church: the
+        # nave, its roof and both towers stand behind the new work,
+        # so this crop legitimately carries more ink than a subject
+        # against sky (part XIII's lesson: loosen with a reason and
+        # a look at the sheet, not silently)
+        assert 0.02 < ink.mean() < 0.68, ink.mean()
+        for (c0, r0, w_, h_) in LAST["boxes"]:
+            assert r0 - 1 >= G.safe_top, ("text above safe", r0)
+            assert r0 + h_ + 1 <= G.safe_bot, ("text below safe",
+                                               r0 + h_)
+            assert c0 - 1 >= 0 and c0 + w_ + 1 <= G.cols, ("width",
+                                                           c0, w_)
+        sheet.append(fr)
+    print("  video: %.1f s, %d frames (part XIV was %.1f)"
+          % (Z_END15, int(Z_END15 * FPS), Z_END14))
+    contact(sheet, os.path.join(_HERE, "..", "content",
+                                "cath_sheet.png"),
+            cols=3, labels=["0.6 the drawing", "2.1 the trim",
+                            "3.8 the arches", "5.5 the storey",
+                            "7.0 the lantern", "8.8 the boards",
+                            "11.5 the spire", "13.7 the capstone",
+                            "16.4 the whole of it"])
+
+
 def check(stage):
+    if stage == 14:
+        return check_spire(stage)
     if stage == 13:
         return check_towers(stage)
     if stage == 12:
