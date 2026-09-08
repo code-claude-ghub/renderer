@@ -81,6 +81,19 @@ ROSEST = (0.945, 0.898, 0.772) # the rose ring: the palest stone in the
 M_WF12, M_BAY12, M_ROSE12 = 26, 27, 28   # part XII: the face / the
                                # bay-0 backfill (the drawing gets built)
                                # / the oculus ring part XIII will fill
+TRCST = (0.958, 0.918, 0.800)  # part XIII: the pierced plate -- dressed
+                               # finer than the ring it stands in, at
+                               # half the wall's course
+GLASSB = (0.271, 0.373, 0.847) # cobalt blue: "cobalt makes deep blue",
+                               # 0.025-0.1% in soda-lime glass -- the
+                               # brilliant blue of Chartres (en-wiki
+                               # Stained glass, verified)
+GLASSR = (0.788, 0.220, 0.247) # copper red, flashed because "the colour
+                               # is too dense to be used alone"
+CAMEC = (0.263, 0.278, 0.310)  # lead, third appearance: the H-section
+                               # cames.  darker than the roof's skin --
+                               # a came is lead seen edge-on
+M_TRC13, M_CAME13, M_GLB13, M_GLR13 = 29, 30, 31, 32
 INNER = (0.694, 0.633, 0.506)  # stone seen through an opening: the
                                # passage's own shadow, not a new material
 
@@ -2423,6 +2436,221 @@ def vault12():
 
 
 # ---------------------------------------------------------------- stages
+# ------------------------------------------------------------ part XIII
+# THE ROSE WINDOW -- and the series' third confession, this one not in
+# a check print or a docstring but in a shipped DESCRIPTION.
+#
+# THE SENTENCE.  Part XII's description ends: "the ring holds 4.30 m of
+# empty circle, and it gets filled with the only material in this
+# building that is neither stone nor timber."  Audit it the way part
+# XI taught: a true number attached to a false sentence is a false
+# claim, so read what the SENTENCE says.  "The only material in this
+# building that is neither stone nor timber" -- but part XI laid a
+# lead skin over the whole roof, ~43 t of it, two episodes before the
+# sentence was written.  The definite description does not pick out
+# glass; read literally, it picks out LEAD.  And here is the turn: the
+# sentence comes TRUE AS WRITTEN, because glass cannot stand in a
+# window.  Every pane is held in H-section lead cames ("the glass
+# pieces were held together by thick lead strips" -- en-wiki Medieval
+# stained glass).  The ring does get filled with the material the
+# sentence forgot.  False as meant, true as written.  check_rose
+# recomputes the 43 t from part XI's own ledger and prints the
+# conviction.  (Also: 4.30 is the clear RADIUS.  The light is 8.6 m
+# across.  Say so plainly.)
+#
+# THE DESIGN.  A plate rose: "rose windows with pierced openings
+# rather than tracery occur in the transition between Romanesque and
+# Gothic... most notably at Chartres" (en-wiki Rose window) -- a disc
+# of stone pierced by circles, which is part VI's jamb lesson run
+# thirteen times.  Twelve lights, one at every hour, packed by the
+# tangent-circle closed form: lights of radius r_p centred at radius
+# c with a web of exactly WB13 between neighbours and the same WB13
+# to the rim -- two equations, and the middle is not designed at all:
+# the oculus is WHAT THE PACKING LEAVES (r_o = c - r_p - WB13).
+# Chartres' west rose (glass of 1215) "combines a large roundel at
+# the centre with the radiating spokes of a wheel window".  Ours
+# grows the roundel the same way the building grew everything: as a
+# remainder.
+#
+# THE INSTRUMENT.  Every walk so far carried gravity down a line.
+# The window's load is the first HORIZONTAL one: wind.  Beaufort
+# force 10 ("storm", 24.5-28.4 m/s, en-wiki) at the top of the band
+# gives q = 494 Pa; the whole disc catches ~2.9 t.  The worst web
+# takes its light's glass as a beam -- and works at ~0.3% of
+# limestone's modulus of rupture (1000 psi = 6.89 MPa, the ASTM C568
+# high-density minimum).  Part XII's discovery was oak at 60% of
+# breaking; the daintiest stonework in the building loafs.  The one
+# that works is the GLASS: a 3 mm pane between cames runs ~100x the
+# web's stress -- which is why "architectural glass must be at least
+# 1/8 of an inch (3 mm) thick to survive the push and pull of
+# typical wind loads" (en-wiki Stained glass): the wind SIZES the
+# glass, and the source says so.
+#
+# WHAT IS DERIVED AND WHAT IS CHOSEN.
+#   frozen   RI_ROSE12 = 4.300 (part XII's ring), YC on the
+#            springing line, the barrel x in [-4, 0].
+#   derived  r_p, c, r_o from N, WB13 and RI by the packing closed
+#            form; the equator row reads glass-stone-glass-stone-
+#            glass (two hour-lights and the oculus); every web
+#            exactly WB13 by construction.
+#   chosen   N = 12 (one light per hour -- named as a choice; the
+#            source gives Chartres no count), WB13 = D10W = 0.290
+#            (== RING5: the thinnest stone scantling this building
+#            has already trusted, part V's arcade ring), plate depth
+#            0.40, pane grid 0.35, glass 3 mm (source-verified
+#            minimum), came section 40 mm2.
+N_LT13 = 12                        # lights: one at every hour.  CHOSEN
+WB13 = D10W                        # 0.290 == RING5 -- the web between
+                                   # lights is never thinner than the
+                                   # thinnest ring already trusted
+_S13 = math.sin(math.pi / N_LT13)
+RP13 = ((2.0 * _S13 * (RI_ROSE12 - WB13) - WB13)
+        / (2.0 * (1.0 + _S13)))    # 0.709 -- light radius, derived
+CL13 = RI_ROSE12 - WB13 - RP13     # 3.301 -- centres' radius
+RO13 = CL13 - RP13 - WB13          # 2.301 -- the oculus is what the
+                                   # packing leaves, not a design
+TH13 = 0.40                        # plate depth.  CHOSEN
+XP13 = X_F0 + 0.35 + 0.5 * TH13    # plate mid-plane: high in the
+                                   # barrel, a deep reveal inside --
+                                   # the glass sits near the weather
+CRS13 = 0.5 * COURSE3              # 0.37 -- the glazier's masonry
+                                   # runs at half the wall's course
+GT13 = 0.003                       # glass: the source-verified 3 mm
+PANE13 = 0.35                      # came grid spacing.  CHOSEN
+V13 = 28.4                         # top of Beaufort 10 ("storm")
+Q13 = 0.5 * 1.225 * V13 ** 2       # 494 Pa
+MOR_LS13 = 6.89                    # limestone MOR, ASTM C568 high-
+                                   # density minimum (1000 psi)
+
+# the twelve hour-lights, (z, y) centres; glazed in rising order of
+# centre height -- panes go in from the bottom of the wheel up, the
+# oculus last (the biggest panel is the keystone of the glazing)
+_LT13 = [(CL13 * math.cos(math.radians(30.0 * k)),
+          YC_ROSE12 + CL13 * math.sin(math.radians(30.0 * k)))
+         for k in range(N_LT13)]
+GLZ_ORD13 = sorted(range(N_LT13), key=lambda k: _LT13[k][1])
+
+
+def _holes13(y):
+    """Cut intervals (z0, z1) a plate course at height y must honour:
+    the twelve lights and the oculus.  Part VI's jamb lesson, run
+    thirteen times per course."""
+    cuts = []
+    for (zc, yc) in _LT13 + [(0.0, YC_ROSE12)]:
+        r = RP13 if yc != YC_ROSE12 or zc != 0.0 else RO13
+        d2 = r * r - (y - yc) * (y - yc)
+        if d2 > 0.0:
+            h = math.sqrt(d2)
+            cuts.append((zc - h, zc + h))
+    return sorted(cuts)
+
+
+def plate13():
+    """The pierced disc, course by course from the sill up: each
+    course spans the chord of the clear light at its height, minus
+    the chords of whichever circles it crosses, end stones dressed AT
+    the jambs.  Half the wall's course: finer work."""
+    units = []
+    nc = int(math.ceil(2.0 * RI_ROSE12 / CRS13))
+    for k in range(nc):
+        y = YC_ROSE12 - RI_ROSE12 + (k + 0.5) * CRS13
+        d2 = RI_ROSE12 ** 2 - (y - YC_ROSE12) ** 2
+        if d2 <= 0.0:
+            continue
+        w = math.sqrt(d2)
+        segs, z0 = [], -w
+        for (a, b) in _holes13(y):
+            if a > z0:
+                segs.append((z0, min(a, w)))
+            z0 = max(z0, b)
+        if z0 < w:
+            segs.append((z0, w))
+        for (a, b) in segs:
+            if b - a < 0.05:
+                continue
+            n = max(1, int(round((b - a) / 0.55)))
+            ww = (b - a) / n
+            for i in range(n):
+                units.append(stone(XP13, y, a + (i + 0.5) * ww,
+                                   0.5 * TH13, CRS13 * 0.44, 0.47 * ww,
+                                   step=0.16))   # face-on plane: dense,
+                                   # or the cells behind win (part XI's
+                                   # sparse-cloud lesson)
+    return assemble(units), nc
+
+
+def _came_pts(zc, yc, r, xs):
+    """One light's lead: the border ring plus the pane grid, clipped
+    to the circle, as thin edge-on strips at plane x = xs."""
+    pts = []
+    n = max(10, int(round(2.0 * math.pi * r / 0.10)))
+    for i in range(n):
+        th = i / n * 2.0 * math.pi
+        pts.append((xs, yc + (r - 0.03) * math.sin(th),
+                    zc + (r - 0.03) * math.cos(th)))
+    m = int(math.floor(r / PANE13))
+    for j in range(-m, m + 1):
+        off = j * PANE13
+        h = math.sqrt(max(0.0, r * r - off * off)) - 0.04
+        if h <= 0.0:
+            continue
+        n = max(2, int(round(2.0 * h / 0.09)))
+        for i in range(n):
+            d = -h + (i + 0.5) / n * 2.0 * h
+            pts.append((xs, yc + off, zc + d))      # horizontal came
+            pts.append((xs, yc + d, zc + off))      # vertical came
+    return pts
+
+
+def cames13():
+    """The armature: every light's lead, in the glazing order, both
+    faces of the sandwich (the west shell wins the outside view, the
+    east shell wins the inside -- 0.09 m clear of the glass plane so
+    the z-buffer never has to guess: trap 8)."""
+    P, O = [], []
+    circles = ([(_LT13[k][0], _LT13[k][1], RP13) for k in GLZ_ORD13]
+               + [(0.0, YC_ROSE12, RO13)])
+    for i, (zc, yc, r) in enumerate(circles):
+        for xs in (XP13 - 0.09, XP13 + 0.09):
+            pts = _came_pts(zc, yc, r, xs)
+            P += pts
+            O += [(i + 0.5) / len(circles)] * len(pts)
+    P = np.asarray(P, np.float32)
+    P += RNG.normal(0.0, 0.012, P.shape).astype(np.float32)  # trap 10
+    N = np.zeros_like(P)
+    N[:, 0] = -1.0
+    return (P, N, np.asarray(O, np.float32)), len(circles)
+
+
+def glass13():
+    """Thirteen panels of light: a jittered disc of 3 mm glass per
+    light, drawn 0.05 inside the came border, panes rising bottom-up
+    within each light.  Returns them IN GLAZING ORDER with their
+    colours: hour-lights alternate cobalt and copper around the
+    wheel, the oculus is cobalt -- Chartres' ubiquitous blue."""
+    out = []
+    circles = ([(_LT13[k][0], _LT13[k][1], RP13,
+                 M_GLB13 if k % 2 == 0 else M_GLR13)
+                for k in GLZ_ORD13]
+               + [(0.0, YC_ROSE12, RO13, M_GLB13)])
+    for (zc, yc, r, mat) in circles:
+        pts = []
+        n = int(math.ceil(2.0 * r / 0.14))
+        for i in range(n):
+            for j in range(n):
+                z = zc - r + (i + 0.5) / n * 2.0 * r
+                y = yc - r + (j + 0.5) / n * 2.0 * r
+                if math.hypot(z - zc, y - yc) < r - 0.05:
+                    pts.append((XP13, y, z))
+        P = np.asarray(pts, np.float32)
+        P += RNG.normal(0.0, 0.02, P.shape).astype(np.float32)
+        N = np.zeros_like(P)
+        N[:, 0] = -1.0
+        O = (P[:, 1] - (yc - r)) / (2.0 * r)
+        out.append(((P, N, O.astype(np.float32)), mat))
+    return out
+
+
 STAGES = [
     "THE FOUNDATION",
     "THE CRYPT",
@@ -3066,6 +3294,73 @@ _w12pad[:, 1] = _W12_PTS[:, 1].min() - 11.0    # caption reserve: this
 CAM_W12 = Camera(G).fit([_pose_w12(np.vstack([_W12_PTS, _w12pad]))],
                         margin=1.05)
 
+# --- part XIII
+(PLATE13, N_PL13) = plate13()
+(CAME13, N_CIRC13) = cames13()
+GLZ13 = glass13()
+
+# hand-off: part XI's carpentry and lead join the legacy pile -- the
+# roof's discovery closed last episode, its probes with it.  Part
+# XII's face, backfill and ring keep their own materials one more:
+# this episode is judged against the ring's rim, and the held-out has
+# to find it.  Part X's vault materials, kept alive twice, merge too.
+# The east boards do NOT merge: still temporary carpentry, and they
+# must go on reading as the one thing here that is not stone.
+_LEG13_P = np.vstack([_LEG12_P] +
+                     [p[0] for (p, _) in _R11_STAND] +
+                     [VR12[0], VW12[0]]).astype(np.float32)
+_LEG13_N = np.vstack([_LEG12_N] +
+                     [p[1] for (p, _) in _R11_STAND] +
+                     [VR12[1], VW12[1]]).astype(np.float32)
+_W13_STAND = ((WFP12, M_BAY12), (WFA12, M_BAY12), (WFT12, M_BAY12),
+              (WFC12, M_BAY12), (FACEA12, M_WF12), (PJ12, M_WF12),
+              (PA12, M_WF12), (FACEB12, M_WF12), (FACEC12, M_WF12),
+              (RING12, M_ROSE12))
+
+# THE ROSE FIT.  Part XII's elevation gives the 30 m face ~66
+# columns: 2.2 a metre, so a 0.29 m web crosses two thirds of ONE
+# CELL.  Visible but unresolvable, the third time those words have
+# forced a camera (V's merge, VII's screen, and now this) -- and the
+# first time the fix is the same drawing at a closer fit rather than
+# a different drawing.  Fitted to the ring plus a storey pad.
+_R13_PTS = np.vstack([RING12[0], PLATE13[0]]).astype(np.float32)
+_r13pad = _R13_PTS.copy()
+_r13pad[:, 1] = _R13_PTS[:, 1].min() - 4.5
+CAM_R13 = Camera(G).fit([_pose_w12(np.vstack([_R13_PTS, _r13pad]))],
+                        margin=1.06)
+
+# THE INTERIOR.  Stained glass has no outside: the exterior beats
+# show the panels near-black, because a window is read by transmitted
+# light and the lit side is behind it.  So the payoff frame stands in
+# the nave and looks WEST -- yaw -90, the sign part XII probed and
+# rejected for its exterior (the "wrong way" was always this
+# episode's way) -- through a section cut at 1.7 bays, part VII's
+# "simply not drawn" for everything east of it.
+I_YAW13, I_PITCH13 = -90.0, T_PITCH7
+XCUT13 = X_NAVE + 1.7 * BAY5
+
+
+def _pose_i13(p):
+    return _pose_at(p, I_YAW13, I_PITCH13)
+
+
+def _i13(part):
+    m = part[0][:, 0] < XCUT13
+    return (part[0][m], part[1][m], part[2][m])
+
+
+_LEG13I_P = _LEG13_P[_LEG13_P[:, 0] < XCUT13]
+_LEG13I_N = _LEG13_N[_LEG13_P[:, 0] < XCUT13]
+_W13_STAND_I = tuple((_i13(p), m) for (p, m) in _W13_STAND)
+# fitted to the SAME ring the outside fit used: the payoff frame is
+# the exterior frame with the building turned around it.  The line-0
+# arch and the vault may bleed off the edges; graphics may (trap 3 is
+# about words).
+_i13pad = _R13_PTS.copy()
+_i13pad[:, 1] = _R13_PTS[:, 1].min() - 4.5
+CAM_I13 = Camera(G).fit([_pose_i13(np.vstack([_R13_PTS, _i13pad]))],
+                        margin=1.06)
+
 
 # ---------------------------------------------------------------- timeline
 T_GHOST, T_HOLD, T_DIG, T_LAY, T_END = 1.5, 2.4, 3.6, 9.9, 12.4
@@ -3251,8 +3546,22 @@ S_TOP12 = (14.5, 15.5)
 S_BACK12 = 15.8
 S_END12 = 16.9
 
+# part XIII.  Three frames: the established view (the face as part
+# XII left it), the rose fit (the build), the interior (the payoff --
+# the only side a window has).  The sun does the last part of the
+# build: nothing is added in the interior beat except light.
+Z_GHOST13 = 0.9
+Z_CUT13 = 1.4                      # to the rose fit
+Z_PLATE13 = (1.7, 5.2)             # the pierced disc, course by course
+Z_CAME13 = (5.5, 7.3)              # the lead armature, wheel-bottom up
+Z_GLZ13 = (7.5, 10.6)              # thirteen panels, oculus last
+Z_IN13 = 11.0                      # to the nave, looking west
+Z_SUN13 = (11.4, 14.2)             # the light arrives
+Z_BACK13 = 14.7                    # back outside: nothing changed
+Z_END13 = 16.2
+
 T_ENDS = [T_END, C_END, H_END, Q_END, P_END, A_END, V_END, W_END, X_END,
-          Z_END, R_END, S_END12]
+          Z_END, R_END, S_END12, Z_END13]
 LAST = {}
 
 
@@ -3292,7 +3601,7 @@ def draw(f, stage):
     return (draw_foundation, draw_crypt, draw_choir, draw_transept,
             draw_nave, draw_aisles, draw_triforium,
             draw_clerestory, draw_buttress, draw_vault,
-            draw_roof, draw_westfront)[stage](f, stage)
+            draw_roof, draw_westfront, draw_rose)[stage](f, stage)
 
 
 def _label(fr, t, stage, t0=0.8):
@@ -4014,6 +4323,90 @@ def draw_westfront(f, stage):
     return fr
 
 
+def draw_rose(f, stage):
+    """Part XIII.  Open on the face as part XII left it; cut to the
+    rose fit and pierce the disc, lead it, glaze it -- thirteen
+    near-black panels, because glass has no outside.  Then the nave,
+    looking west through the section cut, while the sun does the only
+    part of the build a mason cannot: the light arrives.  Back
+    outside at the end, where nothing changed."""
+    t = f / float(FPS)
+    inside = Z_IN13 <= t < Z_BACK13
+    close = Z_CUT13 <= t < Z_IN13
+    cam = CAM_I13 if inside else (CAM_R13 if close else CAM)
+    pose = _pose_i13 if inside else (_pose_w12 if close else _pose)
+    buf = {"sh": np.zeros((G.rows, G.cols)),
+           "mat": np.zeros((G.rows, G.cols), np.int16),
+           "z": np.full((G.rows, G.cols), -1e9)}
+
+    def win(w):
+        return (t - w[0]) / (w[1] - w[0])
+
+    if not inside:
+        gfade = min(1.0, t / Z_GHOST13)
+        n = int(len(GHOST) * gfade) if t < Z_CUT13 else len(GHOST)
+        if n > 8:
+            col, row, z = cam.project(pose(GHOST[:n]))
+            lift = 1.0 + 0.55 * min(1.0, max(0.0, (t - Z_BACK13 - 0.3)
+                                             / 1.1))
+            sh = ((0.20 + 0.34 * depth_cue(z, 1.0, 0.30))
+                  * (0.72 + 0.28 * gfade) * lift)
+            _put(buf, col, row, z + 4000.0, sh, M_GHOST, False)
+        legp, legn = _LEG13_P, _LEG13_N
+        stand = _W13_STAND
+        amb_s, gain_s = 0.17, 0.44
+    else:
+        # the nave at dusk: the stone goes down to its lowest levels
+        # yet, because the episode's light source is the window now --
+        # but not to zero: the arch has to stay in the frame it makes
+        legp, legn = _LEG13I_P, _LEG13I_N
+        stand = _W13_STAND_I
+        amb_s, gain_s = 0.11, 0.20
+
+    col, row, z = cam.project(pose(legp))
+    sh = (amb_s + gain_s * lambert(legn, LAMP)) * depth_cue(z, 1.0, 0.86)
+    _put7(buf, col, row, z, np.clip(sh, 0.04, 1.0),
+          np.full(len(z), M_OLD, np.int16))
+    for part, mat in stand:
+        _grow7(buf, part, 1.0, mat, LAMP, amb_s, gain_s * 1.35, cam, pose)
+    if not inside:
+        _grow7(buf, GBE12, 1.0, M_TIMB11, LAMP, 0.17, 0.44, cam, pose)
+
+    # the new work
+    pl = _i13(PLATE13) if inside else PLATE13
+    cm = _i13(CAME13) if inside else CAME13
+    _grow7(buf, pl, win(Z_PLATE13), M_TRC13, LAMP,
+           amb_s + 0.09, gain_s * 1.5, cam, pose)
+
+    # thirteen panels of glass on the glazing clock; the lead goes on
+    # with its light.  Outside they are read by REFLECTED light: near
+    # black.  Inside, transmitted: the sun ramps them up while every
+    # stone around them goes dark.
+    u_sun = min(1.0, max(0.0, win(Z_SUN13)))
+    g_amb = (0.30 + 0.62 * u_sun) if inside else 0.145
+    dur = (Z_GLZ13[1] - Z_GLZ13[0]) / len(GLZ13)
+    for i, (part, mat) in enumerate(GLZ13):
+        u = (t - (Z_GLZ13[0] + i * dur)) / dur
+        gp = _i13(part) if inside else part
+        if u > 0.0 and len(gp[0]):
+            P, N_, O = gp
+            m = O <= min(1.0, u)
+            if m.any():
+                c_, r_, z_ = cam.project(pose(P[m]))
+                _put7(buf, c_, r_, z_,
+                      np.full(int(m.sum()), g_amb),
+                      np.full(int(m.sum()), mat, np.int16))
+    _grow7(buf, cm, win(Z_CAME13), M_CAME13, LAMP,
+           0.30 if inside else 0.10, 0.10, cam, pose)
+
+    LAST["u13"] = min(1.0, max(0.0, win(Z_GLZ13)))
+    LAST["inside"] = inside
+
+    fr = _paint(buf)
+    _label(fr, t, stage)
+    return fr
+
+
 def draw_foundation(f, stage):
     t = f / float(FPS)
     buf = {"sh": np.zeros((G.rows, G.cols)),
@@ -4083,7 +4476,9 @@ def colour(v, m):
             M_BUT9: STONE, M_FLY9: STONE, M_COP9: STONE,
             M_RIB10: STONE, M_WEB10: STONE,
             M_TIMB11: OAK, M_LEAD11: LEAD,
-            M_WF12: FACEST, M_BAY12: STONE, M_ROSE12: ROSEST}[int(m)]
+            M_WF12: FACEST, M_BAY12: STONE, M_ROSE12: ROSEST,
+            M_TRC13: TRCST, M_CAME13: CAMEC,
+            M_GLB13: GLASSB, M_GLR13: GLASSR}[int(m)]
     t = np.clip(0.22 + 0.78 * v, 0.0, 1.0)
     return blend(BG, base, t)
 
@@ -7071,7 +7466,315 @@ def check_westfront(stage):
                             "16.3 a face"])
 
 
+def check_rose(stage):
+    print("THE CATHEDRAL — part %s, %s" % (roman(stage + 1), STAGES[stage]))
+    print("  the clear light: radius %.3f m -- %.1f m across.  (part "
+          "XII's plant said '4.30 m of empty circle'; 4.30 is the "
+          "RADIUS.  say so plainly)" % (RI_ROSE12, 2 * RI_ROSE12))
+
+    # RULE 1.  The established view has not drifted.
+    d = np.abs(_pose_at(GHOST, -58.0, 28.0) - _pose(GHOST)).max()
+    print("  established view unchanged: max disagreement %.2e m" % d)
+    assert d < 1e-3, d
+
+    # THE CONVICTION.  Part XII's description, last sentence: the ring
+    # "gets filled with the only material in this building that is
+    # neither stone nor timber."  Recompute part XI's lead from its own
+    # ledger (part X's precedent: recompute the number you are
+    # correcting, never quote yourself).
+    rho_lead = 11.34
+    L_deck = NAVE_Z / math.cos(THETA11)
+    A_deck = 2 * L_deck * 62.0
+    w_lead = A_deck * 0.0024 * rho_lead
+    print("  THE SENTENCE: 'the only material in this building that "
+          "is neither stone nor timber.'  the building holds %.1f t "
+          "of lead (%d model points of it, laid in part XI, two "
+          "episodes before the sentence was shipped).  the definite "
+          "description picks out LEAD, not glass" % (w_lead,
+                                                     len(LEADS11[0])))
+    assert len(LEADS11[0]) > 0
+    assert 40.0 < w_lead < 47.0, w_lead
+
+    # ...and the turn: the sentence comes true as written, because
+    # glass cannot stand in a window without the material it forgot.
+    A_disc = math.pi * RI_ROSE12 ** 2
+    A_light = math.pi * RP13 ** 2
+    A_glass = N_LT13 * A_light + math.pi * RO13 ** 2
+    came_len = 0.0
+    for (Ai, ri, k) in ((A_light, RP13, N_LT13),
+                        (math.pi * RO13 ** 2, RO13, 1)):
+        came_len += k * (2.0 * Ai / PANE13 + 2.0 * math.pi * ri)
+    m_came = came_len * rho_lead * 1000.0 * 40e-6
+    m_glass = A_glass * 2500.0 * GT13
+    print("  the fix arrives holding the glass: %.0f m of H-section "
+          "came = %.0f kg of new lead.  false as meant, true as "
+          "written.  (roof lead outweighs it %d to 1)"
+          % (came_len, m_came, int(round(1000.0 * w_lead / m_came))))
+    assert 200.0 < came_len < 400.0, came_len
+
+    # THE PACKING.  Lights tangent-with-web: two closed forms, and
+    # the oculus is what the packing leaves.
+    web_n = 2.0 * (CL13 * _S13 - RP13)
+    web_r = RI_ROSE12 - (CL13 + RP13)
+    print("  the packing: %d lights r=%.3f at c=%.3f; web between "
+          "neighbours %.6f, web to the rim %.6f -- both exactly "
+          "%.3f (== RING5, the thinnest stone this building has "
+          "trusted since part V)" % (N_LT13, RP13, CL13, web_n,
+                                     web_r, WB13))
+    assert abs(web_n - WB13) < 1e-9, web_n
+    assert abs(web_r - WB13) < 1e-9, web_r
+    assert abs(WB13 - D10W) < 1e-12
+    print("  the oculus is the REMAINDER: r_o = c - r_p - web = "
+          "%.3f m -- bigger than the lights it is left by (Chartres' "
+          "west rose: 'a large roundel at the centre with the "
+          "radiating spokes of a wheel window')" % RO13)
+    assert RO13 == CL13 - RP13 - WB13
+    assert RO13 > RP13, (RO13, RP13)
+    eq = sum(1 for k in range(N_LT13)
+             if abs(math.sin(math.radians(30.0 * k))) < 1e-9)
+    assert eq == 2, eq
+    assert _LT13[GLZ_ORD13[0]][1] == min(p[1] for p in _LT13)
+    print("  glazed from the wheel's bottom up, oculus last: the "
+          "biggest panel is the keystone of the glazing")
+
+    # THE INSTRUMENT.  The first horizontal load this series has
+    # carried: Beaufort 10 at the top of the band.
+    F_disc = Q13 * A_disc
+    L_w = 2.0 * RP13
+    w_lin = Q13 * A_light / L_w
+    M_w = w_lin * L_w ** 2 / 8.0
+    S_w = WB13 * TH13 ** 2 / 6.0
+    sig = M_w / S_w / 1e6
+    print("  WIND: storm (Beaufort 10, top of band %.1f m/s) -> q = "
+          "%.0f Pa; the whole disc catches %.1f kN = %.2f t "
+          "(the face behind it weighs 10,893)"
+          % (V13, Q13, F_disc / 1e3, F_disc / 9810.0))
+    print("  worst web: one light's glass as a %.2f m beam -> "
+          "%.4f MPa = %.2f%% of limestone's MOR (%.2f MPa, ASTM "
+          "C568 high-density min).  part XII's oak stood at 60%%; "
+          "the daintiest stonework in the building loafs"
+          % (L_w, sig, 100.0 * sig / MOR_LS13, MOR_LS13))
+    assert sig < 0.05, sig
+    assert sig / MOR_LS13 < 0.01
+    sig_g = 0.287 * Q13 * PANE13 ** 2 / GT13 ** 2 / 1e6
+    print("  the member that WORKS is the glass: a %.0f mm pane "
+          "between cames runs %.2f MPa -- %d x the web's stress.  "
+          "'architectural glass must be at least 1/8 of an inch "
+          "(3 mm) thick to survive the push and pull of typical "
+          "wind loads': the wind sizes the glass, and the source "
+          "says so" % (GT13 * 1e3, sig_g, int(round(sig_g / sig))))
+    assert 50.0 < sig_g / sig < 200.0, sig_g / sig
+
+    # TONNAGE.  The first element measured in kilograms.
+    hole = A_glass / A_disc
+    m_win = m_glass + m_came
+    print("  the disc is %.1f%% hole (the wall was 14.2).  glass "
+          "%.0f kg + lead %.0f kg = %.0f kg of window in a "
+          "10,893 t face -- %d to 1"
+          % (100.0 * hole, m_glass, m_came, m_win,
+             int(round(10893e3 / m_win))))
+    assert 0.55 < hole < 0.70, hole
+    assert m_win < 600.0, m_win
+
+    # THE SEAT IS A CIRCLE.  Part XII audited a seat that was a line;
+    # this element bears on a rim all the way round.  24 arcs: each
+    # must hold plate AND ring.
+    pp = PLATE13[0]
+    rp_ = np.hypot(pp[:, 2], pp[:, 1] - YC_ROSE12)
+    rim = pp[(rp_ > RI_ROSE12 - 0.25)]
+    rg = RING12[0]
+    ath_p = np.arctan2(rim[:, 1] - YC_ROSE12, rim[:, 2])
+    ath_r = np.arctan2(rg[:, 1] - YC_ROSE12, rg[:, 2])
+    bins_p = set(((ath_p + math.pi) / (2 * math.pi) * 24).astype(int)
+                 % 24)
+    bins_r = set(((ath_r + math.pi) / (2 * math.pi) * 24).astype(int)
+                 % 24)
+    print("  the seat probe, circular: plate rim in %d/24 arcs, ring "
+          "behind it in %d/24" % (len(bins_p), len(bins_r)))
+    assert len(bins_p) == 24, len(bins_p)
+    assert len(bins_r) == 24, len(bins_r)
+
+    # THE ZOOM IS FORCED.  Same drawing, closer fit: measure both.
+    two = np.array([[X_F0, YC_ROSE12, -0.5], [X_F0, YC_ROSE12, 0.5]],
+                   np.float32)
+    cw_, _, _ = CAM_W12.project(_pose_w12(two))
+    cr_, _, _ = CAM_R13.project(_pose_w12(two))
+    cpm_w = abs(int(cw_[1]) - int(cw_[0]))
+    cpm_r = abs(int(cr_[1]) - int(cr_[0]))
+    print("  part XII's elevation: %d col/m -> a %.2f m web crosses "
+          "%.1f cells.  the rose fit: %d col/m -> %.1f.  visible "
+          "but unresolvable, third time, and the fix is the same "
+          "drawing closer" % (cpm_w, WB13, cpm_w * WB13, cpm_r,
+                              cpm_r * WB13))
+    assert cpm_w * WB13 < 1.0, cpm_w * WB13
+    assert cpm_r * WB13 >= 1.8, cpm_r * WB13
+
+    # FRAME FACTS.
+    draw(int(4.9 * FPS), stage)
+    npl = int((LAST["mat"] == M_TRC13).sum())
+    print("  t=4.9 the pierced disc: %d cells of plate" % npl)
+    assert npl > 300, npl
+
+    draw(int(10.75 * FPS), stage)
+    m_fn = LAST["mat"].copy()
+    sh_fn = LAST["sh"].copy()
+    gm = (m_fn == M_GLB13) | (m_fn == M_GLR13)
+    sh_out = float(sh_fn[gm].mean())
+    print("  t=10.75 glazed, from OUTSIDE: %d cells of glass at mean "
+          "shade %.3f -- near-black.  a window is read by "
+          "transmitted light and the lit side is behind it"
+          % (int(gm.sum()), sh_out))
+    assert gm.sum() > 400, gm.sum()
+    assert sh_out < 0.25, sh_out
+
+    draw(int(11.6 * FPS), stage)
+    g1 = (LAST["mat"] == M_GLB13) | (LAST["mat"] == M_GLR13)
+    s1 = float(LAST["sh"][g1].mean())
+    draw(int(14.0 * FPS), stage)
+    m_in = LAST["mat"].copy()
+    g2 = (m_in == M_GLB13) | (m_in == M_GLR13)
+    s2 = float(LAST["sh"][g2].mean())
+    print("  INSIDE: glass shade %.3f as the beat opens, %.3f when "
+          "the sun is in -- the light is the build (%.1f x the "
+          "outside reading)" % (s1, s2, s2 / sh_out))
+    assert s2 > s1 + 0.15, (s1, s2)
+    assert s2 > 3.0 * sh_out, (s2, sh_out)
+    nblu = int((m_in == M_GLB13).sum())
+    nred = int((m_in == M_GLR13).sum())
+    print("  cobalt %d cells, copper %d -- the wheel alternates, "
+          "the oculus is blue" % (nblu, nred))
+    assert nblu > nred > 100, (nblu, nred)
+
+    # HELD OUT: the hole fraction, read off the pixels.  The OPENING
+    # is glass plus lead -- a came is part of the window, not of the
+    # wall -- so (glass + came) / (glass + came + plate) answers the
+    # model's A_glass / A_disc.  Tolerance derived from edge cells:
+    # every metre of circle boundary owns ~half a cell of ambiguity.
+    per = (N_LT13 * 2 * math.pi * RP13 + 2 * math.pi * RO13
+           + 2 * math.pi * RI_ROSE12)
+    ng = int(gm.sum())
+    ncm = int((m_fn == M_CAME13).sum())
+    npl_ = int((m_fn == M_TRC13).sum())
+    frac = (ng + ncm) / float(ng + ncm + npl_)
+    tol = 0.5 * per * cpm_r / (A_disc * cpm_r ** 2) + 0.02
+    print("  HELD OUT -- %d glass + %d came / %d plate cells: "
+          "opening fraction %.3f vs model %.3f (err %.3f, tol %.3f "
+          "from %d m of circle edge)"
+          % (ng, ncm, npl_, frac, hole, abs(frac - hole), tol,
+             int(per)))
+    assert abs(frac - hole) < tol, (frac, hole, tol)
+    # ...and the lead's share of the opening on screen: a real came
+    # is a centimetre wide; a rendered one cannot be thinner than a
+    # cell, which at %d col/m is 1000/cpm mm.  The result is the
+    # period look, verbatim: "thick lead strips, creating a graphic
+    # and sometimes blocky look."
+    print("  the lead holds %.0f%% of the opening's cells -- a cell "
+          "is %.0f mm and a came cannot render thinner.  'thick "
+          "lead strips... a graphic and sometimes blocky look'"
+          % (100.0 * ncm / (ng + ncm), 1000.0 / cpm_r))
+
+    # the equator crosses THREE openings (light, oculus, light) --
+    # and inside them, the lead slices the glass into panes: derive
+    # the pane count and read both off the row.
+    opn = gm | (m_fn == M_CAME13)
+    rr_, cc_ = np.nonzero(gm)
+    row_eq = int(np.round(0.5 * (rr_.min() + rr_.max())))
+
+    def _runs(mask):
+        n_, prev = 0, False
+        for c_ in range(G.cols):
+            isg = any(mask[r__, c_] for r__ in (row_eq - 1, row_eq,
+                                                row_eq + 1))
+            if isg and not prev:
+                n_ += 1
+            prev = isg
+        return n_
+
+    runs_o = _runs(opn)
+    runs_g = _runs(gm)
+    panes = 2 * (2 * int(RP13 / PANE13) + 1) + (2 * int(RO13 / PANE13)
+                                                + 1)
+    print("  the equator row: %d openings (two hour-lights and the "
+          "oculus); %d runs of glass against %d panes the came grid "
+          "cuts there" % (runs_o, runs_g, panes))
+    assert runs_o == 3, runs_o
+    assert 0.6 * panes <= runs_g <= 1.15 * panes, (runs_g, panes)
+
+    # PROBES, model-dictated (part VI): three webs, three panels.
+    def probe(mm, pts, ids):
+        c_, r_, _ = CAM_R13.project(_pose_w12(np.asarray(pts,
+                                                         np.float32)))
+        vals = [int(mm[rr2, cc2]) for rr2, cc2 in zip(r_, c_)
+                if 0 <= rr2 < G.rows and 0 <= cc2 < G.cols]
+        return vals and any(v in ids for v in vals)
+
+    wb_h = sum(probe(m_fn, [[XP13 - 0.25,
+                             YC_ROSE12 + CL13 * math.sin(a) + dy,
+                             CL13 * math.cos(a)] for dy in (-0.1, 0.0,
+                                                            0.1)],
+                     (M_TRC13,))
+               for a in (math.radians(15), math.radians(75),
+                         math.radians(195)))
+    # probe MID-PANE: the came grid puts a lead cross exactly through
+    # every centre (j = 0 in both directions), so a centre probe
+    # reads lead every time -- correctly.
+    gl_h = sum(probe(m_fn, [[XP13, y_ + 0.5 * PANE13 + dy,
+                             z_ + 0.5 * PANE13] for dy in (-0.05, 0.0,
+                                                           0.05)],
+                     (M_GLB13, M_GLR13))
+               for (z_, y_) in ((0.0, YC_ROSE12),
+                                (0.0, YC_ROSE12 - CL13),
+                                (0.0, YC_ROSE12 + CL13)))
+    print("  probes -- webs at 15/75/195 degrees %d/3; mid-pane "
+          "glass in the oculus, six and twelve o'clock %d/3 (a "
+          "CENTRE probe reads lead: the grid crosses there)"
+          % (wb_h, gl_h))
+    assert wb_h >= 2, wb_h
+    assert gl_h >= 2, gl_h
+
+    # ...and the established view at the end: the episode from out
+    # here.  Count what changed.
+    draw(int((Z_END13 - 0.3) * FPS), stage)
+    gw = (LAST["mat"] == M_GLB13) | (LAST["mat"] == M_GLR13)
+    print("  the established view, closing: %d cells of near-black "
+          "glass in a %d-cell frame.  from out here, nothing "
+          "changed.  that is what a window is"
+          % (int(gw.sum()), int(LAST["ink"].sum())))
+    assert gw.sum() < 300, gw.sum()
+
+    sheet = []
+    for t in (0.6, 2.0, 4.6, 6.6, 8.8, 10.75, 11.8, 14.0, 15.9):
+        fr = draw(int(t * FPS), stage)
+        ink, mat = LAST["ink"], LAST["mat"]
+        print("  t=%5.2f cov %.3f  trc %4d came %4d glB %4d glR %4d"
+              % (t, ink.mean(), (mat == M_TRC13).sum(),
+                 (mat == M_CAME13).sum(), (mat == M_GLB13).sum(),
+                 (mat == M_GLR13).sum()))
+        # the rose fit is a crop INSIDE a wall: high coverage IS the
+        # subject there (measured 0.75 at full glazing, and the sheet
+        # was looked at), so the ceiling is looser than the house 0.60
+        assert 0.02 < ink.mean() < 0.80, ink.mean()
+        for (c0, r0, w_, h_) in LAST["boxes"]:
+            assert r0 - 1 >= G.safe_top, ("text above safe", r0)
+            assert r0 + h_ + 1 <= G.safe_bot, ("text below safe",
+                                               r0 + h_)
+            assert c0 - 1 >= 0 and c0 + w_ + 1 <= G.cols, ("width",
+                                                           c0, w_)
+        sheet.append(fr)
+    print("  video: %.1f s, %d frames (part XII was %.1f)"
+          % (Z_END13, int(Z_END13 * FPS), S_END12))
+    contact(sheet, os.path.join(_HERE, "..", "content",
+                                "cath_sheet.png"),
+            cols=3, labels=["0.6 the face", "2.0 the empty ring",
+                            "4.6 pierced", "6.6 the lead",
+                            "8.8 glazing", "10.75 dark outside",
+                            "11.8 inside", "14.0 the sun",
+                            "15.9 nothing changed"])
+
+
 def check(stage):
+    if stage == 12:
+        return check_rose(stage)
     if stage == 11:
         return check_westfront(stage)
     if stage == 10:
